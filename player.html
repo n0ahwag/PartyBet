@@ -38,74 +38,56 @@
                 db.ref(`rooms/${ROOM_ID}`).on('value', s => setRoom(s.val()));
             }, []);
 
-            const joinWaitingRoom = () => {
-                if (!name) return;
+            const join = () => {
+                if(!name) return;
                 localStorage.setItem('pb_name', name);
                 db.ref(`rooms/${ROOM_ID}/waitingRoom/${name}`).set(true);
                 setJoined(true);
             };
 
-            if (!room) return <div className="p-10 text-center uppercase font-black opacity-20">Lade...</div>;
+            if (!room) return <div className="p-20 text-center font-black">LADE ARENA...</div>;
 
             if (!joined) return (
-                <div className="max-w-md mx-auto p-8 pt-20 text-center">
-                    <h1 className="text-3xl font-black italic uppercase mb-8 text-indigo-600">Dein Name</h1>
-                    <input value={name} onChange={e => setName(e.target.value)} placeholder="z.B. Lukas" className="w-full bg-white border-4 border-slate-100 p-5 rounded-3xl mb-4 font-bold text-xl outline-none focus:border-indigo-500 transition-all" />
-                    <button onClick={joinWaitingRoom} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black uppercase shadow-xl">Dem Spiel beitreten</button>
+                <div className="max-w-md mx-auto p-10 pt-20 text-center">
+                    <h1 className="text-4xl font-black italic text-indigo-600 mb-10">PARTYBET</h1>
+                    <input value={name} onChange={e => setName(e.target.value)} placeholder="Dein Name" className="w-full bg-white border-4 border-slate-100 p-6 rounded-3xl mb-4 font-bold text-xl outline-none" />
+                    <button onClick={join} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black uppercase shadow-xl">Join Waiting Room</button>
                 </div>
             );
 
-            // Finde heraus, in welchem Team ich bin
-            let myTeamIdx = -1;
-            let myMemberIdx = -1;
-            room.teams?.forEach((t, ti) => {
-                t.members?.forEach((m, mi) => {
-                    if (m.name === name) { myTeamIdx = ti; myMemberIdx = mi; }
-                });
-            });
+            // Team Suche
+            let tIdx = -1; let mIdx = -1;
+            room.teams?.forEach((t, i) => t.members?.forEach((m, j) => { if(m.name === name) { tIdx = i; mIdx = j; } }));
 
-            if (myTeamIdx === -1) return (
-                <div className="max-w-md mx-auto p-10 pt-40 text-center animate-pulse">
-                    <h2 className="text-4xl mb-4">⌛</h2>
-                    <p className="font-black uppercase italic text-slate-400">Warte auf Team-Zuweisung am TV...</p>
-                    <p className="text-xs font-bold text-indigo-500 mt-2">Eingeloggt als: {name}</p>
+            if (tIdx === -1) return (
+                <div className="max-w-md mx-auto p-10 pt-40 text-center">
+                    <div className="text-6xl animate-bounce mb-8">🚀</div>
+                    <p className="font-black uppercase italic text-slate-400">Team-Check läuft...</p>
+                    <p className="text-indigo-600 font-bold mt-4 italic">{name}, schau auf den Fernseher!</p>
                 </div>
             );
 
-            const myTeam = room.teams[myTeamIdx];
-            const isBookie = (room.round % 2 === 0) ? myMemberIdx === 0 : myMemberIdx === 1;
-            const athlete = (room.round % 2 === 0) ? myTeam.members[1] : myTeam.members[0];
+            const myTeam = room.teams[tIdx];
 
             return (
                 <div className="max-w-md mx-auto bg-white min-h-screen flex flex-col border-x border-slate-100">
-                    <div className="p-6 flex justify-between items-center border-b">
+                    <header className="p-6 border-b flex justify-between items-center">
                         <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-full text-white flex items-center justify-center font-black text-xl border-4 border-white shadow-lg" style={{backgroundColor: myTeam.color}}>{name[0]}</div>
-                            <div><p className="font-black text-lg leading-none">{name}</p><p className="text-[10px] font-bold text-indigo-500 uppercase mt-1 italic">{isBookie ? 'Buchmacher 💰' : 'Athlet 🏃'}</p></div>
+                            <div><p className="font-black text-lg">{name}</p><p className="text-[10px] font-bold text-indigo-500 uppercase italic">{myTeam.name}</p></div>
                         </div>
                         <div className="text-right font-black text-indigo-600 text-xl">{myTeam.credits} <span className="text-[8px] block uppercase text-slate-300">Gems</span></div>
-                    </div>
+                    </header>
 
-                    <div className="flex-1 p-8 text-center">
-                        {room.phase === 'betting' && isBookie ? (
-                            <div className="animate-in fade-in duration-500">
-                                <h3 className="font-black italic uppercase text-xl mb-2 text-slate-400">Deine Wette</h3>
-                                <p className="text-[10px] font-bold uppercase mb-8">Auf Partner: {athlete.name}</p>
-                                <div className="grid grid-cols-2 gap-4">
-                                    {room.teams.map((_, i) => (
-                                        <button key={i} onClick={() => db.ref(`rooms/${ROOM_ID}/bets/team_${myTeamIdx}`).set({rank: i+1, amount: 20})} className={`p-6 rounded-3xl font-black text-3xl shadow-sm border-2 transition-all ${room.bets?.[`team_${myTeamIdx}`]?.rank === i+1 ? 'bg-indigo-600 text-white border-indigo-600 scale-95' : 'bg-white border-slate-100'}`}>#{i+1}</button>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="py-20 opacity-20 italic font-black uppercase text-3xl leading-tight">Schau auf den<br/>Fernseher</div>
-                        )}
-                    </div>
+                    <main className="flex-1 p-8 text-center flex flex-col justify-center">
+                        {room.phase === 'movement' && <div className="italic font-black text-slate-200 text-5xl uppercase">Arena<br/>Action!</div>}
+                        {room.phase === 'selection' && <div className="italic font-black text-indigo-600 text-3xl uppercase animate-pulse">Neues Spiel<br/>wird gewählt...</div>}
+                    </main>
 
-                    <div className="p-6 border-t flex gap-4 bg-slate-50 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
-                        <button className="flex-1 bg-white p-4 rounded-2xl font-black text-[10px] uppercase border shadow-sm">Wetten</button>
-                        <a href="shop.html" className="flex-1 bg-indigo-600 text-white p-4 rounded-2xl font-black text-[10px] uppercase text-center shadow-lg active:scale-95 transition-all">Shop öffnen ➔</a>
-                    </div>
+                    <footer className="p-6 border-t flex gap-4 bg-slate-50">
+                        <button className="flex-1 bg-white p-4 rounded-2xl font-black text-[10px] uppercase border shadow-sm">Home</button>
+                        <a href="shop.html" className="flex-1 bg-indigo-600 text-white p-4 rounded-2xl font-black text-[10px] uppercase text-center shadow-lg active:scale-95 transition-all">Shop & Inventar ➔</a>
+                    </footer>
                 </div>
             );
         }
