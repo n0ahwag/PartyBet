@@ -3,28 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PartyBet LIVE - Pro Edition</title>
+    <title>PartyBet Pro - STABLE LIVE</title>
     
-    <!-- React & Firebase SDKs -->
+    <!-- Core Scripts -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Firebase Compat (Wichtig für CDN-Nutzung) -->
+    <!-- Firebase Compat SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; background-image: radial-gradient(#E2E8F0 1.5px, transparent 1.5px); background-size: 30px 30px; }
-        .card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
-        .island-board { position: relative; width: 100%; height: 400px; background: #f0f9ff; border-radius: 3rem; overflow: hidden; border: 2px solid #e2e8f0; }
-        .path-dot { position: absolute; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; transform: translate(-50%, -50%); background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; }
-        .token { width: 22px; height: 22px; border-radius: 50%; border: 2px solid white; position: absolute; z-index: 20; transition: all 1s cubic-bezier(0.34, 1.56, 0.64, 1); transform: translate(-50%, -50%); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
-        .pill { border-radius: 9999px; }
-        .dice-rolling { animation: roll 0.1s infinite; }
-        @keyframes roll { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(10deg) scale(1.1); } 100% { transform: rotate(-10deg) scale(1); } }
+        .card-shadow { box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05); }
+        .island-board { position: relative; width: 100%; height: 400px; background: #E0F2FE; border-radius: 2.5rem; border: 4px solid #BAE6FD; overflow: hidden; }
+        .path-dot { position: absolute; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; transform: translate(-50%, -50%); background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .token { width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; position: absolute; z-index: 20; transform: translate(-50%, -50%); transition: all 1s ease-in-out; }
     </style>
 </head>
 <body>
@@ -33,7 +30,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- FIREBASE CONFIGURATION (DEINE DATEN) ---
+        // --- FIREBASE CONFIG (DEINE DATEN) ---
         const firebaseConfig = {
             apiKey: "AIzaSyA95lwHyq0cZ5z7si_woAn8iKFeFqtoDv8",
             authDomain: "partybe-d44b7.firebaseapp.com",
@@ -41,258 +38,265 @@
             projectId: "partybe-d44b7",
             storageBucket: "partybe-d44b7.firebasestorage.app",
             messagingSenderId: "960737105971",
-            appId: "1:960737105971:web:55482d6ea806bca6a36b46",
-            measurementId: "G-X2LG51BEXY"
+            appId: "1:960737105971:web:55482d6ea806bca6a36b46"
         };
 
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const db = firebase.database();
-        const ROOM_ID = "ABEND_1"; // Fester Raum-ID für eure Gruppe
+        const ROOM_ID = "PARTY_SESSION_1";
 
         const TEAM_COLORS = ['#6366F1', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#EC4899'];
+        const GAMES = [
+            { name: "Bierdeckel-Flip", rules: "Wer flippt am meisten Deckel von der Tischkante?" },
+            { name: "Socken-Weitwurf", rules: "Zielsicher Socken in einen Korb werfen." },
+            { name: "Karten-Haus", rules: "Baut in 60 Sek. das höchste Haus." },
+            { name: "Eis-Schmelzer", rules: "Wer schmilzt den Eiswürfel nur mit den Händen?" }
+        ];
         const BOARD_PATH = Array.from({length: 30}, (_, i) => ({
             x: 10 + (i % 10) * 8.5,
-            y: 20 + Math.floor(i / 10) * 32 + (i % 2 === 0 ? 4 : 0)
+            y: 20 + Math.floor(i / 10) * 30 + (i % 2 === 0 ? 5 : 0)
         }));
 
-        function PartyBetLiveApp() {
-            const [view, setView] = useState('choice'); // choice, tv, player-join, player-game
-            const [roomData, setRoomData] = useState(null);
-            const [myIdentity, setMyIdentity] = useState(null); // {teamIndex, memberIndex}
+        function App() {
+            const [view, setView] = useState('gate'); // gate, tv, player
+            const [room, setRoom] = useState(null);
+            const [myId, setMyId] = useState(null); // {tIdx, pIdx}
+            const [isSpinning, setIsSpinning] = useState(false);
 
-            // Sync mit Firebase
+            // Sync mit Database
             useEffect(() => {
-                const roomRef = db.ref(`rooms/${ROOM_ID}`);
-                roomRef.on('value', (snapshot) => {
-                    setRoomData(snapshot.val());
-                });
-                return () => roomRef.off();
+                const ref = db.ref(`rooms/${ROOM_ID}`);
+                ref.on('value', (s) => setRoom(s.val()));
+                return () => ref.off();
             }, []);
 
-            // Helper: In Datenbank schreiben
-            const updateDB = (updates) => {
-                db.ref(`rooms/${ROOM_ID}`).update(updates);
-            };
+            const updateDB = (path, val) => db.ref(`rooms/${ROOM_ID}/${path}`).set(val);
 
-            // --- SPIEL LOGIK ---
-            const createGame = () => {
-                const initialData = {
-                    loopPhase: 'setup',
-                    roundCount: 1,
+            // --- GAME ACTIONS ---
+            const initRoom = () => {
+                db.ref(`rooms/${ROOM_ID}`).set({
+                    phase: 'setup',
+                    round: 1,
                     teams: [],
                     bets: {},
-                    selectedGame: null,
                     results: {},
-                    diceVal: 1
-                };
-                db.ref(`rooms/${ROOM_ID}`).set(initialData);
+                    dice: 1,
+                    game: null
+                });
                 setView('tv');
             };
 
-            const addTeam = (tName, p1, p2) => {
-                const currentTeams = roomData?.teams || [];
-                const newTeam = {
-                    name: tName,
-                    members: [{name: p1, initials: p1[0].toUpperCase()}, {name: p2, initials: p2[0].toUpperCase()}],
-                    credits: 100,
-                    position: 0,
-                    color: TEAM_COLORS[currentTeams.length % TEAM_COLORS.length],
-                    inventory: []
-                };
-                updateDB({ [`teams/${currentTeams.length}`]: newTeam });
+            const spinRoulette = () => {
+                setIsSpinning(true);
+                let i = 0;
+                const timer = setInterval(() => {
+                    updateDB('game', GAMES[i % GAMES.length]);
+                    i++;
+                    if (i > 15) {
+                        clearInterval(timer);
+                        setIsSpinning(false);
+                    }
+                }, 150);
             };
 
-            const getRoles = (team, round) => {
-                const isEven = round % 2 === 0;
-                return {
-                    athlete: isEven ? team.members[1] : team.members[0],
-                    bookie: isEven ? team.members[0] : team.members[1]
-                };
+            const calculateResults = () => {
+                const currentTeams = [...room.teams];
+                const updatedTeams = currentTeams.map((t, idx) => {
+                    const bet = room.bets?.[`team_${idx}`];
+                    // In ungeraden Runden spielt Member 0, in geraden Member 1
+                    const athlete = room.round % 2 === 0 ? t.members[1] : t.members[0];
+                    const resultRank = room.results?.[athlete.name];
+                    
+                    if (bet && resultRank && parseInt(bet.rank) === parseInt(resultRank)) {
+                        return { ...t, credits: t.credits + (bet.amount * room.teams.length) };
+                    } else if (bet) {
+                        return { ...t, credits: Math.max(0, t.credits - bet.amount) };
+                    }
+                    return t;
+                });
+                updateDB('teams', updatedTeams);
+                updateDB('phase', 'movement');
             };
 
-            // --- VIEWS ---
+            // --- RENDER VIEWS ---
 
-            // 1. Initialer Screen (Wer bist du?)
-            if (view === 'choice' || !roomData) return (
-                <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-                    <h1 className="text-5xl font-black italic text-indigo-600 mb-12 tracking-tighter uppercase">PartyBet Live</h1>
-                    <div className="grid grid-cols-1 gap-6 w-full max-w-sm">
-                        <button onClick={createGame} className="bg-white p-8 rounded-[2.5rem] card-shadow font-black uppercase italic border-b-8 border-indigo-600 hover:scale-105 transition-all">📺 Als Fernseher starten</button>
-                        <button onClick={() => setView('player-join')} className="bg-white p-8 rounded-[2.5rem] card-shadow font-black uppercase italic border-b-8 border-slate-300 hover:scale-105 transition-all">📱 Als Handy beitreten</button>
+            // Gate: Wer bist du?
+            if (view === 'gate') return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-white">
+                    <h1 className="text-4xl font-black italic text-indigo-600 mb-12 uppercase tracking-tighter">PartyBet LIVE</h1>
+                    <div className="grid gap-4 w-full max-w-xs">
+                        <button onClick={initRoom} className="bg-indigo-600 text-white p-6 rounded-3xl font-black uppercase italic shadow-xl">📺 Fernseher</button>
+                        <button onClick={() => setView('player')} className="bg-white border-2 border-slate-100 p-6 rounded-3xl font-black uppercase italic shadow-md">📱 Handy</button>
                     </div>
                 </div>
             );
 
-            // 2. Setup (Nur am Fernseher sichtbar)
-            if (view === 'tv' && roomData.loopPhase === 'setup') return (
-                <div className="max-w-2xl mx-auto py-12 px-6 text-center">
-                    <h2 className="text-3xl font-black italic uppercase mb-8">Team Anmeldung</h2>
-                    <div className="bg-white p-8 rounded-[2.5rem] card-shadow mb-8 border border-gray-100">
-                        <input id="tn" placeholder="Team Name" className="w-full bg-gray-50 border-none rounded-2xl p-4 mb-2 font-bold outline-none ring-2 ring-transparent focus:ring-indigo-500" />
-                        <div className="flex gap-2 mb-4">
-                            <input id="p1" placeholder="Spieler A" className="flex-1 bg-gray-50 border-none rounded-2xl p-4 outline-none" />
-                            <input id="p2" placeholder="Spieler B" className="flex-1 bg-gray-50 border-none rounded-2xl p-4 outline-none" />
-                        </div>
-                        <button onClick={() => {addTeam(document.getElementById('tn').value, document.getElementById('p1').value, document.getElementById('p2').value); document.getElementById('tn').value=''; document.getElementById('p1').value=''; document.getElementById('p2').value='';}} className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold uppercase text-xs">Team hinzufügen +</button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 mb-10">
-                        {roomData.teams?.map((t, i) => <div key={i} className="bg-white p-3 rounded-xl font-bold text-xs uppercase shadow-sm border-l-4" style={{borderColor: t.color}}>{t.name}</div>)}
-                    </div>
-                    <button disabled={!roomData.teams || roomData.teams.length < 2} onClick={() => updateDB({loopPhase: 'selection'})} className="w-full bg-indigo-600 text-white py-5 rounded-full font-black shadow-xl uppercase italic tracking-widest active:scale-95 transition-all disabled:opacity-20">Spiel Starten ➔</button>
-                </div>
-            );
-
-            // 3. Join-Screen für Spieler am Handy
-            if (view === 'player-join') return (
-                <div className="max-w-md mx-auto py-20 px-6 text-center">
-                    <h2 className="text-2xl font-black italic uppercase mb-10">Wer bist du?</h2>
-                    <div className="space-y-4">
-                        {roomData.teams?.map((t, teamIdx) => (
-                            <div key={teamIdx} className="bg-white p-6 rounded-[2rem] card-shadow border border-gray-100">
-                                <p className="font-black text-xs uppercase mb-4" style={{color: t.color}}>{t.name}</p>
-                                <div className="flex gap-2">
-                                    <button onClick={() => {setMyIdentity({teamIdx, memberIdx: 0}); setView('player-game');}} className="flex-1 bg-slate-50 p-3 rounded-xl font-bold text-xs uppercase hover:bg-indigo-600 hover:text-white transition-all">{t.members[0].name}</button>
-                                    <button onClick={() => {setMyIdentity({teamIdx, memberIdx: 1}); setView('player-game');}} className="flex-1 bg-slate-50 p-3 rounded-xl font-bold text-xs uppercase hover:bg-indigo-600 hover:text-white transition-all">{t.members[1].name}</button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    <button onClick={() => setView('choice')} className="mt-10 text-xs font-bold text-gray-400 uppercase underline tracking-widest">Zurück</button>
-                </div>
-            );
-
-            // 4. PLAYER GAME INTERFACE (Handy)
-            if (view === 'player-game' && myIdentity) {
-                const t = roomData.teams[myIdentity.teamIdx];
-                const p = t.members[myIdentity.memberIdx];
-                const { athlete, bookie } = getRoles(t, roomData.roundCount);
-                const isMyTurnToBet = p.name === bookie.name;
-
-                return (
-                    <div className="max-w-md mx-auto p-8 bg-white min-h-screen flex flex-col border-x border-gray-100">
-                        <div className="flex items-center gap-4 mb-10">
-                            <div className="w-14 h-14 rounded-full text-white flex items-center justify-center font-black text-xl border-4 border-white shadow-md" style={{backgroundColor: t.color}}>{p.name[0]}</div>
-                            <div>
-                                <h2 className="text-2xl font-black italic uppercase leading-none">{p.name}</h2>
-                                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1 italic">
-                                    {isMyTurnToBet ? 'Du bist der Buchmacher 💰' : 'Du bist der Athlet 🏃'}
-                                </p>
-                            </div>
-                        </div>
-
-                        {roomData.loopPhase === 'betting' ? (
-                            isMyTurnToBet ? (
-                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    <p className="text-center text-[10px] font-bold text-gray-400 uppercase mb-6 tracking-widest italic">Deine Wette auf {athlete.name}</p>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {roomData.teams.map((_, i) => (
-                                            <button 
-                                                key={i} 
-                                                onClick={() => db.ref(`rooms/${ROOM_ID}/bets/team_${myIdentity.teamIdx}`).set({ready: true, rankTip: i+1, amount: 20})} 
-                                                className={`p-6 rounded-3xl font-black text-3xl shadow-sm border border-gray-100 transition-all ${roomData.bets?.[`team_${myIdentity.teamIdx}`]?.rankTip === i + 1 ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-white'}`}
-                                            >
-                                                #{i+1}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    {roomData.bets?.[`team_${myIdentity.teamIdx}`]?.ready && <p className="mt-6 text-center text-emerald-500 font-bold uppercase text-[10px] animate-pulse">Wette platziert!</p>}
-                                </div>
-                            ) : (
-                                <div className="flex-1 flex flex-col items-center justify-center text-center opacity-30 italic">
-                                    <p className="text-6xl mb-4">👟</p>
-                                    <p className="font-black uppercase tracking-tighter text-xl">Du spielst diese Runde!</p>
-                                    <p className="text-[10px] font-bold uppercase mt-2">Bereit machen zum Minispiel</p>
-                                </div>
-                            )
-                        ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center text-center opacity-20 italic">
-                                <p className="text-6xl mb-6">📺</p>
-                                <p className="font-black uppercase tracking-tighter text-3xl">Live Arena</p>
-                                <p className="text-[10px] font-bold uppercase mt-2">Schau auf den Fernseher</p>
-                            </div>
-                        )}
-                        <div className="mt-auto pt-6 border-t border-gray-100 text-center"><p className="font-black text-indigo-600 text-2xl leading-none">{t.credits} <span className="text-[10px] uppercase text-gray-400">Gems</span></p></div>
-                    </div>
-                );
-            }
-
-            // 5. TV MAIN SCREEN
+            // TV VIEW
             if (view === 'tv') return (
-                <div className="p-8 max-w-7xl mx-auto min-h-screen flex flex-col">
-                    <div className="flex justify-between items-start mb-10">
-                        <div>
-                            <span className="text-indigo-600 font-bold uppercase tracking-widest text-[10px] italic">Runde {roomData.roundCount}</span>
-                            <h1 className="text-4xl font-black uppercase italic tracking-tighter">Live Arena</h1>
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            {roomData.teams?.map((t, i) => (
-                                <div key={i} className="bg-white px-5 py-3 rounded-2xl shadow-sm border-t-4" style={{borderColor: t.color}}>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">{t.name}</p>
-                                    <p className="text-lg font-black">{t.credits}</p>
-                                </div>
+                <div className="p-8 max-w-7xl mx-auto">
+                    <div className="flex justify-between items-start mb-8">
+                        <div><p className="text-indigo-600 font-bold uppercase text-[10px]">Runde {room?.round || 1}</p><h1 className="text-4xl font-black uppercase italic tracking-tighter">Live Arena</h1></div>
+                        <div className="flex gap-2">
+                            {room?.teams?.map((t, i) => (
+                                <div key={i} className="bg-white px-4 py-2 rounded-2xl shadow-sm border-t-4" style={{borderColor: t.color}}><p className="text-[8px] font-bold text-gray-400 uppercase leading-none">{t.name}</p><p className="text-sm font-black">{t.credits} CR</p></div>
                             ))}
                         </div>
                     </div>
 
-                    <div className="flex-1 bg-white rounded-[3rem] shadow-2xl p-10 flex flex-col items-center justify-center relative border border-white overflow-hidden">
-                        {roomData.loopPhase === 'selection' && (
-                            <div className="text-center animate-in fade-in zoom-in duration-700">
-                                <h2 className="text-5xl font-black uppercase italic tracking-tighter mb-8">Nächstes Spiel</h2>
-                                <div className="h-24 flex items-center justify-center">
-                                    {roomData.selectedGame ? <p className="text-3xl font-black text-indigo-600 animate-bounce uppercase italic">{roomData.selectedGame.name}</p> : <p className="text-gray-300 font-bold italic">Warte auf Roulette...</p>}
+                    <div className="bg-white rounded-[3rem] card-shadow p-10 min-h-[500px] flex flex-col items-center justify-center relative border border-white overflow-hidden">
+                        {room?.phase === 'setup' && (
+                            <div className="max-w-md text-center">
+                                <h2 className="text-2xl font-black mb-6 uppercase">Team Setup</h2>
+                                <div className="space-y-2 mb-6">
+                                    <input id="tn" placeholder="Team Name" className="w-full bg-slate-50 p-4 rounded-xl font-bold border-none" />
+                                    <input id="p1" placeholder="Spieler 1" className="w-1/2 bg-slate-50 p-4 rounded-xl" /><input id="p2" placeholder="Spieler 2" className="w-1/2 bg-slate-50 p-4 rounded-xl" />
+                                    <button onClick={() => {
+                                        const teams = room.teams || [];
+                                        const newT = {name: document.getElementById('tn').value, members: [{name: document.getElementById('p1').value}, {name: document.getElementById('p2').value}], credits: 100, position: 0, color: TEAM_COLORS[teams.length % TEAM_COLORS.length]};
+                                        updateDB(`teams/${teams.length}`, newT);
+                                    }} className="w-full bg-slate-900 text-white p-3 rounded-xl font-bold uppercase text-xs">Team hinzufügen +</button>
                                 </div>
-                                <button onClick={() => updateDB({selectedGame: {name: "Bierdeckel-Flip"}})} className="bg-indigo-600 text-white pill px-12 py-5 font-black shadow-xl uppercase italic active:scale-95 transition-all">Roulette drehen 🎲</button>
-                                {roomData.selectedGame && <button onClick={() => updateDB({loopPhase: 'betting'})} className="block mt-8 mx-auto text-xs font-bold text-gray-400 uppercase tracking-widest italic hover:text-indigo-600">Buchmacher-Phase öffnen ➔</button>}
+                                <button disabled={!room?.teams || room.teams.length < 2} onClick={() => updateDB('phase', 'selection')} className="w-full bg-indigo-600 text-white py-4 rounded-full font-black uppercase italic disabled:opacity-20">Spiel Starten ➔</button>
                             </div>
                         )}
 
-                        {roomData.loopPhase === 'betting' && (
-                            <div className="w-full max-w-4xl px-10 text-center">
-                                <h2 className="text-2xl font-black uppercase italic mb-10 tracking-widest text-indigo-900">Die Buchmacher wetten am Handy...</h2>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                    {roomData.teams.map((t, i) => {
-                                        const { athlete } = getRoles(t, roomData.roundCount);
-                                        const betReady = roomData.bets?.[`team_${i}`]?.ready;
-                                        return (
-                                            <div key={i} className={`p-8 rounded-[2.5rem] border-4 transition-all duration-500 ${betReady ? 'border-emerald-400 bg-emerald-50 scale-105' : 'border-slate-50 bg-slate-50/50 opacity-40'}`}>
-                                                <p className="font-black text-[10px] uppercase mb-1" style={{color: t.color}}>{t.name}</p>
-                                                <p className="text-[8px] font-bold text-gray-400 uppercase mb-4 italic">Athlet: {athlete.name}</p>
-                                                <p className="text-5xl">{betReady ? '✅' : '⏳'}</p>
-                                            </div>
-                                        );
-                                    })}
+                        {room?.phase === 'selection' && (
+                            <div className="text-center">
+                                <h2 className="text-4xl font-black uppercase italic mb-8">Nächstes Spiel</h2>
+                                <div className="h-32 flex items-center justify-center">
+                                    {room.game && (
+                                        <div className="bg-indigo-50 p-6 rounded-3xl border-2 border-indigo-200 animate-pulse">
+                                            <p className="text-3xl font-black text-indigo-600 uppercase italic">{room.game.name}</p>
+                                            <p className="text-xs font-bold text-indigo-400 mt-2">{room.game.rules}</p>
+                                        </div>
+                                    )}
                                 </div>
-                                <button disabled={Object.keys(roomData.bets || {}).length < roomData.teams.length} onClick={() => updateDB({loopPhase: 'movement'})} className="mt-12 bg-indigo-600 text-white pill px-14 py-5 font-black shadow-xl uppercase tracking-widest disabled:opacity-20">Alle Tipps drin! ➔</button>
+                                {!isSpinning && <button onClick={spinRoulette} className="bg-indigo-600 text-white px-10 py-4 rounded-full font-black uppercase mt-8 shadow-lg">Roulette 🎲</button>}
+                                {room.game && !isSpinning && <button onClick={() => updateDB('phase', 'betting')} className="block mt-4 mx-auto text-xs font-bold text-gray-400 uppercase tracking-widest italic hover:text-indigo-600">Zur Wettphase ➔</button>}
                             </div>
                         )}
 
-                        {roomData.loopPhase === 'movement' && (
-                            <div className="w-full h-full flex flex-col">
-                                <div className="island-board flex-1 mb-8 shadow-inner relative">
-                                    {BOARD_PATH.map((p, i) => <div key={i} className="path-dot" style={{left: `${p.x}%`, top: `${p.y}%`}}></div>)}
-                                    {roomData.teams.map((t, i) => <div key={i} className="token" style={{left: `${BOARD_PATH[t.position].x}%`, top: `${BOARD_PATH[t.position].y}%`, backgroundColor: t.color}}></div>)}
+                        {room?.phase === 'betting' && (
+                            <div className="text-center w-full max-w-3xl">
+                                <h2 className="text-2xl font-black uppercase mb-10 italic">Buchmacher wetten...</h2>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {room.teams.map((t, i) => (
+                                        <div key={i} className={`p-6 rounded-3xl border-4 transition-all ${room.bets?.[`team_${i}`] ? 'border-emerald-400 bg-emerald-50' : 'border-slate-50 bg-slate-50 opacity-40'}`}>
+                                            <p className="font-black text-[10px] uppercase mb-1" style={{color: t.color}}>{t.name}</p>
+                                            <p className="text-4xl">{room.bets?.[`team_${i}`] ? '✅' : '⏳'}</p>
+                                        </div>
+                                    ))}
                                 </div>
-                                <div className="flex justify-between items-center bg-slate-50 p-6 rounded-[2rem] border border-gray-100 shadow-xl">
-                                    <div className="flex gap-2 flex-wrap max-w-md">
-                                        {roomData.teams.map((t, i) => <button key={i} onClick={() => { 
-                                            const val = Math.floor(Math.random() * 6) + 1;
-                                            const newPos = Math.min(29, t.position + val);
-                                            updateDB({[`teams/${i}/position`]: newPos, diceVal: val});
-                                        }} className="text-white text-[9px] font-black pill px-4 py-2 uppercase shadow-sm active:scale-90 transition-all" style={{backgroundColor: t.color}}>{t.name} Wurf</button>)}
+                                <button disabled={Object.keys(room.bets || {}).length < room.teams.length} onClick={() => updateDB('phase', 'results')} className="mt-10 bg-indigo-600 text-white px-10 py-4 rounded-full font-black uppercase">Action & Auswertung ➔</button>
+                            </div>
+                        )}
+
+                        {room?.phase === 'results' && (
+                            <div className="w-full max-w-md text-center">
+                                <h2 className="text-2xl font-black mb-6 uppercase italic">Wer hat gewonnen?</h2>
+                                {room.teams.map((_, i) => (
+                                    <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl mb-2">
+                                        <span className="font-bold text-indigo-600">Platz {i+1}</span>
+                                        <select onChange={(e) => updateDB(`results/${e.target.value}`, i+1)} className="bg-white border rounded p-1 font-bold text-xs outline-none">
+                                            <option value="">Wähle Athlet...</option>
+                                            {room.teams.map(t => {
+                                                const athlete = room.round % 2 === 0 ? t.members[1] : t.members[0];
+                                                return <option key={athlete.name} value={athlete.name}>{athlete.name} ({t.name})</option>;
+                                            })}
+                                        </select>
                                     </div>
-                                    <div className="w-16 h-16 bg-white border-4 border-slate-900 rounded-2xl flex items-center justify-center text-3xl font-black">{roomData.diceVal}</div>
-                                    <button onClick={() => {updateDB({loopPhase: 'selection', roundCount: roomData.roundCount + 1, selectedGame: null, bets: {}});}} className="bg-slate-900 text-white pill px-8 py-4 font-black text-xs uppercase italic tracking-tighter hover:bg-black transition-all">Nächste Runde ➔</button>
+                                ))}
+                                <button onClick={calculateResults} className="w-full bg-indigo-600 text-white py-4 rounded-full font-black mt-4 shadow-lg">Auswerten ➔</button>
+                            </div>
+                        )}
+
+                        {room?.phase === 'movement' && (
+                            <div className="w-full h-full p-4 flex flex-col">
+                                <div className="island-board flex-1 mb-4">
+                                    {BOARD_PATH.map((p, i) => <div key={i} className="path-dot" style={{left: `${p.x}%`, top: `${p.y}%`}}></div>)}
+                                    {room.teams.map((t, i) => <div key={i} className="token" style={{left: `${BOARD_PATH[t.position].x}%`, top: `${BOARD_PATH[t.position].y}%`, backgroundColor: t.color}} />)}
+                                </div>
+                                <div className="flex justify-between items-center bg-slate-50 p-4 rounded-3xl border">
+                                    <div className="flex gap-1 flex-wrap max-w-sm">
+                                        {room.teams.map((t, i) => <button key={i} onClick={() => {
+                                            const v = Math.floor(Math.random() * 6) + 1;
+                                            updateDB(`teams/${i}/position`, Math.min(29, t.position + v));
+                                            updateDB('dice', v);
+                                        }} className="text-white text-[8px] font-black p-2 rounded-lg uppercase shadow-sm" style={{backgroundColor: t.color}}>{t.name}</button>)}
+                                    </div>
+                                    <div className="w-12 h-12 bg-white border-2 border-slate-900 rounded-xl flex items-center justify-center text-xl font-black">{room.dice}</div>
+                                    <button onClick={() => {
+                                        updateDB('phase', 'selection'); updateDB('round', room.round + 1); updateDB('game', null); updateDB('bets', {}); updateDB('results', {});
+                                    }} className="bg-indigo-600 text-white p-3 rounded-xl font-black text-[10px] uppercase">Nächste Runde</button>
                                 </div>
                             </div>
                         )}
                     </div>
+                </div>
+            );
+
+            // PLAYER VIEW
+            if (view === 'player') return (
+                <div className="max-w-md mx-auto p-8 bg-white min-h-screen">
+                    <h2 className="text-xl font-black uppercase mb-8">Wähle dein Team</h2>
+                    {!myId ? (
+                        <div className="grid gap-2">
+                            {room?.teams?.map((t, ti) => (
+                                <div key={ti} className="bg-slate-50 p-4 rounded-2xl">
+                                    <p className="text-[10px] font-bold text-gray-400 mb-2 uppercase">{t.name}</p>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => setMyId({ti, pi:0})} className="flex-1 bg-white p-2 rounded-lg border font-bold text-xs uppercase">{t.members[0].name}</button>
+                                        <button onClick={() => setMyId({ti, pi:1})} className="flex-1 bg-white p-2 rounded-lg border font-bold text-xs uppercase">{t.members[1].name}</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div>
+                            {(() => {
+                                const t = room.teams[myId.ti];
+                                const p = t.members[myId.pi];
+                                const isEven = room.round % 2 === 0;
+                                const isBookie = isEven ? myId.pi === 0 : myId.pi === 1;
+                                const athlete = isEven ? t.members[1] : t.members[0];
+
+                                return (
+                                    <div className="flex flex-col h-full">
+                                        <div className="flex items-center gap-4 mb-10">
+                                            <div className="w-12 h-12 rounded-full text-white flex items-center justify-center font-black text-xl" style={{backgroundColor: t.color}}>{p.name[0]}</div>
+                                            <div><h3 className="text-xl font-black italic uppercase leading-none">{p.name}</h3><p className="text-[10px] font-bold text-indigo-500 uppercase mt-1 italic">{isBookie ? 'Buchmacher 💰' : 'Athlet 🏃'}</p></div>
+                                        </div>
+
+                                        {room.phase === 'betting' && isBookie ? (
+                                            <div>
+                                                <p className="text-center text-[10px] font-bold text-gray-400 uppercase mb-4 italic leading-tight">Welchen Platz belegt {athlete.name}?</p>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {room.teams.map((_, i) => (
+                                                        <button key={i} onClick={() => updateDB(`bets/team_${myId.ti}`, {rank: i+1, amount: 20})} className={`p-6 rounded-2xl font-black text-2xl shadow-sm border-2 ${room.bets?.[`team_${myId.ti}`]?.rank === i+1 ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-50 bg-white'}`}>#{i+1}</button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex-1 flex flex-col items-center justify-center text-center opacity-20 italic h-64">
+                                                <p className="text-6xl mb-4">📺</p>
+                                                <p className="font-black uppercase italic text-2xl tracking-tighter">Schau auf den Screen</p>
+                                            </div>
+                                        )}
+                                        <div className="mt-10 pt-4 border-t border-slate-100 text-center font-black text-indigo-600 text-xl">{t.credits} CR</div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
                 </div>
             );
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<PartyBetLiveApp />);
+        root.render(<App />);
     </script>
 </body>
 </html>
