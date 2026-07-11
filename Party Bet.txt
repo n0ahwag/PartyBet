@@ -1,0 +1,532 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Trophy, Users, Coins, Play, Dice6, 
+  ShoppingCart, Star, Bomb, Rocket, 
+  EyeOff, CheckCircle2, ChevronRight,
+  AlertCircle, RefreshCw, Trash2, User
+} from 'lucide-react';
+
+// --- KONFIGURATION & THEME ---
+const COLORS = [
+  { name: 'Rot', bg: 'bg-red-500', border: 'border-red-700', shadow: 'shadow-red-900/40' },
+  { name: 'Blau', bg: 'bg-blue-500', border: 'border-blue-700', shadow: 'shadow-blue-900/40' },
+  { name: 'Grün', bg: 'bg-green-500', border: 'border-green-700', shadow: 'shadow-green-900/40' },
+  { name: 'Gelb', bg: 'bg-yellow-400', border: 'border-yellow-600', shadow: 'shadow-yellow-900/40' },
+  { name: 'Lila', bg: 'bg-purple-500', border: 'border-purple-700', shadow: 'shadow-purple-900/40' },
+  { name: 'Orange', bg: 'bg-orange-500', border: 'border-orange-700', shadow: 'shadow-orange-900/40' },
+];
+
+const FIELD_TYPES = ['plus', 'minus', 'event', 'shop', 'normal'];
+const BOARD_SIZE = 40;
+
+// --- HILFSFUNKTIONEN ---
+const generateBoard = () => {
+  const board = [];
+  for (let i = 0; i < BOARD_SIZE; i++) {
+    let type = 'normal';
+    if (i === 0) type = 'start';
+    else if (i === BOARD_SIZE - 1) type = 'finish';
+    else if (i % 8 === 0) type = 'shop';
+    else if (i % 5 === 0) type = 'event';
+    else if (i % 3 === 0) type = 'plus';
+    else if (i % 4 === 0) type = 'minus';
+    board.push({ id: i, type });
+  }
+  return board;
+};
+
+// --- KOMPONENTEN ---
+
+export default function PartyBetApp() {
+  // Globaler State
+  const [view, setView] = useState('setup'); // 'setup', 'tv', 'player'
+  const [activePlayerView, setActivePlayerView] = useState(0);
+  const [players, setPlayers] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [board, setBoard] = useState(generateBoard());
+  const [gameState, setGameState] = useState('waiting'); // 'betting', 'ranking', 'moving', 'shop'
+  const [currentTeamTurn, setCurrentTeamTurn] = useState(0);
+  const [bets, setBets] = useState({}); // {playerId: {amount, rank}}
+  const [results, setResults] = useState({}); // {playerId: rank}
+  const [lastDiceResult, setLastDiceResult] = useState(null);
+  const [isRolling, setIsRolling] = useState(false);
+  const [gameLog, setGameLog] = useState("Willkommen bei PartyBet!");
+
+  // --- LOGIK: TEAM-GENERIERUNG ---
+  const setupTeams = (playerList) => {
+    const shuffled = [...playerList].sort(() => 0.5 - Math.random());
+    const newTeams = [];
+    let colorIdx = 0;
+
+    for (let i = 0; i < shuffled.length; i += 2) {
+      if (i === shuffled.length - 1 && i !== 0) {
+        // Letzter Spieler bei ungerader Anzahl kommt ins letzte Team (3er Team)
+        newTeams[newTeams.length - 1].members.push(shuffled[i]);
+      } else {
+        newTeams.push({
+          id: newTeams.length,
+          name: `Team ${COLORS[colorIdx].name}`,
+          color: COLORS[colorIdx],
+          members: [shuffled[i], shuffled[i+1] || null].filter(Boolean),
+          credits: 100,
+          position: 0,
+          items: [],
+          finished: false
+        });
+        colorIdx = (colorIdx + 1) % COLORS.length;
+      }
+    }
+    setTeams(newTeams);
+    setGameState('betting');
+    setView('tv');
+  };
+
+  // --- LOGIK: WETTEN AUSWERTEN ---
+  const processBets = () => {
+    const updatedTeams = [...teams];
+    const playerCount = players.length;
+
+    players.forEach(player => {
+      const bet = bets[player.id];
+      if (!bet) return;
+
+      const playerRank = results[player.id];
+      const teamIdx = updatedTeams.findIndex(t => t.members.some(m => m.id === player.id));
+      
+      let multiplier = 0;
+      if (bet.rank === 1 && playerRank === 1) multiplier = playerCount;
+      else if (bet.rank === 2 && playerRank === 2) multiplier = playerCount / 2;
+      else if (bet.rank === 3 && playerRank === 3) multiplier = 2;
+
+      if (multiplier > 0) {
+        const win = bet.amount * multiplier;
+        updatedTeams[teamIdx].credits += win;
+      } else {
+        updatedTeams[teamIdx].credits -= bet.amount;
+      }
+    });
+
+    setTeams(updatedTeams);
+    setBets({});
+    setGameState('moving');
+  };
+
+  // --- LOGIK: BEWEGUNG & FELDER ---
+  const moveTeam = (teamIdx, steps) => {
+    const newTeams = [...teams];
+    let newPos = newTeams[teamIdx].position + steps;
+    
+    if (newPos >= BOARD_SIZE - 1) {
+      newPos = BOARD_SIZE - 1;
+      newTeams[teamIdx].finished = true;
+      setGameLog(`Sensationell! ${newTeams[teamIdx].name} hat das Ziel erreicht!`);
+    }
+
+    const field = board[newPos];
+    let effectText = "";
+
+    if (field.type === 'plus') {
+      newTeams[teamIdx].credits += 15;
+      effectText = "+15 Credits!";
+    } else if (field.type === 'minus') {
+      newTeams[teamIdx].credits = Math.max(0, newTeams[teamIdx].credits - 15);
+      effectText = "-15 Credits!";
+    } else if (field.type === 'event') {
+      const events = [
+        "Glückspilz: +20 Credits für das Team!",
+        "Diebstahl: -10 Credits!",
+        "Tausch: Tausche Platz mit dem Team vor dir!",
+        "Erdbeben: Alle verlieren 5 Credits!"
+      ];
+      effectText = events[Math.floor(Math.random() * events.length)];
+    }
+
+    newTeams[teamIdx].position = newPos;
+    setTeams(newTeams);
+    setGameLog(`${newTeams[teamIdx].name}: ${effectText}`);
+    
+    // Nächstes Team oder neue Runde
+    if (teamIdx < teams.length - 1) {
+      setCurrentTeamTurn(teamIdx + 1);
+    } else {
+      setCurrentTeamTurn(0);
+      setGameState('shop');
+    }
+  };
+
+  // --- UI-HELPER ---
+  const IconButton = ({ children, onClick, color = "bg-yellow-400", className = "" }) => (
+    <motion.button
+      whileHover={{ scale: 1.05, rotate: 1 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={onClick}
+      className={`${color} border-b-4 border-black/20 rounded-2xl p-4 font-bold shadow-lg flex items-center justify-center gap-2 ${className}`}
+    >
+      {children}
+    </motion.button>
+  );
+
+  const Card = ({ children, className = "" }) => (
+    <div className={`bg-white border-4 border-black rounded-3xl p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] ${className}`}>
+      {children}
+    </div>
+  );
+
+  // --- ANSICHTEN ---
+
+  // 1. SETUP SCREEN
+  const SetupScreen = () => {
+    const [name, setName] = useState("");
+    return (
+      <div className="max-w-2xl mx-auto space-y-8 p-4">
+        <motion.h1 
+          initial={{ y: -50 }} animate={{ y: 0 }}
+          className="text-6xl font-black text-center text-yellow-400 drop-shadow-[0_4px_0_rgba(0,0,0,1)] italic"
+        >
+          PARTY BET
+        </motion.h1>
+        
+        <Card>
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <Users size={28} /> Spieler anmelden
+          </h2>
+          <div className="flex gap-2 mb-6">
+            <input 
+              type="text" 
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Name eingeben..."
+              className="flex-1 border-4 border-black rounded-xl px-4 py-2 text-xl focus:outline-none"
+            />
+            <IconButton onClick={() => {
+              if(name) {
+                setPlayers([...players, { id: Date.now(), name }]);
+                setName("");
+              }
+            }}>Hinzufügen</IconButton>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            {players.map((p, idx) => (
+              <motion.div 
+                initial={{ scale: 0 }} animate={{ scale: 1 }}
+                key={p.id} 
+                className="bg-blue-100 border-2 border-black rounded-xl p-3 flex justify-between items-center"
+              >
+                <span className="font-bold uppercase">{p.name}</span>
+                <Trash2 size={18} className="cursor-pointer text-red-500" onClick={() => setPlayers(players.filter(pl => pl.id !== p.id))} />
+              </motion.div>
+            ))}
+          </div>
+        </Card>
+
+        {players.length >= 2 && (
+          <IconButton 
+            className="w-full text-2xl py-6" 
+            color="bg-green-500 text-white"
+            onClick={() => setupTeams(players)}
+          >
+            TEAMS AUSLOSEN & STARTEN <Play fill="white" />
+          </IconButton>
+        )}
+      </div>
+    );
+  };
+
+  // 2. TV / SPIELFELD ANSICHT
+  const TVScreen = () => {
+    return (
+      <div className="grid grid-cols-12 gap-6 h-full p-4 overflow-hidden">
+        {/* Sidebar: Ranking & Info */}
+        <div className="col-span-3 space-y-4">
+          <Card className="bg-yellow-50">
+            <h3 className="text-xl font-black mb-4 flex items-center gap-2 uppercase">
+              <Trophy className="text-yellow-500" /> Standings
+            </h3>
+            <div className="space-y-4">
+              {teams.map((t, idx) => (
+                <div key={idx} className="flex items-center gap-3 bg-white p-2 border-2 border-black rounded-xl">
+                  <div className={`w-8 h-8 rounded-full ${t.color.bg} border-2 border-black flex items-center justify-center font-bold text-white`}>
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-bold text-xs truncate">{t.name}</div>
+                    <div className="text-sm flex items-center gap-1 font-mono">
+                      <Coins size={14} className="text-yellow-600" /> {t.credits}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Aktueller Status / Würfel-Bereich */}
+          <Card className="bg-sky-100">
+             {gameState === 'betting' && (
+               <div className="text-center space-y-2">
+                 <div className="animate-bounce"><Coins size={40} className="mx-auto text-yellow-500" /></div>
+                 <p className="font-black italic">WETT-PHASE!</p>
+                 <p className="text-xs">Alle Spieler geben jetzt ihren Tipp auf dem Handy ab.</p>
+                 <IconButton className="w-full text-xs" onClick={() => setGameState('ranking')}>Alle fertig?</IconButton>
+               </div>
+             )}
+
+             {gameState === 'ranking' && (
+               <div className="text-center space-y-4">
+                 <p className="font-black italic">MINISPIEL ERGEBNISSE</p>
+                 <p className="text-xs">Spielleiter trägt Platzierungen ein:</p>
+                 <div className="max-h-40 overflow-y-auto space-y-2">
+                    {players.map(p => (
+                      <div key={p.id} className="flex items-center justify-between text-xs font-bold bg-white p-2 border-2 border-black rounded-lg">
+                        <span>{p.name}</span>
+                        <select 
+                          className="border-2 border-black rounded"
+                          onChange={(e) => setResults({...results, [p.id]: parseInt(e.target.value)})}
+                        >
+                          <option value="">?</option>
+                          {players.map((_, i) => <option key={i} value={i+1}>Platz {i+1}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                 </div>
+                 <IconButton className="w-full text-xs" color="bg-green-400" onClick={processBets}>Wetten auswerten!</IconButton>
+               </div>
+             )}
+
+             {gameState === 'moving' && (
+               <div className="text-center space-y-4">
+                 <p className="font-black italic uppercase">Würfeln: {teams[currentTeamTurn]?.name}</p>
+                 <motion.div 
+                   animate={isRolling ? { rotate: [0, 90, 180, 270, 360], scale: [1, 1.2, 1] } : {}}
+                   transition={{ repeat: isRolling ? Infinity : 0, duration: 0.2 }}
+                   className="w-20 h-20 bg-white border-4 border-black rounded-2xl mx-auto flex items-center justify-center text-4xl font-black shadow-lg"
+                 >
+                   {lastDiceResult || "?"}
+                 </motion.div>
+                 {!isRolling && (
+                   <IconButton className="w-full" onClick={() => {
+                     setIsRolling(true);
+                     setTimeout(() => {
+                        const roll = Math.floor(Math.random() * 6) + 1;
+                        setLastDiceResult(roll);
+                        setIsRolling(false);
+                        setTimeout(() => {
+                          moveTeam(currentTeamTurn, roll);
+                          setLastDiceResult(null);
+                        }, 1000);
+                     }, 1500);
+                   }}>WÜRFELN!</IconButton>
+                 )}
+               </div>
+             )}
+
+             {gameState === 'shop' && (
+               <div className="text-center space-y-2">
+                 <ShoppingCart size={40} className="mx-auto" />
+                 <p className="font-black">SHOP-PHASE</p>
+                 <p className="text-xs text-gray-600">Zeit zum Einkaufen auf dem Handy!</p>
+                 <IconButton className="w-full" color="bg-blue-400" onClick={() => setGameState('betting')}>Nächste Runde</IconButton>
+               </div>
+             )}
+          </Card>
+        </div>
+
+        {/* Board: Main View */}
+        <div className="col-span-9 bg-white border-4 border-black rounded-3xl p-6 relative overflow-auto bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px]">
+           <div className="grid grid-cols-10 gap-2">
+              {board.map((f, i) => {
+                const teamsOnField = teams.filter(t => t.position === i);
+                return (
+                  <div key={i} className={`
+                    h-20 border-2 border-black rounded-xl flex flex-col items-center justify-center relative
+                    ${f.type === 'plus' ? 'bg-green-400' : ''}
+                    ${f.type === 'minus' ? 'bg-red-400' : ''}
+                    ${f.type === 'event' ? 'bg-yellow-400' : ''}
+                    ${f.type === 'shop' ? 'bg-purple-400' : ''}
+                    ${f.type === 'start' ? 'bg-white border-dashed' : ''}
+                    ${f.type === 'finish' ? 'bg-black text-white' : ''}
+                    ${f.type === 'normal' ? 'bg-blue-100' : ''}
+                  `}>
+                    <span className="text-[8px] absolute top-1 left-1 font-bold opacity-30">{i}</span>
+                    {f.type === 'event' && <Star size={16} fill="white" />}
+                    {f.type === 'shop' && <ShoppingCart size={16} />}
+                    {f.type === 'finish' && <Trophy size={20} />}
+                    
+                    {/* Spielfiguren */}
+                    <div className="flex flex-wrap gap-1 justify-center p-1">
+                      {teamsOnField.map(t => (
+                        <motion.div 
+                          layoutId={`team-${t.id}`}
+                          key={t.id}
+                          className={`w-6 h-6 rounded-full border-2 border-black ${t.color.bg} shadow-md`}
+                          title={t.name}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+           </div>
+           
+           {/* Log Overlay */}
+           <div className="absolute bottom-4 left-4 right-4 bg-black/80 text-white p-3 rounded-xl border-2 border-yellow-400 font-mono text-sm">
+              <span className="text-yellow-400 font-bold">LOG:</span> {gameLog}
+           </div>
+        </div>
+      </div>
+    );
+  };
+
+  // 3. PLAYER SMARTPHONE ANSICHT
+  const PlayerScreen = () => {
+    const player = players[activePlayerView];
+    const team = teams.find(t => t.members.some(m => m.id === player?.id));
+    const [myBet, setMyBet] = useState(10);
+    const [myRankTip, setMyRankTip] = useState(1);
+    const [hasVoted, setHasVoted] = useState(false);
+
+    if (!player) return <div className="p-10">Kein Spieler ausgewählt.</div>;
+
+    return (
+      <div className="max-w-md mx-auto p-4 space-y-6 min-h-screen bg-gray-50 pb-20">
+        <header className={`${team?.color.bg || 'bg-gray-800'} border-4 border-black p-4 rounded-3xl text-white shadow-xl`}>
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-xs uppercase font-bold opacity-80">Spieler</p>
+              <h2 className="text-2xl font-black italic">{player.name}</h2>
+            </div>
+            <div className="text-right">
+              <p className="text-xs uppercase font-bold opacity-80">Team Credits</p>
+              <p className="text-2xl font-black flex items-center gap-1"><Coins /> {team?.credits}</p>
+            </div>
+          </div>
+        </header>
+
+        {gameState === 'betting' && (
+          <Card>
+            {!hasVoted ? (
+              <div className="space-y-6 text-center">
+                <h3 className="text-xl font-black uppercase">Dein Wett-Tipp</h3>
+                <p className="text-sm">Welchen Platz belegt dein Partner?</p>
+                
+                <div className="space-y-2 text-left">
+                  <label className="font-bold text-sm">Einsatz (Credits):</label>
+                  <input 
+                    type="range" min="10" max={Math.min(team?.credits || 10, 100)} step="5"
+                    className="w-full accent-black"
+                    value={myBet} onChange={(e) => setMyBet(parseInt(e.target.value))}
+                  />
+                  <div className="text-center text-2xl font-black italic text-yellow-600">{myBet} CR</div>
+                </div>
+
+                <div className="space-y-2 text-left">
+                   <label className="font-bold text-sm">Platzierungstipp:</label>
+                   <div className="grid grid-cols-4 gap-2">
+                     {players.map((_, i) => (
+                       <button
+                         key={i}
+                         onClick={() => setMyRankTip(i+1)}
+                         className={`p-2 border-2 border-black rounded-xl font-black ${myRankTip === i+1 ? 'bg-yellow-400 shadow-[2px_2px_0_0_rgba(0,0,0,1)]' : 'bg-white opacity-50'}`}
+                       >
+                         {i+1}.
+                       </button>
+                     ))}
+                   </div>
+                </div>
+
+                <IconButton className="w-full py-4 text-xl" color="bg-green-500 text-white" onClick={() => {
+                  setBets({...bets, [player.id]: { amount: myBet, rank: myRankTip }});
+                  setHasVoted(true);
+                }}>TIP ABGEBEN!</IconButton>
+              </div>
+            ) : (
+              <div className="text-center py-10 space-y-4">
+                <CheckCircle2 size={64} className="mx-auto text-green-500" />
+                <p className="font-black text-2xl">WETTE PLATZIERT!</p>
+                <div className="bg-gray-100 p-4 rounded-xl flex items-center justify-center gap-2">
+                  <EyeOff className="text-gray-400" /> 
+                  <span className="blur-sm select-none">Geheimtipp: Platz {myRankTip}</span>
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {gameState === 'shop' && (
+          <div className="space-y-4">
+             <h3 className="text-2xl font-black italic text-center">ITEM SHOP</h3>
+             {[
+               { name: "Pilz", price: 30, icon: <Rocket />, desc: "+3 Felder beim nächsten Wurf" },
+               { name: "Banane", price: 40, icon: <AlertCircle />, desc: "Platziere Falle auf Feld" },
+               { name: "Klaue", price: 60, icon: <RefreshCw />, desc: "Stiehl Credits von Gegner" }
+             ].map((item, i) => (
+               <div key={i} className="bg-white border-4 border-black rounded-2xl p-4 flex items-center gap-4">
+                 <div className="w-12 h-12 bg-purple-100 border-2 border-black rounded-xl flex items-center justify-center">
+                    {item.icon}
+                 </div>
+                 <div className="flex-1">
+                    <p className="font-black">{item.name}</p>
+                    <p className="text-[10px] text-gray-500 uppercase">{item.desc}</p>
+                 </div>
+                 <button 
+                  disabled={team?.credits < item.price}
+                  className="bg-yellow-400 border-2 border-black rounded-xl px-3 py-1 font-bold text-sm disabled:opacity-30"
+                 >
+                   {item.price} <Coins size={14} className="inline mb-1" />
+                 </button>
+               </div>
+             ))}
+          </div>
+        )}
+
+        {gameState === 'moving' && (
+           <div className="text-center bg-white border-4 border-black rounded-3xl p-10">
+              <Dice6 size={64} className="mx-auto mb-4 animate-spin-slow" />
+              <p className="font-black text-xl italic uppercase">Schau auf den Fernseher!</p>
+              <p className="text-sm opacity-60">Die Würfel-Phase läuft gerade...</p>
+           </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-sky-300 font-sans text-black selection:bg-yellow-200">
+      {/* TEST-MENÜ OBEN */}
+      <nav className="bg-black/90 text-white p-2 flex gap-4 overflow-x-auto text-[10px] font-mono sticky top-0 z-50">
+        <button className={view === 'setup' ? 'text-yellow-400 font-bold underline' : ''} onClick={() => setView('setup')}>[SETUP]</button>
+        <button className={view === 'tv' ? 'text-yellow-400 font-bold underline' : ''} onClick={() => setView('tv')}>[TV-SCREEN]</button>
+        <div className="border-l border-gray-600 mx-2"></div>
+        {players.map((p, idx) => (
+          <button 
+            key={p.id} 
+            className={view === 'player' && activePlayerView === idx ? 'text-green-400 font-bold underline' : ''} 
+            onClick={() => { setView('player'); setActivePlayerView(idx); }}
+          >
+            [P: {p.name}]
+          </button>
+        ))}
+      </nav>
+
+      {/* VIEW-RENDERING */}
+      <div className="container mx-auto py-8">
+        <AnimatePresence mode="wait">
+          {view === 'setup' && <motion.div key="setup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><SetupScreen /></motion.div>}
+          {view === 'tv' && <motion.div key="tv" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><TVScreen /></motion.div>}
+          {view === 'player' && <motion.div key="player" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><PlayerScreen /></motion.div>}
+        </AnimatePresence>
+      </div>
+      
+      <style jsx global>{`
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+          animation: spin-slow 8s linear infinite;
+        }
+      `}</style>
+    </div>
+  );
+}
