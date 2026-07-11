@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PartyBet SHOP</title>
+    <title>PartyBet Shop</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap" rel="stylesheet">
 </head>
-<body style="font-family: 'Inter'; background: #F8FAFC;">
+<body class="bg-slate-50">
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect } = React;
@@ -27,83 +27,68 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const ROOM_ID = "LIVE_PRO_SESSION";
+        const RID = "PARTY_STABLE_V4";
 
-        function ShopApp() {
+        function Shop() {
             const [room, setRoom] = useState(null);
-            const [me, setMe] = useState(localStorage.getItem('pb_name'));
+            const name = localStorage.getItem('pb_name');
 
             useEffect(() => {
-                db.ref(`rooms/${ROOM_ID}`).on('value', s => setRoom(s.val()));
+                db.ref(`rooms/${RID}`).on('value', s => setRoom(s.val()));
             }, []);
 
-            if(!room) return null;
+            if(!room || !name) return <div class="p-20 text-center font-black opacity-20 uppercase tracking-widest leading-loose">Kein aktives<br/>Spiel gefunden.</div>;
 
             let tIdx = -1;
-            room.teams?.forEach((t, i) => t.members?.forEach(m => { if(m.name === me) tIdx = i; }));
-
-            const buy = (price, id) => {
-                const team = room.teams[tIdx];
-                if(team.credits < price) return alert("Zu wenig Gems!");
-                const newInv = team.inventory ? [...team.inventory, id] : [id];
-                db.ref(`rooms/${ROOM_ID}/teams/${tIdx}`).update({
-                    credits: team.credits - price,
-                    inventory: newInv
-                });
-            };
-
-            const use = (id, invIdx) => {
-                const newInv = [...room.teams[tIdx].inventory];
-                newInv.splice(invIdx, 1);
-                db.ref(`rooms/${ROOM_ID}/teams/${tIdx}`).update({
-                    inventory: newInv,
-                    activeEffect: id
-                });
-                alert("Effekt für den nächsten Wurf aktiviert!");
-            };
+            room.teams?.forEach((t, i) => t.members?.forEach(m => { if(m.name === name) tIdx = i; }));
+            if (tIdx === -1) return <div class="p-10 text-center italic">Zuweisung am TV abwarten...</div>;
 
             const myTeam = room.teams[tIdx];
 
             return (
-                <div className="max-w-md mx-auto bg-white min-h-screen flex flex-col">
-                    <header className="p-6 bg-slate-900 text-white flex justify-between items-center">
-                        <h1 className="text-2xl font-black italic italic uppercase tracking-tighter">Item Shop</h1>
-                        <a href="player.html" className="text-xs font-bold uppercase underline">Zurück</a>
+                <div class="max-w-md mx-auto bg-white min-h-screen flex flex-col p-6 shadow-2xl">
+                    <header class="flex justify-between items-center mb-8 border-b pb-4">
+                        <h1 class="text-3xl font-black italic uppercase tracking-tighter text-indigo-600">Shop</h1>
+                        <a href="player.html" class="text-xs font-bold uppercase underline text-slate-400">Zurück</a>
                     </header>
 
-                    <div className="p-6 flex-1 space-y-8 overflow-y-auto">
-                        <div className="bg-indigo-600 p-6 rounded-3xl text-white shadow-xl">
-                            <p className="text-xs font-bold uppercase opacity-70 mb-1">Guthaben</p>
-                            <p className="text-4xl font-black">{myTeam.credits} Gems</p>
-                        </div>
+                    <div class="bg-indigo-600 p-8 rounded-[2rem] text-white shadow-xl mb-10">
+                        <p class="text-xs font-bold uppercase opacity-70 mb-1 tracking-widest italic">Dein Kontostand</p>
+                        <p class="text-5xl font-black leading-none">{myTeam.credits} Gems</p>
+                    </div>
 
-                        <div className="space-y-4">
-                            <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em]">Marktplatz</h2>
-                            <div className="bg-slate-50 p-4 rounded-3xl flex items-center gap-4">
-                                <div className="text-4xl bg-white p-3 rounded-2xl shadow-sm">🍄</div>
-                                <div className="flex-1 font-black uppercase text-xs">Pilz (+3 Felder) <p className="text-indigo-600">30 Gems</p></div>
-                                <button onClick={() => buy(30, 'mushroom')} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold uppercase text-[10px]">Kaufen</button>
-                            </div>
+                    <div class="space-y-4">
+                        <div class="bg-slate-50 p-6 rounded-[2rem] flex items-center gap-6 border-2 border-transparent hover:border-indigo-100 transition-all">
+                            <div class="text-5xl bg-white p-4 rounded-3xl shadow-sm">🍄</div>
+                            <div class="flex-1"><p class="font-black uppercase text-xs">Pilz (+3 Felder)</p><p class="text-xl font-black text-indigo-600">30 Gems</p></div>
+                            <button onClick={() => {
+                                if(myTeam.credits < 30) return alert("Zu wenig Gems!");
+                                const inv = myTeam.inventory || [];
+                                db.ref(`rooms/${RID}/teams/${tIdx}`).update({ credits: myTeam.credits - 30, inventory: [...inv, 'mushroom'] });
+                            }} class="bg-indigo-600 text-white px-5 py-2 rounded-xl font-bold uppercase text-[10px] shadow-lg active:scale-95 transition-all">Kauf</button>
                         </div>
+                    </div>
 
-                        <div className="space-y-4">
-                            <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em]">Dein Inventar</h2>
-                            <div className="grid grid-cols-2 gap-4">
-                                {myTeam.inventory?.map((id, i) => (
-                                    <div key={i} className="bg-white border-2 border-slate-100 p-4 rounded-3xl text-center shadow-sm">
-                                        <div className="text-3xl mb-2">🍄</div>
-                                        <button onClick={() => use(id, i)} className="w-full bg-slate-900 text-white py-2 rounded-xl font-bold text-[10px] uppercase">Einsetzen</button>
-                                    </div>
-                                ))}
-                                {(!myTeam.inventory || myTeam.inventory.length === 0) && <p className="col-span-2 text-center text-slate-300 italic py-10">Dein Rucksack ist leer.</p>}
-                            </div>
+                    <div class="mt-12">
+                        <h2 class="text-xs font-black uppercase text-slate-300 tracking-[0.2em] mb-6">Dein Inventar</h2>
+                        <div class="grid grid-cols-2 gap-4">
+                            {myTeam.inventory?.map((id, i) => (
+                                <div key={i} class="bg-white border-2 border-slate-100 p-4 rounded-[2rem] text-center shadow-sm">
+                                    <div class="text-3xl mb-2">🍄</div>
+                                    <button onClick={() => {
+                                        const newInv = [...myTeam.inventory]; newInv.splice(i, 1);
+                                        db.ref(`rooms/${RID}/teams/${tIdx}`).update({ inventory: newInv, activeEffect: 'mushroom' });
+                                        alert("Pilz beim nächsten Wurf aktiv!");
+                                    }} class="w-full bg-slate-900 text-white py-2 rounded-xl font-bold text-[8px] uppercase tracking-widest">Benutzen</button>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
             );
         }
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<ShopApp />);
+        root.render(<Shop />);
     </script>
 </body>
 </html>
