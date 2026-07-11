@@ -4,29 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PartyBet - TV Arena</title>
-    
-    <!-- React & Babel -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Firebase Compat -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background: #F8FAFC; }
-        .card-shadow { box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05); }
+        body { font-family: 'Inter', sans-serif; background: #F8FAFC; overflow: hidden; }
+        .card-shadow { box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1); }
         .island-board { position: relative; width: 100%; height: 500px; background: #E0F2FE; border-radius: 3rem; border: 4px solid #BAE6FD; overflow: hidden; box-shadow: inset 0 0 100px rgba(186, 230, 253, 0.5); }
         .field { position: absolute; width: 34px; height: 34px; border-radius: 50%; border: 3px solid white; transform: translate(-50%, -50%); background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; color: #94A3B8; }
-        .token { width: 30px; height: 30px; border-radius: 50%; border: 2px solid white; position: absolute; z-index: 30; transform: translate(-50%, -50%); transition: all 1s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
-        .dice-box { width: 90px; height: 90px; background: white; border: 4px solid black; border-radius: 1.5rem; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; font-weight: 900; box-shadow: 0 8px 0 #CBD5E1; }
-        .drop-zone { border: 3px dashed #E2E8F0; transition: all 0.3s; }
-        .drop-zone.active { border-color: #6366F1; background: #EEF2FF; }
+        .token { width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; position: absolute; z-index: 30; transform: translate(-50%, -50%); transition: all 1s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+        .dice-box { width: 100px; height: 100px; background: white; border: 4px solid black; border-radius: 1.5rem; display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: 900; box-shadow: 0 10px 0 #CBD5E1; }
     </style>
 </head>
 <body>
@@ -35,7 +26,6 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- DEINE FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyA95lwHyq0cZ5z7si_woAn8iKFeFqtoDv8",
             authDomain: "partybe-d44b7.firebaseapp.com",
@@ -50,156 +40,150 @@
         const ROOM_ID = "LIVE_PRO_SESSION";
 
         const COLORS = ['#6366F1', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#EC4899'];
-        const BOARD_PATH = Array.from({length:30}, (_, i) => {
-            const a = (i/15)*Math.PI; const rx = i<15?38:28;
-            return { x: 50 + Math.cos(a*2)*rx, y: 50 + Math.sin(a)*38 };
-        });
+        const MINIGAMES = [
+            { name: "Bierdeckel-Flip", rules: "Wer flippt am meisten Deckel?" },
+            { name: "Socken-Zielwurf", rules: "Triff den Korb aus 3 Metern Entfernung." },
+            { name: "Karten-Turm", rules: "Baue das höchste Haus in 60 Sekunden." },
+            { name: "Eis-Schmelzer", rules: "Wer schmilzt den Eiswürfel am schnellsten?" },
+            { name: "Becher-Pong", rules: "Triff den Becher des Gegners." }
+        ];
+
+        // Koordinaten für den Inselpfad (30 Felder)
+        const BOARD_PATH = [
+            {x:10, y:50}, {x:12, y:30}, {x:20, y:15}, {x:35, y:10}, {x:50, y:12}, {x:65, y:15}, {x:75, y:30}, {x:80, y:50}, {x:75, y:70}, {x:65, y:85},
+            {x:50, y:88}, {x:35, y:85}, {x:20, y:70}, {x:15, y:50}, {x:25, y:40}, {x:40, y:35}, {x:55, y:40}, {x:65, y:50}, {x:55, y:60}, {x:40, y:65},
+            {x:25, y:60}, {x:35, y:50}, {x:50, y:45}, {x:60, y:30}, {x:75, y:20}, {x:90, y:35}, {x:92, y:55}, {x:85, y:75}, {x:70, y:90}, {x:95, y:90}
+        ];
 
         function TVApp() {
             const [room, setRoom] = useState(null);
-            const [draggedPlayer, setDraggedPlayer] = useState(null);
-            const [loading, setLoading] = useState(true);
+            const [dragged, setDragged] = useState(null);
 
             useEffect(() => {
-                const roomRef = db.ref(`rooms/${ROOM_ID}`);
-                roomRef.on('value', s => {
-                    setRoom(s.val());
-                    setLoading(false);
-                });
-                return () => roomRef.off();
+                const ref = db.ref(`rooms/${ROOM_ID}`);
+                ref.on('value', s => setRoom(s.val()));
+                return () => ref.off();
             }, []);
 
-            const updateDB = (updates) => db.ref(`rooms/${ROOM_ID}`).update(updates);
+            const update = (updates) => db.ref(`rooms/${ROOM_ID}`).update(updates);
 
-            const initializeGame = () => {
-                db.ref(`rooms/${ROOM_ID}`).set({
-                    phase: 'setup',
-                    round: 1,
-                    teams: [
-                        {name: "Team Blau", members: [], credits: 100, position: 0, color: COLORS[0]},
-                        {name: "Team Cyan", members: [], credits: 100, position: 0, color: COLORS[1]},
-                        {name: "Team Grün", members: [], credits: 100, position: 0, color: COLORS[2]},
-                        {name: "Team Gelb", members: [], credits: 100, position: 0, color: COLORS[3]}
-                    ],
-                    waitingRoom: {},
-                    dice: 1,
-                    game: null
+            const resetGame = () => {
+                if(confirm("Möchtest du das Spiel wirklich löschen und neu starten?")) {
+                    db.ref(`rooms/${ROOM_ID}`).set({
+                        phase: 'setup', round: 1, currentTurn: 0, dice: 1, game: null, waitingRoom: {},
+                        teams: [
+                            {name: "Team Blau", members: [], credits: 100, position: 0, color: COLORS[0]},
+                            {name: "Team Cyan", members: [], credits: 100, position: 0, color: COLORS[1]},
+                            {name: "Team Grün", members: [], credits: 100, position: 0, color: COLORS[2]},
+                            {name: "Team Gelb", members: [], credits: 100, position: 0, color: COLORS[3]}
+                        ]
+                    });
+                }
+            };
+
+            const spinRoulette = () => {
+                const randomIdx = Math.floor(Math.random() * MINIGAMES.length);
+                update({ game: MINIGAMES[randomIdx] });
+            };
+
+            const rollDice = () => {
+                const tIdx = room.currentTurn;
+                const roll = Math.floor(Math.random() * 6) + 1;
+                const bonus = room.teams[tIdx].activeEffect === 'mushroom' ? 3 : 0;
+                const total = roll + bonus;
+                
+                const newTeams = [...room.teams];
+                newTeams[tIdx].position = Math.min(29, newTeams[tIdx].position + total);
+                newTeams[tIdx].activeEffect = null; // Effekt verbraucht
+
+                // Nächster Spieler
+                const nextTurn = (tIdx + 1) % room.teams.length;
+                
+                update({ 
+                    teams: newTeams, 
+                    dice: total, 
+                    currentTurn: nextTurn 
                 });
             };
 
-            const assignToTeam = (teamIdx) => {
-                if (!draggedPlayer) return;
-                const newTeams = [...room.teams];
-                if (newTeams[teamIdx].members?.length >= 2) return alert("Team voll!");
-                
-                if (!newTeams[teamIdx].members) newTeams[teamIdx].members = [];
-                newTeams[teamIdx].members.push({ name: draggedPlayer });
-                
-                // Firebase Update: Team füllen & aus Warteraum löschen
-                db.ref(`rooms/${ROOM_ID}/waitingRoom/${draggedPlayer}`).remove();
-                updateDB({ teams: newTeams });
-                setDraggedPlayer(null);
-            };
-
-            if (loading) return <div className="min-h-screen flex items-center justify-center font-black uppercase opacity-20">Lade Arena...</div>;
-
-            // Falls kein Spiel in Firebase existiert -> Start-Button zeigen
-            if (!room) return (
-                <div className="min-h-screen flex flex-col items-center justify-center p-10 text-center">
-                    <h1 className="text-6xl font-black italic text-indigo-600 mb-8 uppercase">PartyBet TV</h1>
-                    <button onClick={initializeGame} className="bg-indigo-600 text-white px-12 py-6 rounded-[2rem] font-black text-2xl uppercase shadow-2xl hover:scale-105 transition-all">
-                        Neue Session Starten
-                    </button>
-                </div>
-            );
+            if (!room) return <div className="flex h-screen items-center justify-center"><button onClick={resetGame} className="bg-indigo-600 text-white p-6 rounded-2xl font-black">NEUES SPIEL INITIALISIEREN</button></div>;
 
             return (
-                <div className="p-8 max-w-[1600px] mx-auto min-h-screen flex flex-col">
-                    <div className="flex justify-between items-start mb-8">
+                <div className="p-8 max-w-[1500px] mx-auto min-h-screen flex flex-col">
+                    <header className="flex justify-between items-center mb-8">
                         <div>
-                            <p className="text-indigo-600 font-bold uppercase tracking-widest text-xs italic">Live Arena</p>
-                            <h1 className="text-5xl font-black uppercase italic tracking-tighter">PartyBet Pro</h1>
+                            <h1 className="text-5xl font-black italic text-indigo-600 uppercase tracking-tighter leading-none">PartyBet TV</h1>
+                            <p className="text-slate-400 font-bold uppercase text-[10px] mt-2 tracking-widest">Runde {room.round} | Phase: {room.phase}</p>
                         </div>
-                        <div className="grid grid-cols-4 gap-4">
-                            {room.teams?.map((t, i) => (
-                                <div key={i} className="bg-white px-6 py-4 rounded-[1.5rem] shadow-sm border-t-8" style={{borderColor: t.color}}>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">{t.name}</p>
-                                    <p className="text-2xl font-black">{t.credits} <span className="text-xs opacity-30">Gems</span></p>
+                        <div className="flex gap-4">
+                            {room.teams.map((t, i) => (
+                                <div key={i} className={`bg-white p-4 rounded-2xl border-t-8 card-shadow ${room.currentTurn === i ? 'ring-4 ring-indigo-400 scale-105' : 'opacity-60'}`} style={{borderColor: t.color}}>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase leading-none">{t.name}</p>
+                                    <p className="text-xl font-black">{t.credits} Gems</p>
                                 </div>
                             ))}
+                            <button onClick={resetGame} className="bg-red-100 text-red-500 p-2 rounded-xl font-black text-[10px] uppercase">Reset</button>
                         </div>
-                    </div>
+                    </header>
 
-                    <div className="flex-1 bg-white rounded-[4rem] shadow-2xl p-10 flex flex-col items-center justify-center relative border border-white overflow-hidden">
+                    <main className="flex-1 bg-white rounded-[3.5rem] shadow-2xl p-8 flex flex-col relative border border-white">
                         
                         {room.phase === 'setup' && (
-                            <div className="w-full h-full flex gap-12 animate-in fade-in duration-700">
-                                {/* Links: Warteraum */}
-                                <div className="w-1/3 bg-slate-50 rounded-[3rem] p-10 border-4 border-dashed border-slate-200">
-                                    <h2 className="text-2xl font-black uppercase italic mb-8 text-slate-400 text-center tracking-widest">Warteraum</h2>
-                                    <div className="flex flex-col gap-4">
-                                        {room.waitingRoom ? Object.keys(room.waitingRoom).map(name => (
-                                            <div 
-                                                key={name} 
-                                                draggable 
-                                                onDragStart={() => setDraggedPlayer(name)}
-                                                className="bg-white p-5 rounded-2xl shadow-md font-black cursor-move hover:scale-105 transition-all border-l-8 border-indigo-600 uppercase text-sm flex justify-between items-center"
-                                            >
-                                                <span>👤 {name}</span>
-                                                <span className="text-[10px] bg-slate-100 p-1 rounded tracking-tighter text-slate-400">Drag Me</span>
-                                            </div>
-                                        )) : <div className="text-center py-20 text-slate-300 font-bold italic uppercase animate-pulse">Warte auf Handys...</div>}
+                            <div className="w-full h-full flex gap-10">
+                                <div className="w-1/3 bg-slate-50 rounded-[3rem] p-8 border-4 border-dashed border-slate-200">
+                                    <h2 className="text-xl font-black uppercase italic mb-6 text-center text-slate-400">Warteraum</h2>
+                                    <div className="flex flex-col gap-3">
+                                        {room.waitingRoom ? Object.keys(room.waitingRoom).map(n => (
+                                            <div key={n} draggable onDragStart={() => setDragged(n)} className="bg-white p-5 rounded-2xl shadow-md font-black border-l-8 border-indigo-600 cursor-move uppercase text-sm">👤 {n}</div>
+                                        )) : <p className="text-center text-slate-300 italic py-10">Warte auf Handys...</p>}
                                     </div>
                                 </div>
-
-                                {/* Rechts: Teams */}
-                                <div className="flex-1 grid grid-cols-2 gap-8">
-                                    {room.teams?.map((t, i) => (
-                                        <div 
-                                            key={i} 
-                                            onDragOver={e => e.preventDefault()} 
-                                            onDrop={() => assignToTeam(i)}
-                                            className="bg-white border-4 border-slate-50 rounded-[3.5rem] p-8 flex flex-col items-center justify-center relative shadow-sm hover:border-indigo-100 transition-all"
-                                        >
-                                            <p className="text-[10px] font-black uppercase text-slate-300 mb-6 tracking-widest">Team Slot {i+1}</p>
-                                            <div className="flex gap-6">
-                                                {[0,1].map(mIdx => (
-                                                    <div key={mIdx} className="w-24 h-24 rounded-full bg-slate-50 border-4 border-dashed border-slate-100 flex items-center justify-center">
-                                                        {t.members?.[mIdx] ? (
-                                                            <div className="w-full h-full rounded-full flex items-center justify-center text-white text-3xl font-black uppercase shadow-inner border-4 border-white" style={{backgroundColor: t.color}}>
-                                                                {t.members[mIdx].name[0]}
-                                                            </div>
-                                                        ) : <span className="text-slate-200 text-3xl font-black">?</span>}
+                                <div className="flex-1 grid grid-cols-2 gap-6">
+                                    {room.teams.map((t, i) => (
+                                        <div key={i} onDragOver={e => e.preventDefault()} onDrop={() => {
+                                            const newTeams = [...room.teams];
+                                            if(newTeams[i].members?.length >= 2) return;
+                                            if(!newTeams[i].members) newTeams[i].members = [];
+                                            newTeams[i].members.push({name: dragged});
+                                            db.ref(`rooms/${ROOM_ID}/waitingRoom/${dragged}`).remove();
+                                            update({ teams: newTeams });
+                                        }} className="bg-white border-4 border-slate-50 rounded-[3rem] p-6 flex flex-col items-center justify-center shadow-inner">
+                                            <p className="text-[10px] font-black uppercase text-slate-300 mb-4 tracking-widest">{t.name}</p>
+                                            <div className="flex gap-4">
+                                                {[0,1].map(m => (
+                                                    <div key={m} className="w-20 h-20 rounded-full bg-slate-50 border-4 border-dashed border-slate-100 flex items-center justify-center font-black">
+                                                        {t.members?.[m] ? <div className="w-full h-full rounded-full flex items-center justify-center bg-indigo-600 text-white text-3xl border-4 border-white shadow-lg">{t.members[m].name[0]}</div> : "?"}
                                                     </div>
                                                 ))}
                                             </div>
-                                            <p className="mt-6 font-black italic uppercase text-lg" style={{color: t.color}}>{t.name}</p>
                                         </div>
                                     ))}
                                 </div>
-                                <button onClick={() => updateDB({phase: 'selection'})} className="absolute bottom-10 right-10 bg-indigo-600 text-white px-14 py-6 rounded-full font-black shadow-2xl text-xl uppercase italic hover:bg-black transition-all">Start Game ➔</button>
+                                <button onClick={() => update({phase: 'selection'})} className="absolute bottom-10 right-10 bg-indigo-600 text-white px-12 py-5 rounded-full font-black shadow-2xl text-xl uppercase italic">Spiel Starten</button>
                             </div>
                         )}
 
                         {room.phase === 'selection' && (
-                            <div className="text-center animate-in zoom-in duration-500">
-                                <h2 className="text-6xl font-black uppercase italic mb-12 tracking-tighter">Minispiel Auswahl</h2>
-                                <div className="h-40 flex items-center justify-center">
+                            <div className="flex flex-col items-center justify-center h-full text-center">
+                                <h2 className="text-6xl font-black uppercase italic mb-8 tracking-tighter">Minispiel</h2>
+                                <div className="h-40 flex items-center justify-center mb-10">
                                     {room.game ? (
-                                        <div className="bg-indigo-50 p-12 rounded-[4rem] border-8 border-white shadow-xl">
-                                            <p className="text-6xl font-black text-indigo-600 uppercase italic mb-4">{room.game.name}</p>
-                                            <p className="text-xl font-bold text-indigo-400 italic">{room.game.rules}</p>
+                                        <div className="bg-indigo-50 p-10 rounded-[3rem] border-8 border-white shadow-xl animate-bounce">
+                                            <p className="text-6xl font-black text-indigo-600 uppercase italic mb-2">{room.game.name}</p>
+                                            <p className="text-xl font-medium text-indigo-400 italic">{room.game.rules}</p>
                                         </div>
-                                    ) : <div className="text-slate-200 text-8xl font-black italic">???</div>}
+                                    ) : <div className="text-slate-200 text-8xl font-black italic">WÜRFELN...</div>}
                                 </div>
-                                <button onClick={() => updateDB({game: {name: "Bierdeckel-Flip", rules: "Wer flippt am meisten Deckel von der Tischkante?"}})} className="mt-16 bg-indigo-600 text-white px-16 py-6 rounded-full font-black uppercase italic shadow-2xl text-2xl active:scale-95 transition-all">Roulette 🎲</button>
-                                <button onClick={() => updateDB({phase: 'movement'})} className="block mt-10 mx-auto text-xs font-black text-slate-400 uppercase tracking-[0.3em] hover:text-indigo-600">Weiter zum Board ➔</button>
+                                <div className="flex gap-4">
+                                    <button onClick={spinRoulette} className="bg-indigo-600 text-white px-12 py-5 rounded-full font-black uppercase italic shadow-xl text-2xl active:scale-95 transition-all">Zufallswurf 🎲</button>
+                                    {room.game && <button onClick={() => update({phase: 'movement'})} className="bg-slate-900 text-white px-10 py-5 rounded-full font-black uppercase text-sm italic">Weiter zum Board ➔</button>}
+                                </div>
                             </div>
                         )}
 
                         {room.phase === 'movement' && (
-                            <div className="w-full h-full p-4 flex flex-col animate-in fade-in duration-500">
-                                <div className="island-board flex-1 mb-8 shadow-inner relative">
+                            <div className="w-full h-full p-4 flex flex-col">
+                                <div className="island-board flex-1 mb-8">
                                     {BOARD_PATH.map((p, i) => (
                                         <div key={i} className="field" style={{left: `${p.x}%`, top: `${p.y}%`}}>
                                             {i === 0 ? '🏁' : i === 29 ? '🏆' : i}
@@ -207,31 +191,24 @@
                                     ))}
                                     {room.teams.map((t, i) => (
                                         <div key={i} className="token" style={{left: `${BOARD_PATH[t.position].x}%`, top: `${BOARD_PATH[t.position].y}%`, backgroundColor: t.color}}>
-                                            {t.activeEffect === 'mushroom' && <span className="absolute -top-6 -right-6 text-2xl">🍄</span>}
+                                            {t.activeEffect && <span className="absolute -top-6 -right-6 text-xl">🍄</span>}
                                         </div>
                                     ))}
                                 </div>
-                                <div className="flex justify-between items-center bg-slate-50 p-10 rounded-[3.5rem] border border-white shadow-xl">
-                                    <div className="flex gap-3 flex-wrap max-w-2xl">
-                                        {room.teams.map((t, i) => (
-                                            <button key={i} onClick={() => {
-                                                const roll = Math.floor(Math.random()*6)+1;
-                                                const bonus = t.activeEffect === 'mushroom' ? 3 : 0;
-                                                const total = roll + bonus;
-                                                const newPos = Math.min(29, t.position + total);
-                                                const newTeams = [...room.teams];
-                                                newTeams[i].position = newPos;
-                                                newTeams[i].activeEffect = null;
-                                                updateDB({ teams: newTeams, dice: total });
-                                            }} className="text-white text-xs font-black px-8 py-3 rounded-2xl uppercase shadow-lg hover:scale-105 active:scale-90 transition-all" style={{backgroundColor: t.color}}>{t.name} Wurf</button>
-                                        ))}
+                                <div className="flex justify-between items-center bg-slate-50 p-8 rounded-[3rem] border border-white">
+                                    <div className="text-left">
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 italic">Aktueller Zug</p>
+                                        <h3 className="text-3xl font-black uppercase italic" style={{color: room.teams[room.currentTurn].color}}>{room.teams[room.currentTurn].name}</h3>
                                     </div>
                                     <div className="dice-box">{room.dice}</div>
-                                    <button onClick={() => updateDB({phase: 'selection', game: null})} className="bg-slate-900 text-white px-10 py-5 rounded-full font-black text-sm uppercase italic hover:bg-black transition-all">Next Round ➔</button>
+                                    <div className="flex gap-4">
+                                        <button onClick={rollDice} className="bg-indigo-600 text-white px-12 py-6 rounded-3xl font-black text-xl uppercase italic shadow-xl active:scale-95 transition-all">Würfeln!</button>
+                                        <button onClick={() => update({phase: 'selection', game: null, round: room.round + 1})} className="bg-slate-900 text-white px-6 rounded-3xl font-black text-xs uppercase italic">Runde beenden</button>
+                                    </div>
                                 </div>
                             </div>
                         )}
-                    </div>
+                    </main>
                 </div>
             );
         }
