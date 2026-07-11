@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PartyBet: Das Brettspiel-Wettbüro</title>
+    <!-- React & Babel für JSX -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Framer Motion (Animationen) -->
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
+        body { font-family: 'Fredoka', sans-serif; }
+        .perspective { perspective: 1000px; }
+    </style>
+</head>
+<body class="bg-sky-300">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+        const { motion, AnimatePresence } = FramerMotion;
+
+        // --- ICONS (Fallback für CDN) ---
+        const Icon = ({ name, size = 24, className = "" }) => {
+            return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
+        };
+
+        // --- KONFIGURATION ---
+        const COLORS = [
+            { name: 'Rot', bg: 'bg-red-500', border: 'border-red-700' },
+            { name: 'Blau', bg: 'bg-blue-500', border: 'border-blue-700' },
+            { name: 'Grün', bg: 'bg-green-500', border: 'border-green-700' },
+            { name: 'Gelb', bg: 'bg-yellow-400', border: 'border-yellow-600' },
+            { name: 'Lila', bg: 'bg-purple-500', border: 'border-purple-700' },
+        ];
+
+        function App() {
+            const [view, setView] = useState('setup'); 
+            const [players, setPlayers] = useState([]);
+            const [teams, setTeams] = useState([]);
+            const [gameState, setGameState] = useState('waiting');
+            const [activePlayerIdx, setActivePlayerIdx] = useState(0);
+            const [currentTeamTurn, setCurrentTeamTurn] = useState(0);
+            const [bets, setBets] = useState({});
+            const [results, setResults] = useState({});
+            const [lastRoll, setLastRoll] = useState(null);
+            const [isRolling, setIsRolling] = useState(false);
+
+            // Board Generierung (40 Felder)
+            const board = useMemo(() => {
+                return Array.from({ length: 40 }, (_, i) => ({
+                    id: i,
+                    type: i === 0 ? 'start' : i === 39 ? 'finish' : ['plus', 'minus', 'event', 'shop', 'normal'][Math.floor(Math.random() * 5)]
+                }));
+            }, []);
+
+            useEffect(() => { lucide.createIcons(); }, [view, gameState, players, teams]);
+
+            const addPlayer = (name) => {
+                if (name.trim()) setPlayers([...players, { id: Date.now(), name: name.trim() }]);
+            };
+
+            const startProject = () => {
+                const shuffled = [...players].sort(() => 0.5 - Math.random());
+                const newTeams = [];
+                for (let i = 0; i < shuffled.length; i += 2) {
+                    const members = [shuffled[i]];
+                    if (shuffled[i+1]) members.push(shuffled[i+1]);
+                    newTeams.push({
+                        id: i,
+                        name: `Team ${COLORS[newTeams.length % COLORS.length].name}`,
+                        color: COLORS[newTeams.length % COLORS.length],
+                        members: members,
+                        credits: 100,
+                        position: 0
+                    });
+                }
+                setTeams(newTeams);
+                setGameState('betting');
+                setView('tv');
+            };
+
+            const handleDice = () => {
+                setIsRolling(true);
+                setTimeout(() => {
+                    const roll = Math.floor(Math.random() * 6) + 1;
+                    setLastRoll(roll);
+                    setIsRolling(false);
+                    setTimeout(() => {
+                        const newTeams = [...teams];
+                        newTeams[currentTeamTurn].position = Math.min(39, newTeams[currentTeamTurn].position + roll);
+                        setTeams(newTeams);
+                        if (currentTeamTurn < teams.length - 1) setCurrentTeamTurn(currentTeamTurn + 1);
+                        else {
+                            setCurrentTeamTurn(0);
+                            setGameState('betting');
+                        }
+                        setLastRoll(null);
+                    }, 1000);
+                }, 1000);
+            };
+
+            // --- UI COMPONENTS ---
+            const Card = ({ children, className = "" }) => (
+                <div className={`bg-white border-4 border-black rounded-3xl p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] ${className}`}>
+                    {children}
+                </div>
+            );
+
+            const Btn = ({ onClick, children, color = "bg-yellow-400" }) => (
+                <motion.button 
+                    whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
+                    onClick={onClick}
+                    className={`${color} border-4 border-black rounded-2xl px-6 py-3 font-bold uppercase shadow-[4px_4px_0_0_rgba(0,0,0,1)]`}
+                >
+                    {children}
+                </motion.button>
+            );
+
+            return (
+                <div className="min-h-screen p-4">
+                    {/* Dev Navigation */}
+                    <nav className="bg-black text-white p-2 mb-4 rounded-xl flex gap-4 text-xs overflow-x-auto">
+                        <button onClick={() => setView('setup')}>[Setup]</button>
+                        <button onClick={() => setView('tv')}>[TV-Screen]</button>
+                        {players.map((p, i) => (
+                            <button key={i} onClick={() => { setView('player'); setActivePlayerIdx(i); }}>[P: {p.name}]</button>
+                        ))}
+                    </nav>
+
+                    {view === 'setup' && (
+                        <div className="max-w-xl mx-auto space-y-6">
+                            <h1 className="text-6xl font-black text-center text-white drop-shadow-[4px_4px_0_rgba(0,0,0,1)] italic">PARTY BET</h1>
+                            <Card>
+                                <div className="flex gap-2 mb-4">
+                                    <input id="pname" type="text" placeholder="Name..." className="flex-1 border-4 border-black rounded-xl p-2" />
+                                    <Btn onClick={() => {
+                                        const el = document.getElementById('pname');
+                                        addPlayer(el.value);
+                                        el.value = '';
+                                    }}>+</Btn>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {players.map(p => <div key={p.id} className="bg-blue-100 border-2 border-black p-2 rounded-lg font-bold">{p.name}</div>)}
+                                </div>
+                                {players.length >= 2 && <div className="mt-6"><Btn onClick={startProject} color="bg-green-400 w-full">Spiel Starten!</Btn></div>}
+                            </Card>
+                        </div>
+                    )}
+
+                    {view === 'tv' && (
+                        <div className="grid grid-cols-12 gap-4">
+                            <div className="col-span-3 space-y-4">
+                                <Card>
+                                    <h2 className="font-black text-xl mb-4">TEAMS</h2>
+                                    {teams.map((t, i) => (
+                                        <div key={i} className={`p-2 mb-2 border-2 border-black rounded-xl ${t.color.bg} text-white flex justify-between`}>
+                                            <span className="font-bold">{t.name}</span>
+                                            <span className="font-mono">{t.credits} CR</span>
+                                        </div>
+                                    ))}
+                                </Card>
+                                <Card className="text-center">
+                                    {gameState === 'betting' ? (
+                                        <div>
+                                            <p className="font-black animate-bounce text-xl">WETT-PHASE!</p>
+                                            <p className="text-sm">Alle Tipps auf den Handys abgeben...</p>
+                                            <Btn onClick={() => setGameState('moving')} color="bg-blue-400 mt-4">Tipps fertig</Btn>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <p className="font-bold">{teams[currentTeamTurn].name} ist dran!</p>
+                                            <div className="w-20 h-20 bg-white border-4 border-black mx-auto my-4 flex items-center justify-center text-3xl font-black rounded-2xl">
+                                                {isRolling ? "..." : lastRoll || "?"}
+                                            </div>
+                                            {!isRolling && <Btn onClick={handleDice}>Würfeln</Btn>}
+                                        </div>
+                                    )}
+                                </Card>
+                            </div>
+                            <div className="col-span-9 bg-white/50 border-4 border-black rounded-3xl p-4 grid grid-cols-10 gap-1 h-[600px]">
+                                {board.map((f, i) => (
+                                    <div key={i} className={`border-2 border-black/20 rounded-lg relative flex items-center justify-center
+                                        ${f.type === 'plus' ? 'bg-green-300' : f.type === 'minus' ? 'bg-red-300' : f.type === 'shop' ? 'bg-purple-300' : 'bg-white'}
+                                    `}>
+                                        <span className="absolute top-0 left-1 text-[10px] opacity-20">{i}</span>
+                                        <div className="flex flex-wrap gap-1">
+                                            {teams.filter(t => t.position === i).map(t => (
+                                                <div key={t.id} className={`w-4 h-4 rounded-full border border-black ${t.color.bg}`}></div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {view === 'player' && (
+                        <div className="max-w-md mx-auto">
+                            <Card className={teams.find(t => t.members.some(m => m.id === players[activePlayerIdx].id))?.color.bg + " text-white"}>
+                                <p className="text-xs uppercase opacity-70">Spieler</p>
+                                <h2 className="text-3xl font-black">{players[activePlayerIdx].name}</h2>
+                            </Card>
+                            <Card className="mt-4">
+                                <h3 className="font-black text-xl mb-4 italic text-center">DEINE WETTE</h3>
+                                <p className="text-center mb-4">Wo landet dein Partner?</p>
+                                <div className="grid grid-cols-4 gap-2 mb-6">
+                                    {[1, 2, 3, 4].map(n => (
+                                        <button key={n} className="border-4 border-black p-4 rounded-xl font-black focus:bg-yellow-400">Platz {n}</button>
+                                    ))}
+                                </div>
+                                <Btn color="bg-green-500 w-full text-white">Tipp bestätigen</Btn>
+                            </Card>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
