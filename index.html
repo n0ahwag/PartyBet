@@ -3,27 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PartyBet Pro - LIVE</title>
+    <title>PartyBet Pro LIVE</title>
     
-    <!-- Core Scripts -->
+    <!-- Scripts -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Firebase Compat -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background: #F8FAFC; color: #0F172A; }
+        body { font-family: 'Inter', sans-serif; background: #F8FAFC; background-image: radial-gradient(#E2E8F0 1.5px, transparent 1.5px); background-size: 30px 30px; }
         .card-shadow { box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05); }
-        .island-board { position: relative; width: 100%; height: 450px; background: #E0F2FE; border-radius: 3rem; border: 4px solid #BAE6FD; overflow: hidden; box-shadow: inset 0 0 80px rgba(186, 230, 253, 0.4); }
-        .field { position: absolute; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; transform: translate(-50%, -50%); background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 900; color: #94A3B8; }
-        .token { width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; position: absolute; z-index: 20; transform: translate(-50%, -50%); transition: all 1s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
-        .dice-anim { animation: dice 0.15s infinite; }
-        @keyframes dice { 0% { transform: scale(1); } 50% { transform: scale(1.1) rotate(5deg); } 100% { transform: scale(1); } }
+        
+        /* Professionelles Spielfeld */
+        .board-wrapper { position: relative; width: 100%; height: 480px; background: #f0f9ff; border-radius: 3rem; border: 4px solid #bae6fd; overflow: hidden; box-shadow: inset 0 0 100px rgba(186, 230, 253, 0.3); }
+        .board-path-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.2; }
+        .field-node { position: absolute; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; transform: translate(-50%, -50%); background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; color: #94A3B8; }
+        .team-token { width: 26px; height: 26px; border-radius: 50%; border: 2px solid white; position: absolute; z-index: 20; transform: translate(-50%, -50%); transition: all 1s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        
+        .dice-box { width: 80px; height: 80px; background: white; border: 4px solid black; border-radius: 1.5rem; display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: 900; box-shadow: 0 8px 0 #CBD5E1; }
+        .rolling { animation: roll 0.1s infinite; }
+        @keyframes roll { 0% { transform: rotate(0); } 50% { transform: rotate(5deg) scale(1.1); } 100% { transform: rotate(-5deg); } }
     </style>
 </head>
 <body>
@@ -32,7 +35,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- FIREBASE CONFIG (DEINE DATEN) ---
+        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyA95lwHyq0cZ5z7si_woAn8iKFeFqtoDv8",
             authDomain: "partybe-d44b7.firebaseapp.com",
@@ -42,38 +45,35 @@
             messagingSenderId: "960737105971",
             appId: "1:960737105971:web:55482d6ea806bca6a36b46"
         };
-
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const ROOM_ID = "PARTY_LIVE_PRO";
+        const ROOM_ID = "LIVE_PRO_SESSION";
 
-        const COLORS = ['#6366F1', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#EC4899'];
+        const TEAM_COLORS = ['#6366F1', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#EC4899'];
         const GAMES = [
-            { name: "Bierdeckel-Flip", rules: "Wer flippt am meisten Deckel?" },
-            { name: "Socken-Weitwurf", rules: "Triff den Korb mit Socken!" },
-            { name: "Karten-Haus", rules: "Baue das höchste Haus in 60s." },
-            { name: "Eis-Schmelzer", rules: "Schmelze den Würfel in der Hand." }
+            { name: "Bierdeckel-Flip", rules: "Wer flippt am meisten Deckel von der Tischkante?" },
+            { name: "Socken-Weitwurf", rules: "Zielsicher Socken in einen Korb werfen." },
+            { name: "Karten-Haus", rules: "Baut in 60 Sek. das höchste Haus." },
+            { name: "Löffel-Parcours", rules: "Balanciere einen Ball auf einem Löffel durchs Ziel." }
         ];
-        const SHOP = [
-            { id: 'mushroom', name: 'Pilz', price: 30, icon: '🍄', desc: '+3 Felder' },
-            { id: 'shield', name: 'Schild', price: 40, icon: '🛡️', desc: 'Schützt Credits' }
+        const SHOP_ITEMS = [
+            { id: 'mushroom', name: 'Pilz', price: 30, icon: '🍄', desc: '+3 Felder beim nächsten Wurf' },
+            { id: 'banana', name: 'Banane', price: 40, icon: '🍌', desc: 'Gegner verliert 20 Credits' }
         ];
-        
-        // Professioneller Kurvenpfad für das Board
-        const BOARD_PATH = Array.from({length: 30}, (_, i) => {
-            const angle = (i / 15) * Math.PI;
-            const radiusX = i < 15 ? 35 : 25;
-            return {
-                x: 50 + Math.cos(angle * 2) * radiusX,
-                y: 50 + Math.sin(angle) * 35
-            };
-        });
 
-        function App() {
-            const [mode, setMode] = useState('gate'); 
+        // Festgelegter Pfad für 30 Felder (X und Y in Prozent)
+        const BOARD_COORDS = [
+            {x:10, y:50}, {x:12, y:35}, {x:18, y:22}, {x:28, y:15}, {x:40, y:12}, {x:52, y:15}, {x:62, y:22}, {x:70, y:35}, {x:72, y:50}, {x:70, y:65}, 
+            {x:62, y:78}, {x:52, y:85}, {x:40, y:88}, {x:28, y:85}, {x:18, y:78}, {x:12, y:65}, {x:5, y:50}, {x:8, y:30}, {x:18, y:10}, {x:35, y:5}, 
+            {x:55, y:5}, {x:75, y:10}, {x:88, y:25}, {x:95, y:50}, {x:92, y:75}, {x:80, y:90}, {x:60, y:95}, {x:40, y:95}, {x:20, y:90}, {x:10, y:75}
+        ];
+
+        function PartyBetApp() {
+            const [mode, setMode] = useState('gate'); // gate, tv, player
             const [room, setRoom] = useState(null);
-            const [myId, setMyId] = useState(null); // {ti, pi}
-            const [spinning, setSpinning] = useState(false);
+            const [myId, setMyId] = useState(null); // {tIdx, pIdx}
+            const [activeTab, setActiveTab] = useState('bet'); // bet, shop
+            const [isSpinning, setIsSpinning] = useState(false);
 
             useEffect(() => {
                 const ref = db.ref(`rooms/${ROOM_ID}`);
@@ -83,7 +83,8 @@
 
             const update = (path, val) => db.ref(`rooms/${ROOM_ID}/${path}`).set(val);
 
-            const init = () => {
+            // --- TV AKTIONEN ---
+            const initGame = () => {
                 db.ref(`rooms/${ROOM_ID}`).set({
                     phase: 'setup', round: 1, teams: [], bets: {}, results: {}, dice: 1, game: null
                 });
@@ -91,53 +92,64 @@
             };
 
             const runRoulette = () => {
-                setSpinning(true);
-                let i = 0;
+                setIsSpinning(true);
+                let count = 0;
                 const interval = setInterval(() => {
-                    const randomGame = GAMES[Math.floor(Math.random() * GAMES.length)];
-                    update('game', randomGame);
-                    i++;
-                    if (i > 15) {
-                        clearInterval(interval);
-                        setSpinning(false);
-                    }
-                }, 100);
+                    const rnd = GAMES[Math.floor(Math.random() * GAMES.length)];
+                    update('game', rnd);
+                    count++;
+                    if (count > 15) { clearInterval(interval); setIsSpinning(false); }
+                }, 120);
             };
 
-            const evaluate = () => {
+            const rollDice = (tIdx) => {
+                const t = room.teams[tIdx];
+                const roll = Math.floor(Math.random() * 6) + 1;
+                let bonus = 0;
+                if (t.activeEffect === 'mushroom') {
+                    bonus = 3;
+                    update(`teams/${tIdx}/activeEffect`, null); // Effekt verbraucht
+                }
+                const total = roll + bonus;
+                update('dice', total);
+                update(`teams/${tIdx}/position`, Math.min(29, t.position + total));
+            };
+
+            const evaluateResults = () => {
                 const teams = [...room.teams];
-                const processed = teams.map((t, idx) => {
-                    const bet = room.bets?.[`team_${idx}`];
-                    const athlete = room.round % 2 === 0 ? t.members[1] : t.members[0];
+                const updated = teams.map((t, i) => {
+                    const bet = room.bets?.[`team_${i}`];
+                    const athlete = (room.round % 2 === 0) ? t.members[1] : t.members[0];
                     const rank = room.results?.[athlete.name];
                     if (bet && rank && parseInt(bet.rank) === parseInt(rank)) {
                         return { ...t, credits: t.credits + (bet.amount * room.teams.length) };
                     }
                     return bet ? { ...t, credits: Math.max(0, t.credits - bet.amount) } : t;
                 });
-                update('teams', processed);
+                update('teams', updated);
                 update('phase', 'movement');
             };
 
-            // VIEWS
+            // --- VIEWS ---
+
             if (mode === 'gate') return (
                 <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-white">
-                    <h1 className="text-5xl font-black italic text-indigo-600 mb-12 tracking-tighter uppercase">PartyBet Pro</h1>
+                    <h1 className="text-5xl font-black italic text-indigo-600 mb-12 uppercase tracking-tighter">PartyBet Pro</h1>
                     <div className="grid gap-4 w-full max-w-xs">
-                        <button onClick={init} className="bg-indigo-600 text-white p-8 rounded-[2.5rem] font-black uppercase italic shadow-2xl">📺 Fernseher</button>
+                        <button onClick={initGame} className="bg-indigo-600 text-white p-8 rounded-[2.5rem] font-black uppercase italic shadow-2xl transition-all active:scale-95">📺 Fernseher</button>
                         <button onClick={() => setMode('player')} className="bg-white border-4 border-slate-50 p-8 rounded-[2.5rem] font-black uppercase italic shadow-xl">📱 Handy</button>
                     </div>
                 </div>
             );
 
-            // TV VIEW
+            // --- TV ANSICHT ---
             if (mode === 'tv') return (
                 <div className="p-8 max-w-[1400px] mx-auto min-h-screen flex flex-col">
                     <div className="flex justify-between items-start mb-8">
-                        <div><p className="text-indigo-600 font-bold uppercase text-[10px] tracking-widest italic">Runde {room?.round || 1}</p><h1 className="text-4xl font-black uppercase italic tracking-tighter">Live Board</h1></div>
+                        <div><p className="text-indigo-600 font-bold uppercase text-[10px] tracking-widest italic">Runde {room?.round || 1}</p><h1 className="text-4xl font-black uppercase italic tracking-tighter">Live Arena</h1></div>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             {room?.teams?.map((t, i) => (
-                                <div key={i} className="bg-white px-5 py-3 rounded-2xl shadow-sm border-t-4" style={{borderColor: t.color}}><p className="text-[9px] font-bold text-gray-400 uppercase leading-none">{t.name}</p><p className="text-xl font-black">{t.credits}</p></div>
+                                <div key={i} className="bg-white px-5 py-3 rounded-2xl shadow-sm border-t-4" style={{borderColor: t.color}}><p className="text-[9px] font-bold text-slate-400 uppercase leading-none">{t.name}</p><p className="text-xl font-black">{t.credits}</p></div>
                             ))}
                         </div>
                     </div>
@@ -150,26 +162,27 @@
                                 <div className="flex gap-2 mb-6"><input id="p1" placeholder="Spieler A" className="flex-1 bg-slate-50 p-4 rounded-xl" /><input id="p2" placeholder="Spieler B" className="flex-1 bg-slate-50 p-4 rounded-xl" /></div>
                                 <button onClick={() => {
                                     const ts = room.teams || [];
-                                    const nt = {name: document.getElementById('tn').value, members:[{name:document.getElementById('p1').value},{name:document.getElementById('p2').value}], credits:100, position:0, color: COLORS[ts.length % COLORS.length], inventory:[]};
+                                    const nt = {name: document.getElementById('tn').value, members:[{name:document.getElementById('p1').value},{name:document.getElementById('p2').value}], credits:100, position:0, color: TEAM_COLORS[ts.length % TEAM_COLORS.length], inventory:[], activeEffect: null};
                                     update(`teams/${ts.length}`, nt);
+                                    document.getElementById('tn').value='';document.getElementById('p1').value='';document.getElementById('p2').value='';
                                 }} className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold uppercase text-xs mb-8">Hinzufügen +</button>
-                                <button disabled={!room?.teams || room.teams.length < 2} onClick={() => update('phase', 'selection')} className="w-full bg-indigo-600 text-white py-5 rounded-full font-black uppercase italic shadow-xl disabled:opacity-20">Start ➔</button>
+                                <button disabled={!room?.teams || room.teams.length < 2} onClick={() => update('phase', 'selection')} className="w-full bg-indigo-600 text-white py-5 rounded-full font-black uppercase italic shadow-xl">Start ➔</button>
                             </div>
                         )}
 
                         {room?.phase === 'selection' && (
                             <div className="text-center">
-                                <h2 className="text-5xl font-black mb-8 uppercase italic">Minispiel</h2>
+                                <h2 className="text-5xl font-black mb-8 uppercase italic">Minispiel Auswahl</h2>
                                 <div className="h-32 flex items-center justify-center">
                                     {room.game && (
-                                        <div className="bg-indigo-50 p-8 rounded-[2.5rem] border-4 border-indigo-200 animate-pulse">
-                                            <p className="text-4xl font-black text-indigo-600 uppercase italic">{room.game.name}</p>
+                                        <div className="bg-indigo-50 p-8 rounded-[2.5rem] border-4 border-indigo-200">
+                                            <p className="text-4xl font-black text-indigo-600 uppercase italic leading-none">{room.game.name}</p>
                                             <p className="text-sm font-bold text-indigo-400 mt-2">{room.game.rules}</p>
                                         </div>
                                     )}
                                 </div>
-                                {!spinning && <button onClick={runRoulette} className="bg-indigo-600 text-white px-12 py-5 rounded-full font-black uppercase mt-12 shadow-2xl">Zufall 🎲</button>}
-                                {room.game && !spinning && <button onClick={() => update('phase', 'betting')} className="block mt-8 mx-auto text-xs font-bold text-gray-400 uppercase tracking-widest italic hover:text-indigo-600">Zur Wettphase ➔</button>}
+                                {!isSpinning && <button onClick={runRoulette} className="bg-indigo-600 text-white px-12 py-5 rounded-full font-black uppercase mt-12 shadow-2xl">Roulette 🎲</button>}
+                                {room.game && !isSpinning && <button onClick={() => update('phase', 'betting')} className="block mt-8 mx-auto text-xs font-bold text-gray-400 uppercase tracking-widest italic hover:text-indigo-600 transition-all">Wettphase öffnen ➔</button>}
                             </div>
                         )}
 
@@ -190,14 +203,14 @@
 
                         {room?.phase === 'input' && (
                             <div className="w-full max-w-lg text-center">
-                                <h2 className="text-3xl font-black mb-8 uppercase italic">Plätze vergeben</h2>
+                                <h2 className="text-3xl font-black mb-8 uppercase italic text-center">Plätze vergeben</h2>
                                 {room.teams.map((_, i) => (
                                     <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl mb-3">
                                         <span className="font-black text-indigo-600 text-sm italic tracking-widest">#{i+1} Platz</span>
                                         <select onChange={e => update(`results/${e.target.value}`, i+1)} className="bg-white border rounded-xl p-2 font-bold text-xs outline-none shadow-sm">
                                             <option value="">Wähle Athlet...</option>
                                             {room.teams.map(t => {
-                                                const a = room.round % 2 === 0 ? t.members[1] : t.members[0];
+                                                const a = (room.round % 2 === 0) ? t.members[1] : t.members[0];
                                                 return <option key={a.name} value={a.name}>{a.name} ({t.name})</option>;
                                             })}
                                         </select>
@@ -208,118 +221,136 @@
                         )}
 
                         {room?.phase === 'reveal' && (
-                            <div className="text-center"><h2 className="text-5xl font-black italic uppercase mb-12">Auswertung läuft...</h2><button onClick={evaluate} className="bg-slate-900 text-white px-12 py-5 rounded-full font-black shadow-xl uppercase">Zum Board ➔</button></div>
+                            <div className="text-center"><h2 className="text-5xl font-black italic uppercase mb-12">Auswertung läuft...</h2><button onClick={evaluateResults} className="bg-slate-900 text-white px-12 py-5 rounded-full font-black shadow-xl uppercase">Zum Board ➔</button></div>
                         )}
 
                         {room?.phase === 'movement' && (
-                            <div className="w-full h-full p-6 flex flex-col">
-                                <div className="island-board flex-1 mb-8">
-                                    {BOARD_PATH.map((p, i) => <div key={i} className="field" style={{left: `${p.x}%`, top: `${p.y}%`}}></div>)}
-                                    {room.teams.map((t, i) => <div key={i} className="token" style={{left: `${BOARD_PATH[t.position].x}%`, top: `${BOARD_PATH[t.position].y}%`, backgroundColor: t.color}} />)}
+                            <div className="w-full h-full p-4 flex flex-col">
+                                <div className="board-wrapper flex-1 mb-8">
+                                    {/* SVG Pfad-Linie */}
+                                    <svg className="board-path-svg"><polyline points={BOARD_COORDS.map(c => `${(c.x/100)*800},${(c.y/100)*480}`).join(' ')} fill="none" stroke="#60a5fa" strokeWidth="4" /></svg>
+                                    {/* Felder */}
+                                    {BOARD_COORDS.map((p, i) => (
+                                        <div key={i} className="field-node" style={{left: `${p.x}%`, top: `${p.y}%`}}>
+                                            {i === 0 ? 'S' : i === 29 ? 'Z' : i+1}
+                                        </div>
+                                    ))}
+                                    {/* Team Token */}
+                                    {room.teams.map((t, i) => (
+                                        <div key={i} className="team-token" style={{left: `${BOARD_COORDS[t.position].x}%`, top: `${BOARD_COORDS[t.position].y}%`, backgroundColor: t.color}}>
+                                            {t.activeEffect === 'mushroom' && <span className="absolute -top-4 -right-4 text-xs">🍄</span>}
+                                        </div>
+                                    ))}
                                 </div>
                                 <div className="flex justify-between items-center bg-slate-50 p-8 rounded-[2.5rem] border border-white">
                                     <div className="flex gap-2 flex-wrap max-w-lg">
-                                        {room.teams.map((t, i) => <button key={i} onClick={() => {
-                                            const v = Math.floor(Math.random() * 6) + 1;
-                                            update(`teams/${i}/position`, Math.min(29, t.position + v));
-                                            update('dice', v);
-                                        }} className="text-white text-[10px] font-black pill px-5 py-2 uppercase shadow-lg active:scale-90 transition-all" style={{backgroundColor: t.color}}>{t.name} Wurf</button>)}
+                                        {room.teams.map((t, i) => (
+                                            <button key={i} onClick={() => rollDice(i)} className="text-white text-[10px] font-black rounded-full px-5 py-2 uppercase shadow-lg active:scale-90 transition-all" style={{backgroundColor: t.color}}>
+                                                {t.name} Wurf
+                                            </button>
+                                        ))}
                                     </div>
-                                    <div className="w-20 h-20 bg-white border-4 border-slate-900 rounded-3xl flex items-center justify-center text-4xl font-black shadow-lg">{room.dice}</div>
-                                    <button onClick={() => update('phase', 'shop')} className="bg-indigo-600 text-white px-8 py-4 rounded-full font-black text-xs uppercase italic shadow-lg">Zum Shop ➔</button>
+                                    <div className="dice-box">{room.dice}</div>
+                                    <button onClick={() => {
+                                        update('phase', 'selection'); update('round', room.round + 1); update('game', null); update('bets', {}); update('results', {});
+                                    }} className="bg-slate-900 text-white px-10 py-4 rounded-full font-black text-xs uppercase italic shadow-lg">Nächste Runde ➔</button>
                                 </div>
-                            </div>
-                        )}
-
-                        {room?.phase === 'shop' && (
-                            <div className="text-center">
-                                <h3 className="text-5xl font-black italic uppercase mb-8">Shop Phase</h3>
-                                <p className="text-slate-400 font-bold uppercase text-xs tracking-widest italic mb-12">Zeit zum Einkaufen auf den Handys!</p>
-                                <button onClick={() => {
-                                    update('phase', 'selection'); update('round', room.round + 1); update('game', null); update('bets', {}); update('results', {});
-                                }} className="bg-slate-900 text-white px-14 py-5 rounded-full font-black shadow-xl uppercase italic">Nächste Runde ➔</button>
                             </div>
                         )}
                     </div>
                 </div>
             );
 
-            // PLAYER VIEW
+            // --- PLAYER ANSICHT ---
             if (mode === 'player') return (
-                <div className="max-w-md mx-auto p-8 bg-white min-h-screen flex flex-col">
-                    <h2 className="text-2xl font-black uppercase italic mb-8 tracking-tighter">Wähle dein Team</h2>
+                <div className="max-w-md mx-auto bg-white min-h-screen flex flex-col relative border-x border-slate-100">
                     {!myId ? (
-                        <div className="space-y-4">
-                            {room?.teams?.map((t, ti) => (
-                                <div key={ti} className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-                                    <p className="font-bold text-xs text-gray-400 uppercase mb-4" style={{color: t.color}}>{t.name}</p>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => {setMyId({ti, pi:0});}} className="flex-1 bg-white p-3 rounded-xl border font-bold text-xs uppercase hover:bg-indigo-600 hover:text-white transition-all">{t.members[0].name}</button>
-                                        <button onClick={() => {setMyId({ti, pi:1});}} className="flex-1 bg-white p-3 rounded-xl border font-bold text-xs uppercase hover:bg-indigo-600 hover:text-white transition-all">{t.members[1].name}</button>
-                                    </div>
+                        <div className="p-8"><h2 className="text-2xl font-black uppercase italic mb-8">Wähle dein Team</h2>
+                        <div className="space-y-4">{room?.teams?.map((t, ti) => (
+                            <div key={ti} className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+                                <p className="font-bold text-xs text-gray-400 uppercase mb-4" style={{color: t.color}}>{t.name}</p>
+                                <div className="flex gap-2">
+                                    <button onClick={() => {setMyId({ti, pi:0});}} className="flex-1 bg-white p-3 rounded-xl border font-bold text-xs uppercase hover:bg-indigo-600 hover:text-white transition-all">{t.members[0].name}</button>
+                                    <button onClick={() => {setMyId({ti, pi:1});}} className="flex-1 bg-white p-3 rounded-xl border font-bold text-xs uppercase hover:bg-indigo-600 hover:text-white transition-all">{t.members[1].name}</button>
                                 </div>
-                            ))}
-                            {!room?.teams && <p className="text-center text-xs italic text-gray-300">Warten auf Teams am TV...</p>}
-                        </div>
+                            </div>
+                        ))}</div></div>
                     ) : (
-                        <div className="flex-1 flex flex-col">
-                            {(() => {
-                                const t = room.teams[myId.ti];
-                                const p = t.members[myId.pi];
-                                const isBookie = (room.round % 2 === 0) ? myId.pi === 0 : myId.pi === 1;
-                                const athlete = (room.round % 2 === 0) ? t.members[1] : t.members[0];
+                        <div className="flex-1 flex flex-col h-full overflow-hidden">
+                            {/* Player Header */}
+                            <div className="p-6 flex justify-between items-center border-b">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full text-white flex items-center justify-center font-black text-xs border-2 border-white shadow-md" style={{backgroundColor: room.teams[myId.ti].color}}>{room.teams[myId.ti].members[myId.pi].name[0]}</div>
+                                    <div><p className="font-black text-sm">{room.teams[myId.ti].members[myId.pi].name}</p><p className="text-[9px] font-bold text-blue-500 uppercase">{room.teams[myId.ti].name}</p></div>
+                                </div>
+                                <div className="text-right font-black text-lg text-indigo-600">{room.teams[myId.ti].credits} <span className="text-[8px] text-slate-300 block uppercase leading-none">Gems</span></div>
+                            </div>
 
-                                return (
-                                    <div className="flex flex-col h-full">
-                                        <div className="flex justify-between items-center mb-10">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-14 h-14 rounded-full text-white flex items-center justify-center font-black text-xl border-4 border-white shadow-lg" style={{backgroundColor: t.color}}>{p.name[0]}</div>
-                                                <div><h2 className="text-2xl font-black italic uppercase leading-none">{p.name}</h2><p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1 italic">{isBookie ? 'Buchmacher 💰' : 'Athlet 🏃'}</p></div>
-                                            </div>
-                                            <div className="text-right font-black text-xl text-indigo-600">{t.credits}</div>
-                                        </div>
-
-                                        {room.phase === 'betting' && isBookie ? (
-                                            <div className="flex-1">
-                                                <p className="text-center text-[10px] font-bold text-gray-400 uppercase mb-6 italic tracking-widest">Wette auf {athlete.name}</p>
+                            {/* Main Content Area */}
+                            <div className="flex-1 overflow-y-auto p-6 pb-32">
+                                {activeTab === 'bet' ? (
+                                    /* Wett-Bereich */
+                                    <div className="space-y-6">
+                                        {room.phase === 'betting' && (myId.pi === (room.round % 2 === 0 ? 0 : 1)) ? (
+                                            <div><h3 className="font-black italic uppercase text-lg mb-6">Deine Wette</h3>
                                                 <div className="grid grid-cols-2 gap-3">
                                                     {room.teams.map((_, i) => (
                                                         <button key={i} onClick={() => update(`bets/team_${myId.ti}`, {rank: i+1, amount: 20, ready: true})} className={`p-6 rounded-[2rem] font-black text-3xl shadow-sm border-4 transition-all ${room.bets?.[`team_${myId.ti}`]?.rank === i+1 ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-50 bg-white'}`}>#{i+1}</button>
                                                     ))}
                                                 </div>
                                             </div>
-                                        ) : room.phase === 'shop' ? (
-                                            <div className="flex-1 space-y-4">
-                                                <h3 className="font-black italic uppercase text-lg mb-4">Item Shop</h3>
-                                                {SHOP.map(item => (
-                                                    <button key={item.id} disabled={t.credits < item.price} onClick={() => {
-                                                        const inv = t.inventory || [];
-                                                        update(`teams/${myId.ti}/credits`, t.credits - item.price);
-                                                        update(`teams/${myId.ti}/inventory/${inv.length}`, item.id);
-                                                    }} className="w-full flex items-center gap-4 bg-slate-50 p-4 rounded-[1.5rem] disabled:opacity-20 transition-all text-left">
-                                                        <div className="text-3xl bg-white p-3 rounded-2xl shadow-sm">{item.icon}</div>
-                                                        <div className="flex-1"><p className="font-black text-[10px] uppercase">{item.name}</p><p className="text-[8px] text-slate-400 font-bold">{item.desc}</p></div>
-                                                        <p className="font-black text-indigo-600 text-sm">{item.price}</p>
-                                                    </button>
-                                                ))}
-                                            </div>
                                         ) : (
-                                            <div className="flex-1 flex flex-col items-center justify-center text-center opacity-20 italic">
-                                                <p className="text-7xl mb-6">📺</p>
-                                                <p className="font-black uppercase italic text-4xl tracking-tighter leading-none">Live Board</p>
-                                            </div>
+                                            <div className="text-center py-20 opacity-20 italic font-black uppercase text-2xl">Warte auf Action...</div>
                                         )}
-                                        
-                                        <div className="mt-auto pt-6 border-t border-slate-100 flex justify-between items-center">
-                                            <div className="flex gap-2">
-                                                {t.inventory?.map((id, i) => <div key={i} className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-xl shadow-sm border border-white">{SHOP.find(x => x.id === id).icon}</div>)}
-                                                {!t.inventory && <p className="text-[10px] text-gray-300 font-bold uppercase italic tracking-widest">Inventar Leer</p>}
+                                    </div>
+                                ) : (
+                                    /* Shop-Bereich */
+                                    <div className="space-y-6 animate-in fade-in duration-300">
+                                        <h3 className="font-black italic uppercase text-lg">Gems ausgeben</h3>
+                                        {SHOP_ITEMS.map(item => (
+                                            <button key={item.id} disabled={room.teams[myId.ti].credits < item.price} onClick={() => {
+                                                const t = room.teams[myId.ti];
+                                                const inv = t.inventory || [];
+                                                update(`teams/${myId.ti}/credits`, t.credits - item.price);
+                                                update(`teams/${myId.ti}/inventory/${inv.length}`, item.id);
+                                            }} className="w-full flex items-center gap-4 bg-slate-50 p-4 rounded-3xl border-2 border-transparent hover:border-indigo-500 disabled:opacity-20 active:scale-95 transition-all text-left">
+                                                <div className="text-3xl bg-white p-3 rounded-2xl shadow-sm">{item.icon}</div>
+                                                <div className="flex-1"><p className="font-black text-[10px] uppercase">{item.name}</p><p className="text-[8px] text-slate-400 font-bold">{item.desc}</p></div>
+                                                <p className="font-black text-indigo-600 text-sm">{item.price}</p>
+                                            </button>
+                                        ))}
+
+                                        <div className="mt-10 border-t pt-6">
+                                            <h4 className="font-black italic uppercase text-sm mb-4">Dein Inventar</h4>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {room.teams[myId.ti].inventory?.map((id, i) => {
+                                                    const item = SHOP_ITEMS.find(x => x.id === id);
+                                                    return (
+                                                        <div key={i} className="bg-slate-50 p-4 rounded-2xl border text-center relative group">
+                                                            <div className="text-2xl mb-1">{item.icon}</div>
+                                                            <p className="text-[9px] font-bold uppercase mb-2">{item.name}</p>
+                                                            <button onClick={() => {
+                                                                const t = room.teams[myId.ti];
+                                                                const newInv = [...t.inventory];
+                                                                newInv.splice(i, 1); // Item entfernen
+                                                                update(`teams/${myId.ti}/inventory`, newInv);
+                                                                update(`teams/${myId.ti}/activeEffect`, item.id); // Effekt aktivieren
+                                                            }} className="w-full bg-slate-900 text-white text-[8px] font-bold py-1 rounded-full uppercase">Benutzen</button>
+                                                        </div>
+                                                    );
+                                                })}
+                                                {(!room.teams[myId.ti].inventory || room.teams[myId.ti].inventory.length === 0) && <p className="text-[10px] text-slate-300 font-bold uppercase col-span-2 text-center py-4 italic">Keine Items</p>}
                                             </div>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase italic tracking-widest">Inventory</p>
                                         </div>
                                     </div>
-                                );
-                            })()}
+                                )}
+                            </div>
+
+                            {/* Player Tab-Switcher (unten fixiert) */}
+                            <div className="absolute bottom-0 left-0 w-full bg-white border-t p-4 flex gap-4 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
+                                <button onClick={() => setActiveTab('bet')} className={`flex-1 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'bet' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-100 text-slate-400'}`}>Wetten</button>
+                                <button onClick={() => setActiveTab('shop')} className={`flex-1 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'shop' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-100 text-slate-400'}`}>Shop</button>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -327,7 +358,7 @@
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(<PartyBetApp />);
     </script>
 </body>
 </html>
