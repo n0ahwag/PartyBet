@@ -3,22 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PartyBet Pro - Game Loop</title>
+    <title>PartyBet Pro - Ultimate Loop</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #F3F4F6; background-image: radial-gradient(#D1D5DB 1.5px, transparent 1.5px); background-size: 25px 25px; color: #1F2937; overflow-x: hidden; }
-        .card-shadow { box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05); }
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; color: #0F172A; }
+        .card-shadow { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02); }
         .pill { border-radius: 9999px; }
-        .board-container { position: relative; width: 100%; height: 400px; background: #f0f9ff; border-radius: 2rem; border: 2px solid #e0f2fe; overflow: hidden; }
-        .board-field { position: absolute; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; transform: translate(-50%, -50%); background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .player-token { width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; position: absolute; z-index: 10; transition: all 1s cubic-bezier(0.34, 1.56, 0.64, 1); transform: translate(-50%, -50%); box-shadow: 0 3px 6px rgba(0,0,0,0.3); }
-        .reveal-anim { animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
-        @keyframes bounceIn { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1.05); } 70% { transform: scale(0.9); } 100% { transform: scale(1); } }
-        .timer-bar { transition: width 1s linear; }
+        
+        /* Das Spielfeld */
+        .island-board { position: relative; width: 100%; height: 500px; background: #E0F2FE; border-radius: 3rem; border: 4px solid #BAE6FD; overflow: hidden; box-shadow: inset 0 0 100px rgba(186, 230, 253, 0.5); }
+        .path-dot { position: absolute; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; transform: translate(-50%, -50%); background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; }
+        .token { width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; position: absolute; z-index: 20; transition: all 1s cubic-bezier(0.34, 1.56, 0.64, 1); transform: translate(-50%, -50%); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+        
+        /* Würfel Animation */
+        .dice-box { width: 80px; height: 80px; background: white; border: 4px solid black; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: 900; box-shadow: 0 10px 0 #CBD5E1; }
+        .dice-rolling { animation: roll 0.2s infinite; }
+        @keyframes roll { 0% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.1) rotate(10deg); } 100% { transform: scale(1) rotate(-10deg); } }
+        
+        /* Roulette Animation */
+        .roulette-item { transition: all 0.1s ease-in-out; }
     </style>
 </head>
 <body>
@@ -27,42 +34,48 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const MINIGAMES = ["Bierdeckel-Flip", "Karten-Haus", "Becher-Pong", "Löffel-Rennen", "Streichholz-Turm"];
-        const TEAM_COLORS = [
-            { id: 1, name: 'Team Rot', bg: 'bg-red-500', hex: '#ef4444' },
-            { id: 2, name: 'Team Blau', bg: 'bg-blue-500', hex: '#3b82f6' },
-            { id: 3, name: 'Team Grün', bg: 'bg-emerald-500', hex: '#10b981' },
-            { id: 4, name: 'Team Gelb', bg: 'bg-amber-400', hex: '#fbbf24' },
+        const MINIGAMES = [
+            { name: "Bierdeckel-Flip", rules: "Flippe so viele Bierdeckel wie möglich von der Tischkante und fange sie." },
+            { name: "Karten-Haus", rules: "Baue in 60 Sekunden das höchste Kartenhaus aus einem Deck." },
+            { name: "Becher-Pong", rules: "Wirf einen Ball in den Becher des Gegners. Wer zuerst trifft, gewinnt." },
+            { name: "Löffel-Rennen", rules: "Balanciere ein Ei (oder Ball) auf einem Löffel durch einen Parcours." },
+            { name: "Streichholz-Turm", rules: "Staple Streichhölzer auf einem Flaschenhals. Wer den Turm einreißt, verliert." }
         ];
-        const BOARD_PATH = [
-            {x: 10, y: 50}, {x: 15, y: 35}, {x: 25, y: 25}, {x: 35, y: 28}, {x: 42, y: 40}, {x: 38, y: 55}, {x: 28, y: 65}, {x: 18, y: 70},
-            {x: 45, y: 75}, {x: 55, y: 75}, {x: 65, y: 75},
-            {x: 80, y: 65}, {x: 90, y: 50}, {x: 85, y: 35}, {x: 75, y: 25}, {x: 60, y: 25}, {x: 52, y: 35}, {x: 55, y: 50}, {x: 65, y: 60},
-            {x: 80, y: 15}, {x: 60, y: 10}, {x: 40, y: 10}, {x: 20, y: 15}, {x: 10, y: 30}
-        ]; // Gekürzter Pfad für Demo
 
-        function PartyBetPro() {
-            // -- Global State --
-            const [view, setView] = useState('setup'); // setup, game-loop
-            const [loopPhase, setLoopPhase] = useState('announcement'); // announcement, betting, action, input, reveal, movement, shop
+        const BOARD_PATH = [
+            {x: 15, y: 50, type: 'start'}, {x: 20, y: 35}, {x: 30, y: 25}, {x: 42, y: 20}, {x: 55, y: 25}, {x: 65, y: 35}, {x: 70, y: 50}, {x: 65, y: 65}, {x: 55, y: 75}, {x: 42, y: 80}, {x: 30, y: 75}, {x: 20, y: 65},
+            {x: 10, y: 50}, {x: 10, y: 30}, {x: 20, y: 15}, {x: 40, y: 10}, {x: 60, y: 10}, {x: 80, y: 15}, {x: 90, y: 30}, {x: 90, y: 50}, {x: 90, y: 70}, {x: 80, y: 85}, {x: 60, y: 90}, {x: 40, y: 90}, {x: 20, y: 85}, {x: 10, y: 70},
+            {x: 50, y: 50, type: 'finish'}
+        ];
+
+        const TEAM_COLORS = [
+            { id: 1, name: 'Team Rot', bg: 'bg-red-500' },
+            { id: 2, name: 'Team Blau', bg: 'bg-blue-500' },
+            { id: 3, name: 'Team Grün', bg: 'bg-emerald-500' },
+            { id: 4, name: 'Team Gelb', bg: 'bg-amber-500' },
+        ];
+
+        function PartyBetApp() {
+            const [view, setView] = useState('setup'); // setup, game
+            const [loopPhase, setLoopPhase] = useState('selection'); // selection, betting, action, input, reveal, movement
             const [players, setPlayers] = useState([]);
             const [teams, setTeams] = useState([]);
-            const [activeSimPlayer, setActiveSimPlayer] = useState(0);
+            const [activeSim, setActiveSim] = useState(-1); // -1 = TV, 0+ = Player Index
 
-            // -- Loop State --
-            const [currentMinigame, setCurrentMinigame] = useState("");
-            const [bets, setBets] = useState({}); // { playerId: { amount, rankTip, ready } }
-            const [timer, setTimer] = useState(0);
+            // Roulette/Game State
+            const [isSpinning, setIsSpinning] = useState(false);
+            const [selectedGame, setSelectedGame] = useState(null);
+            const [bets, setBets] = useState({}); // { teamId: { amount, rankTip, ready } }
             const [results, setResults] = useState({}); // { playerId: rank }
-            const [revealIdx, setRevealIdx] = useState(-1);
-            const [diceResult, setDiceResult] = useState(null);
+            const [timer, setTimer] = useState(60);
+            const [isRolling, setIsRolling] = useState(false);
+            const [diceVal, setDiceVal] = useState(1);
 
-            // -- Setup Logic --
-            const addPlayer = (name) => {
-                if (name.trim()) {
-                    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-                    setPlayers([...players, { id: Date.now(), name: name.trim(), initials, teamId: null }]);
-                }
+            // --- SETUP ---
+            const addPlayer = (n) => {
+                if(!n) return;
+                const initials = n.split(' ').map(x => x[0]).join('').toUpperCase();
+                setPlayers([...players, { id: Date.now(), name: n, initials, teamId: null }]);
             };
 
             const autoAssign = () => {
@@ -71,78 +84,56 @@
             };
 
             const startGame = () => {
-                const grouped = TEAM_COLORS.map(c => {
-                    const members = players.filter(p => p.teamId === c.id);
-                    return members.length > 0 ? { ...c, members, credits: 100, position: 0 } : null;
+                const t = TEAM_COLORS.map(c => {
+                    const m = players.filter(p => p.teamId === c.id);
+                    return m.length > 0 ? { ...c, members: m, credits: 100, position: 0 } : null;
                 }).filter(Boolean);
-                setTeams(grouped);
-                setView('game-loop');
+                setTeams(t);
+                setView('game');
             };
 
-            // -- Loop Logic --
-            const startBetting = (game) => {
-                setCurrentMinigame(game || MINIGAMES[Math.floor(Math.random() * MINIGAMES.length)]);
-                setLoopPhase('betting');
-                setBets({});
+            // --- GAME LOOP LOGIC ---
+            const startRoulette = () => {
+                setIsSpinning(true);
+                let count = 0;
+                const interval = setInterval(() => {
+                    setSelectedGame(MINIGAMES[count % MINIGAMES.length]);
+                    count++;
+                    if(count > 20) {
+                        clearInterval(interval);
+                        setIsSpinning(false);
+                    }
+                }, 100);
             };
 
-            const startAction = () => {
-                setLoopPhase('action');
-                setTimer(60);
+            const rollDice = (tId) => {
+                setIsRolling(true);
+                let count = 0;
+                const interval = setInterval(() => {
+                    setDiceVal(Math.floor(Math.random() * 6) + 1);
+                    count++;
+                    if(count > 15) {
+                        clearInterval(interval);
+                        setIsRolling(false);
+                        const final = Math.floor(Math.random() * 6) + 1;
+                        setDiceVal(final);
+                        setTimeout(() => {
+                            setTeams(teams.map(t => t.id === tId ? { ...t, position: Math.min(t.position + final, BOARD_PATH.length - 1) } : t));
+                        }, 500);
+                    }
+                }, 80);
             };
 
-            useEffect(() => {
-                if (loopPhase === 'action' && timer > 0) {
-                    const t = setTimeout(() => setTimer(timer - 1), 1000);
-                    return () => clearTimeout(t);
-                } else if (loopPhase === 'action' && timer === 0) {
-                    setLoopPhase('input');
-                }
-            }, [timer, loopPhase]);
-
-            const finalizeResults = () => {
-                setLoopPhase('reveal');
-                setRevealIdx(0);
-            };
-
-            const nextReveal = () => {
-                if (revealIdx < teams.length - 1) {
-                    setRevealIdx(revealIdx + 1);
-                } else {
-                    setLoopPhase('movement');
-                }
-            };
-
-            const rollDice = (teamId) => {
-                const roll = Math.floor(Math.random() * 6) + 1;
-                setDiceResult(roll);
-                setTimeout(() => {
-                    setTeams(teams.map(t => t.id === teamId ? { ...t, position: (t.position + roll) % BOARD_PATH.length } : t));
-                    setDiceResult(null);
-                }, 1500);
-            };
-
-            // -- UI Components --
-            const PrimaryBtn = ({ onClick, children, disabled, className="" }) => (
-                <button disabled={disabled} onClick={onClick} className={`pill px-6 py-3 font-extrabold text-white transition-all shadow-lg active:scale-95 disabled:opacity-30 ${className}`} style={{ background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)' }}>
-                    {children}
-                </button>
-            );
-
-            // --- VIEW: SETUP ---
+            // --- VIEWS ---
             if (view === 'setup') return (
                 <div className="max-w-4xl mx-auto py-12 px-6">
-                    <h1 className="text-3xl font-black mb-10 italic uppercase">PartyBet <span className="text-indigo-600">Pro</span></h1>
+                    <h1 className="text-3xl font-black mb-10 italic uppercase tracking-tighter">PartyBet <span className="text-blue-600">Setup</span></h1>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="bg-white p-6 rounded-[2rem] card-shadow">
-                            <h2 className="font-bold text-xs uppercase tracking-widest text-gray-400 mb-4">Spieler Management</h2>
-                            <div className="flex gap-2 mb-6">
-                                <input id="pIn" type="text" placeholder="Name..." className="flex-1 bg-gray-50 border-none rounded-xl p-3 outline-none focus:ring-2 ring-indigo-500" onKeyPress={e => e.key === 'Enter' && (addPlayer(e.target.value), e.target.value='')} />
-                                <button onClick={() => {const i=document.getElementById('pIn'); addPlayer(i.value); i.value=''}} className="bg-indigo-600 text-white w-12 rounded-xl font-bold">+</button>
-                            </div>
-                            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                        <div className="bg-white p-8 rounded-[2.5rem] card-shadow">
+                            <input id="pIn" type="text" placeholder="Spieler Name..." className="w-full bg-slate-50 p-4 rounded-2xl mb-4 outline-none ring-2 ring-transparent focus:ring-blue-500" onKeyPress={e => e.key === 'Enter' && (addPlayer(e.target.value), e.target.value='')} />
+                            <div className="space-y-2 mb-6">
                                 {players.map(p => (
-                                    <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                                    <div key={p.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
                                         <span className="font-bold text-sm">{p.name}</span>
                                         <select value={p.teamId || ""} onChange={(e) => setPlayers(players.map(x => x.id === p.id ? {...x, teamId: parseInt(e.target.value)} : x))} className="bg-white border text-[10px] pill p-1 font-bold">
                                             <option value="">Kein Team</option>
@@ -151,242 +142,169 @@
                                     </div>
                                 ))}
                             </div>
-                            <button onClick={autoAssign} className="mt-4 text-xs font-bold text-indigo-600 hover:underline">🎲 Teams automatisch auslosen</button>
+                            <button onClick={autoAssign} className="text-xs font-bold text-blue-600">🎲 Automatisch auslosen</button>
                         </div>
                         <div className="flex flex-col justify-center">
-                            <PrimaryBtn disabled={players.length < 4 || players.some(p => !p.teamId)} onClick={startGame} className="w-full py-5 text-xl">SPIEL STARTEN</PrimaryBtn>
+                            <button disabled={players.length < 4 || players.some(p => !p.teamId)} onClick={startGame} className="bg-blue-600 text-white py-5 rounded-full font-black shadow-xl disabled:opacity-20 active:scale-95 transition-all">SPIEL STARTEN</button>
                         </div>
                     </div>
                 </div>
             );
 
-            // --- VIEW: PLAYER HANDY ---
-            const renderPlayerHandy = () => {
-                const p = players[activeSimPlayer];
-                const team = teams.find(t => t.id === p.teamId);
-                const partner = team?.members.find(m => m.id !== p.id);
-                const myBet = bets[p.id];
-
-                return (
-                    <div className="flex flex-col h-full bg-white p-6">
-                        <div className="flex items-center justify-between mb-8">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs">{p.initials}</div>
-                                <div><h3 className="font-black text-sm uppercase leading-none">{p.name}</h3><p className="text-[10px] text-indigo-500 font-bold">Online</p></div>
-                            </div>
-                            <div className="text-right"><p className="text-[9px] font-bold text-gray-400 uppercase">Credits</p><p className="font-black text-indigo-600">{team?.credits}</p></div>
-                        </div>
-
-                        {loopPhase === 'announcement' && <div className="flex-1 flex flex-col items-center justify-center text-center"><p className="text-gray-400 font-bold uppercase text-xs mb-2">Warten auf Spielauswahl</p><div className="w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div></div>}
-
-                        {loopPhase === 'betting' && (
-                            <div className="flex-1 space-y-6">
-                                <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
-                                    <h4 className="text-indigo-900 font-bold text-xs uppercase mb-1">Aktuelles Spiel:</h4>
-                                    <p className="font-black text-lg italic uppercase">{currentMinigame}</p>
-                                </div>
-                                {myBet?.ready ? (
-                                    <div className="text-center py-10 reveal-anim">
-                                        <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-bold">✓</div>
-                                        <p className="font-black uppercase">Eingeloggt!</p>
-                                        <p className="text-[10px] text-gray-400 mt-2">Wette: {myBet.amount} Gems auf Platz {myBet.rankTip}</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-4">
-                                        <label className="block">
-                                            <span className="text-[10px] font-bold uppercase text-gray-400">Einsatz (Min. 10)</span>
-                                            <input id="betAmount" type="number" min="10" max={team?.credits} className="w-full mt-1 bg-gray-50 rounded-xl p-3 font-bold border-none" defaultValue="10" />
-                                        </label>
-                                        <label className="block">
-                                            <span className="text-[10px] font-bold uppercase text-gray-400">Platzierung {partner?.name}</span>
-                                            <div className="grid grid-cols-3 gap-2 mt-2">
-                                                {[1,2,3,4,5,6].slice(0, players.length).map(n => (
-                                                    <button key={n} onClick={() => {
-                                                        const amt = parseInt(document.getElementById('betAmount').value);
-                                                        if (amt >= 10 && amt <= team.credits) {
-                                                            setBets({...bets, [p.id]: { amount: amt, rankTip: n, ready: true }});
-                                                        } else { alert("Ungültiger Einsatz!"); }
-                                                    }} className="bg-gray-50 border-2 border-transparent hover:border-indigo-500 rounded-xl p-3 font-black text-lg">#{n}</button>
-                                                ))}
-                                            </div>
-                                        </label>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {(loopPhase === 'action' || loopPhase === 'input') && <div className="flex-1 flex flex-col items-center justify-center text-center"><p className="text-6xl mb-4">🤞</p><h4 className="font-black uppercase italic">Daumen drücken!</h4><p className="text-xs text-gray-400 mt-2">Das Minispiel läuft gerade...</p></div>}
+            // --- MAIN GAME UI (TV & PLAYER) ---
+            return (
+                <div className="min-h-screen flex flex-col">
+                    <div className="bg-slate-900 text-white p-2 flex gap-4 text-[9px] font-bold uppercase tracking-widest overflow-x-auto">
+                        <button onClick={() => setActiveSim(-1)} className={activeSim === -1 ? 'text-blue-400' : ''}>TV-Screen</button>
+                        {players.map((p, i) => <button key={i} onClick={() => setActiveSim(i)} className={activeSim === i ? 'text-blue-400' : ''}>P: {p.name}</button>)}
                     </div>
-                );
-            };
 
-            // --- VIEW: TV SCREEN ---
-            const renderTV = () => {
-                return (
-                    <div className="p-8 h-full flex flex-col">
-                        <div className="flex justify-between items-start mb-8">
-                            <div><span className="text-indigo-600 font-bold uppercase text-xs tracking-widest">Live Arena</span><h1 className="text-4xl font-black uppercase italic tracking-tighter">PartyBet Game Loop</h1></div>
-                            <div className="flex gap-4">
-                                {teams.map(t => (
-                                    <div key={t.id} className="bg-white p-4 rounded-2xl card-shadow border border-gray-100 flex items-center gap-4">
-                                        <div className={`w-2.5 h-8 rounded-full ${t.bg}`}></div>
-                                        <div><p className="text-[9px] font-bold text-gray-400 uppercase">{t.name}</p><p className="text-xl font-black">{t.credits}</p></div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="flex-1 grid grid-cols-12 gap-8 overflow-hidden">
-                            {/* Main Display */}
-                            <div className="col-span-8 bg-white rounded-[2.5rem] card-shadow p-8 flex flex-col relative overflow-hidden border border-gray-50">
-                                
-                                {loopPhase === 'announcement' && (
-                                    <div className="flex-1 flex flex-col items-center justify-center reveal-anim">
-                                        <h2 className="text-6xl font-black uppercase italic mb-8 tracking-tighter">Nächstes Spiel!</h2>
-                                        <div className="grid grid-cols-2 gap-4 w-full max-w-md">
-                                            {MINIGAMES.map(g => <button key={g} onClick={() => startBetting(g)} className="bg-gray-50 hover:bg-indigo-600 hover:text-white p-6 rounded-3xl font-black uppercase italic text-sm transition-all">{g}</button>)}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {loopPhase === 'betting' && (
-                                    <div className="flex-1 flex flex-col items-center">
-                                        <h2 className="text-2xl font-black uppercase italic text-indigo-600 mb-8 tracking-widest">{currentMinigame}</h2>
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
-                                            {players.map(p => (
-                                                <div key={p.id} className="text-center">
-                                                    <div className={`w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center border-4 transition-all ${bets[p.id]?.ready ? 'border-green-500 bg-green-50' : 'border-gray-100 bg-gray-50 opacity-40'}`}>
-                                                        <span className="font-black text-xl">{bets[p.id]?.ready ? "✓" : p.initials}</span>
-                                                    </div>
-                                                    <p className="font-bold text-xs uppercase">{p.name}</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <PrimaryBtn disabled={Object.keys(bets).length < players.length} onClick={startAction} className="mt-12 px-12 py-4 text-xl">RUNDE STARTEN</PrimaryBtn>
-                                    </div>
-                                )}
-
-                                {loopPhase === 'action' && (
-                                    <div className="flex-1 flex flex-col items-center justify-center">
-                                        <div className="text-center mb-8">
-                                            <p className="text-indigo-600 font-bold uppercase tracking-widest text-sm mb-2">Spiel läuft...</p>
-                                            <h2 className="text-9xl font-black tracking-tighter">{timer}s</h2>
-                                        </div>
-                                        <div className="w-full max-w-md bg-gray-100 h-4 rounded-full overflow-hidden">
-                                            <div className="h-full bg-indigo-600 timer-bar shadow-[0_0_15px_rgba(79,70,229,0.5)]" style={{ width: `${(timer/60)*100}%` }}></div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {loopPhase === 'input' && (
-                                    <div className="flex-1">
-                                        <h2 className="text-2xl font-black mb-6 italic uppercase">Ergebnisse eintragen</h2>
-                                        <div className="space-y-3">
-                                            {players.map((p, i) => (
-                                                <div key={p.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                                    <span className="font-black text-indigo-600 w-10">#{i+1}</span>
-                                                    <select onChange={(e) => setResults({...results, [e.target.value]: i+1})} className="flex-1 bg-white border-none rounded-xl p-2 font-bold outline-none">
-                                                        <option value="">Spieler wählen...</option>
-                                                        {players.map(pl => <option key={pl.id} value={pl.id}>{pl.name}</option>)}
-                                                    </select>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <PrimaryBtn onClick={finalizeResults} className="w-full mt-6 py-4">ZUM GROSSEN REVEAL ➔</PrimaryBtn>
-                                    </div>
-                                )}
-
-                                {loopPhase === 'reveal' && (
-                                    <div className="flex-1 flex flex-col items-center justify-center reveal-anim">
-                                        <div className="text-center mb-10">
-                                            <p className="text-indigo-600 font-black uppercase text-xs tracking-widest mb-2">Der Reveal</p>
-                                            <h2 className="text-5xl font-black italic uppercase tracking-tighter">{teams[revealIdx]?.name}</h2>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-8 w-full max-w-2xl">
-                                            {teams[revealIdx]?.members.map(m => {
-                                                const finalRank = results[m.id];
-                                                const partner = teams[revealIdx].members.find(x => x.id !== m.id);
-                                                const partnerTip = bets[partner?.id]?.rankTip;
-                                                const isMatch = finalRank === partnerTip;
-                                                const betAmt = bets[partner?.id]?.amount;
-                                                
-                                                return (
-                                                    <div key={m.id} className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 text-center">
-                                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-4">{m.name}: Platz {finalRank}</p>
-                                                        <div className="text-xs font-bold mb-1">Partner Tippt: <span className="text-indigo-600 text-lg">#{partnerTip}</span></div>
-                                                        <div className={`mt-4 py-2 px-4 pill font-black uppercase text-[10px] inline-block ${isMatch ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                                                            {isMatch ? `MATCH! +${betAmt * players.length} Gems` : 'LEIDER FALSCH'}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                        <button onClick={nextReveal} className="mt-12 font-black text-indigo-600 uppercase italic hover:underline">Nächstes Team ➔</button>
-                                    </div>
-                                )}
-
-                                {loopPhase === 'movement' && (
-                                    <div className="flex-1 flex flex-col">
-                                        <h2 className="text-2xl font-black mb-4 italic uppercase">Würfeln & Bewegen</h2>
-                                        <div className="board-container mb-4">
-                                            {BOARD_PATH.map((f, i) => <div key={i} className="board-field" style={{left: `${f.x}%`, top: `${f.y}%`}}></div>)}
-                                            {teams.map(t => <div key={t.id} className={`player-token ${t.bg}`} style={{left: `${BOARD_PATH[t.position]?.x}%`, top: `${BOARD_PATH[t.position]?.y}%`}}></div>)}
-                                        </div>
-                                        <div className="flex gap-4">
-                                            {teams.map(t => (
-                                                <button key={t.id} onClick={() => rollDice(t.id)} className={`${t.bg} text-white p-3 pill text-[10px] font-bold uppercase`}>{t.name} Würfeln</button>
-                                            ))}
-                                        </div>
-                                        <button onClick={() => setLoopPhase('announcement')} className="mt-auto self-end text-[10px] font-bold text-gray-300 uppercase tracking-widest">Nächste Runde ➔</button>
-                                    </div>
-                                )}
-
-                            </div>
-
-                            {/* Sidebar Leaderboard */}
-                            <div className="col-span-4 flex flex-col gap-4">
-                                <div className="bg-white rounded-[2rem] card-shadow p-6 border border-gray-50">
-                                    <h3 className="font-black text-lg mb-6 italic uppercase">Ranking</h3>
-                                    <div className="space-y-3">
-                                        {teams.map((t, i) => (
-                                            <div key={t.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-2xl">
-                                                <span className="font-black text-indigo-300 italic text-xl">#{i+1}</span>
-                                                <span className="font-bold text-sm flex-1">{t.name}</span>
-                                                <span className="font-black text-indigo-600">{t.credits}</span>
+                    <div className="flex-1 p-8">
+                        {activeSim === -1 ? (
+                            /* TV VIEW */
+                            <div className="max-w-6xl mx-auto h-full flex flex-col">
+                                <div className="flex justify-between items-end mb-10">
+                                    <h1 className="text-4xl font-black uppercase italic tracking-tighter">Live Arena</h1>
+                                    <div className="flex gap-4">
+                                        {teams.map(t => (
+                                            <div key={t.id} className="bg-white p-4 rounded-3xl card-shadow flex items-center gap-4">
+                                                <div className={`w-2.5 h-10 rounded-full ${t.bg}`}></div>
+                                                <div><p className="text-[10px] font-bold text-slate-400 uppercase leading-none">{t.name}</p><p className="text-xl font-black">{t.credits}</p></div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
-                                <div className="bg-indigo-600 p-6 rounded-[2rem] text-white shadow-xl shadow-indigo-200">
-                                    <h4 className="font-black uppercase text-[10px] tracking-widest mb-2 opacity-70">Phase</h4>
-                                    <p className="font-extrabold uppercase italic leading-none">{loopPhase}</p>
+
+                                <div className="grid grid-cols-12 gap-8 flex-1">
+                                    <div className="col-span-8 bg-white rounded-[3rem] card-shadow p-10 flex flex-col items-center justify-center relative border border-slate-50">
+                                        
+                                        {loopPhase === 'selection' && (
+                                            <div className="text-center">
+                                                <h2 className="text-5xl font-black uppercase italic mb-8">Nächstes Spiel</h2>
+                                                <div className="h-32 flex items-center justify-center">
+                                                    {selectedGame && <div className="bg-blue-50 p-6 rounded-3xl border-4 border-blue-200"><p className="text-3xl font-black text-blue-600 uppercase italic">{selectedGame.name}</p></div>}
+                                                </div>
+                                                {!isSpinning && !selectedGame && <button onClick={startRoulette} className="bg-blue-600 text-white pill px-10 py-4 font-black mt-8">START AUSWAHL</button>}
+                                                {selectedGame && !isSpinning && (
+                                                    <div className="mt-8">
+                                                        <p className="text-slate-500 font-medium mb-6 max-w-sm mx-auto">{selectedGame.rules}</p>
+                                                        <button onClick={() => setLoopPhase('betting')} className="bg-slate-900 text-white pill px-10 py-4 font-black">WETTPHASE ÖFFNEN</button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {loopPhase === 'betting' && (
+                                            <div className="w-full text-center">
+                                                <h2 className="text-2xl font-black uppercase mb-10">Warten auf Wetten...</h2>
+                                                <div className="grid grid-cols-2 gap-8">
+                                                    {teams.map(t => (
+                                                        <div key={t.id} className={`p-6 rounded-[2.5rem] border-4 transition-all ${bets[t.id]?.ready ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 bg-slate-50 opacity-40'}`}>
+                                                            <p className="font-black text-sm uppercase mb-2">{t.name}</p>
+                                                            <p className="text-4xl">{bets[t.id]?.ready ? "✅" : "⏳"}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <button disabled={Object.keys(bets).length < teams.length} onClick={() => {setLoopPhase('action'); setTimer(60)}} className="mt-12 bg-blue-600 text-white pill px-12 py-4 font-black disabled:opacity-20">MINISPIEL STARTEN</button>
+                                            </div>
+                                        )}
+
+                                        {loopPhase === 'movement' && (
+                                            <div className="w-full h-full flex flex-col">
+                                                <div className="island-board mb-6">
+                                                    {BOARD_PATH.map((p, i) => (
+                                                        <div key={i} className="path-dot" style={{left: `${p.x}%`, top: `${p.y}%`}}>
+                                                            {p.type === 'start' ? '🏁' : p.type === 'finish' ? '🏆' : ''}
+                                                        </div>
+                                                    ))}
+                                                    {teams.map(t => <div key={t.id} className={`token ${t.bg}`} style={{left: `${BOARD_PATH[t.position].x}%`, top: `${BOARD_PATH[t.position].y}%`}}></div>)}
+                                                </div>
+                                                <div className="flex justify-between items-center bg-slate-50 p-6 rounded-[2rem]">
+                                                    <div className="flex gap-4">
+                                                        {teams.map(t => <button key={t.id} onClick={() => rollDice(t.id)} className={`${t.bg} text-white pill px-4 py-2 text-[10px] font-black uppercase shadow-lg shadow-blue-100`}>{t.name}</button>)}
+                                                    </div>
+                                                    <div className={`dice-box ${isRolling ? 'dice-rolling' : ''}`}>{diceVal}</div>
+                                                    <button onClick={() => {setLoopPhase('selection'); setSelectedGame(null); setBets({})}} className="bg-slate-900 text-white pill px-6 py-3 text-xs font-black">NÄCHSTE RUNDE</button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                    </div>
+                                    <div className="col-span-4 space-y-4">
+                                        <div className="bg-white p-8 rounded-[2.5rem] card-shadow">
+                                            <h3 className="font-black text-lg mb-6 italic uppercase">Ranking</h3>
+                                            <div className="space-y-3">
+                                                {teams.map((t, i) => (
+                                                    <div key={t.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl">
+                                                        <span className="font-black text-blue-300 italic text-xl">#{i+1}</span>
+                                                        <span className="font-bold flex-1">{t.name}</span>
+                                                        <span className="font-black text-blue-600">{t.credits}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                );
-            };
+                        ) : (
+                            /* PLAYER VIEW */
+                            <div className="max-w-md mx-auto h-full bg-white rounded-[3rem] p-8 card-shadow overflow-hidden flex flex-col">
+                                {(() => {
+                                    const p = players[activeSim];
+                                    const t = teams.find(team => team.id === p.teamId);
+                                    const isBettor = t?.members[0].id === p.id;
+                                    const teamBet = bets[t?.id];
 
-            // --- MAIN RENDER ---
-            return (
-                <div className="min-h-screen flex flex-col">
-                    {/* View Switcher Bar */}
-                    <div className="bg-black/90 text-white p-2 flex gap-4 text-[9px] font-bold uppercase tracking-widest overflow-x-auto">
-                        <button onClick={() => setActiveSimPlayer(-1)} className={activeSimPlayer === -1 ? 'text-indigo-400 underline' : ''}>TV-Screen</button>
-                        {players.map((p, i) => (
-                            <button key={p.id} onClick={() => setActiveSimPlayer(i)} className={activeSimPlayer === i ? 'text-indigo-400 underline' : ''}>P: {p.name}</button>
-                        ))}
-                    </div>
+                                    return (
+                                        <div className="flex-1 flex flex-col">
+                                            <div className="flex items-center gap-4 mb-10">
+                                                <div className="w-14 h-14 rounded-full bg-blue-600 text-white flex items-center justify-center font-black text-xl">{p.initials}</div>
+                                                <div><h2 className="text-2xl font-black leading-none">{p.name}</h2><p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">{t?.name}</p></div>
+                                            </div>
 
-                    <div className="flex-1">
-                        {activeSimPlayer === -1 ? renderTV() : renderPlayerHandy()}
+                                            {loopPhase === 'betting' && (
+                                                <div className="flex-1 flex flex-col">
+                                                    {isBettor ? (
+                                                        teamBet?.ready ? (
+                                                            <div className="flex-1 flex flex-col items-center justify-center text-center">
+                                                                <div className="text-6xl mb-4">✅</div>
+                                                                <h3 className="text-xl font-black uppercase italic">Wette abgegeben!</h3>
+                                                                <p className="text-slate-400 text-xs mt-2">Schau jetzt auf den Fernseher.</p>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="space-y-6">
+                                                                <h3 className="font-black italic uppercase">Du bist der Wett-Chef!</h3>
+                                                                <p className="text-sm text-slate-500 font-medium">Wo landet dein Partner "{t.members[1]?.name}"?</p>
+                                                                <div className="grid grid-cols-2 gap-3">
+                                                                    {[1,2,3,4].map(n => (
+                                                                        <button key={n} onClick={() => setBets({...bets, [t.id]: { ready: true, rankTip: n, amount: 20 }})} className="bg-slate-50 border-2 border-transparent hover:border-blue-500 p-6 rounded-2xl font-black text-2xl">#{n}</button>
+                                                                    ))}
+                                                                </div>
+                                                                <div className="bg-blue-50 p-4 rounded-2xl text-[10px] font-bold text-blue-600 uppercase text-center">Einsatz: 20 Gems</div>
+                                                            </div>
+                                                        )
+                                                    ) : (
+                                                        <div className="flex-1 flex flex-col items-center justify-center text-center">
+                                                            <div className="text-6xl mb-4">🤝</div>
+                                                            <h3 className="text-xl font-black uppercase italic">Dein Partner wettet</h3>
+                                                            <p className="text-slate-400 text-xs mt-2">{t?.members[0].name} entscheidet über euren Einsatz.</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {loopPhase !== 'betting' && <div className="flex-1 flex flex-col items-center justify-center text-center opacity-20"><p className="font-black uppercase italic">Warten auf Phase...</p></div>}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        )}
                     </div>
                 </div>
             );
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<PartyBetPro />);
+        root.render(<PartyBetApp />);
     </script>
 </body>
 </html>
