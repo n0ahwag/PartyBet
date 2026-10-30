@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { AVATARS } from '../game/constants.js';
 import { joinRoom } from '../game/engine.js';
 import { navigate } from '../lib/router.js';
-import { detectCaps } from '../lib/device.js';
+import { detectCaps, requestMotionPermission } from '../lib/device.js';
 import { useToast, useAction } from '../components/ui.jsx';
 
 export function JoinRoom({ uid, code: initialCode }) {
@@ -13,6 +13,7 @@ export function JoinRoom({ uid, code: initialCode }) {
   const [run, busy] = useAction(toast);
 
   const join = () => run(async () => {
+    requestMotionPermission(); // für "Statue!" und Sensor-Spiele – muss direkt in der Tipp-Geste passieren
     localStorage.setItem('fo_name', name);
     localStorage.setItem('fo_avatar', avatar);
     await joinRoom(code, uid, { name, avatar, caps: detectCaps() });

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { GAMES } from '../game/gameLibrary.js';
 import {
-  drawDuel, openBetting, lockBetsAndPlay, declareWinner, settle, finishGame,
+  nextStep, triggerLiveEvent, openBetting, lockBetsAndPlay, declareWinner, settle, finishGame,
 } from '../game/engine.js';
 import { sfx } from '../lib/sound.js';
 import { useSecondsLeft } from '../hooks/useCountdown.js';
@@ -62,7 +62,14 @@ export function HostControls({ code, room, duel, byId, run, busy }) {
   if (!duel || duel.stage === 'resolved') {
     main = isLast
       ? <button className="btn primary lg block" disabled={busy} onClick={() => run(() => finishGame(code))}>🎉 Party-Wrapped zeigen</button>
-      : <button className="btn primary lg block" disabled={busy} onClick={() => run(() => drawDuel(code))}>⚔️ Nächstes Duell auslosen</button>;
+      : (
+        <>
+          <button className="btn primary lg block" disabled={busy || !!room.liveEvent} onClick={() => run(() => nextStep(code))}>⚔️ Nächstes Duell auslosen</button>
+          {room.liveEvents !== false && (
+            <button className="btn soft block" disabled={busy || !!room.liveEvent} onClick={() => run(() => triggerLiveEvent(code))}>⚡ Live-Event jetzt auslösen</button>
+          )}
+        </>
+      );
   } else if (duel.stage === 'intro') {
     main = <button className="btn primary lg block" disabled={busy} onClick={() => run(() => openBetting(code, duel.id))}>💰 Wetten öffnen</button>;
   } else if (duel.stage === 'betting') {

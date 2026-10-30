@@ -68,6 +68,16 @@ service cloud.firestore {
         );
       }
 
+      // Live-Events: Host startet/entscheidet, Spieler melden nur ihre eigene Sensor-Reaktion
+      match /liveEvents/{id} {
+        allow read: if signedIn();
+        allow create, delete: if isHost(code);
+        allow update: if isHost(code) || (
+          isPlayer(code) && resource.data.status == 'active'
+          && onlyChanged(['reactions']) && onlyOwnKey('reactions')
+        );
+      }
+
       match /events/{id} {
         allow read: if signedIn();
         allow write: if isHost(code);

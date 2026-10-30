@@ -9,6 +9,7 @@ rooms/{CODE}                         ← 4-stelliger Raumcode, z. B. "KXQP"
 ├── players/{uid}                    ← ein Dokument pro Spieler
 ├── duels/{r01, r02, …}              ← ein Dokument pro Duell / Runde
 ├── rescues/{autoId}                 ← Pleite-Rettungen (Aufgabe, Video, Kredit, Bank)
+├── liveEvents/{e<timestamp>}        ← Spontane Live-Events (Sensor-Reaktionen der Spieler)
 └── events/{autoId}                  ← Protokoll für das Party-Wrapped
 ```
 
@@ -29,6 +30,9 @@ rooms/{CODE}                         ← 4-stelliger Raumcode, z. B. "KXQP"
 | `phaseChangedAt` | number (ms) | Löst auf allen Geräten den Alarm-Screen aus |
 | `currentDuelId` | string \| null | Zeigt auf `duels/{id}` |
 | `lastGameId`, `lastDuelists` | | Damit nicht dasselbe Spiel bzw. Paar direkt wiederkommt |
+| `liveEvents` | bool | Live-Events an/aus |
+| `liveEvent` | object \| null | Aktives Event: `{ id, type, color, status: 'active'\|'done', loserId, thenDraw, startedAt }` – alle Geräte zeigen daraus den Vollbild-Alarm |
+| `lastEventRound` | number | Verhindert zwei Events direkt hintereinander |
 
 ## `rooms/{CODE}/players/{uid}`
 
@@ -69,6 +73,13 @@ rooms/{CODE}                         ← 4-stelliger Raumcode, z. B. "KXQP"
 | `prompt` | Zufällige Aufgabe / Video-Ansage |
 | `lenderId`, `amount` | Bei Kredit |
 | `status` | `pending` → `approved/rejected`; Kredit: `asked` → `accepted/declined` (Kreditgeber) → `approved` (Host) |
+
+## `rooms/{CODE}/liveEvents/{id}`
+
+| Feld | Geschrieben von | Beschreibung |
+|---|---|---|
+| `type`, `color`, `status`, `loserId` | Host | `lava`, `statue`, `nose`, `swap`, `color` |
+| `reactions.{uid}` | **Spieler** (nur eigener Key, nur solange `active`) | `{ movedAfterMs }` bei „Statue!“ |
 
 ## `rooms/{CODE}/events/{id}`
 

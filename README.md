@@ -22,6 +22,7 @@ alle anderen wetten Schlücke. **Vite + React + Firebase (Firestore, Anonymous A
   - Audio: Rhythmus-Echo
   - Social: Wahrheit oder Bluff
   - Utensilien: Kartenduell, Bluff-Karten-Duell, Münz-Orakel, Münz-Sprint, Würfel-Showdown, Becher-Flip
+- **⚡ Spontane Live-Events:** Zwischen den Duellen (35 % Chance bei „Nächstes Duell“ oder per Knopf) erscheint auf allen Geräten gleichzeitig ein Vollbild-Alarm: „Der Boden ist Lava!“, „Statue!“, „An die Nase!“, „Handy-Tausch!“ oder „Farb-Ansturm!“. Nach 3 Sekunden tippt der Host den Langsamsten an. Bei „Statue!“ messen die Handys per Sensor, wer sich zuerst bewegt. Wer verliert, trinkt 5 Schlücke. Abschaltbar beim Erstellen
 - **📚 Bibliothek:** alle Spiele nach Kategorie oder Spieleranzahl, mit **Übungsmodus** ohne ganze Runde (Hot-Seat auf einem Gerät, läuft ohne Anmeldung)
 - **Phasen:** Warm-up → Chaos-Runde (Alarm-Screen, Einsätze ×2) → Sudden Death (Doom-Screen, ×3, die zwei Führenden)
 - **Power-ups:** 🛡️ Schild, ✌️ Double-Down, 🧪 Sabotage-Trank, 🔄 Joker-Tausch

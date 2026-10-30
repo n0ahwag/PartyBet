@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, getDocs, setDoc, updateDoc, addDoc, runTransaction,
-  serverTimestamp, increment, deleteDoc,
+  serverTimestamp, increment, deleteDoc, writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import {
@@ -9,6 +9,7 @@ import {
 } from './constants.js';
 import { GAMES, filterLibrary, playableFor, pickGame } from './gameLibrary.js';
 import { lockDuel, settleDuel, applyRepayments } from './economy.js';
+import { createLiveEvent, shouldTriggerLiveEvent } from './liveEvents.js';
 import { makeRng, makeRoomCode } from '../lib/random.js';
 
 /*
@@ -25,7 +26,7 @@ const rescueRef = (code, id) => doc(db, 'rooms', code, 'rescues', id);
 const eventsCol = (code) => collection(db, 'rooms', code, 'events');
 
 export const EMPTY_STATS = {
-  duelsWon: 0, duelsLost: 0, betsWon: 0, betsLost: 0, betProfit: 0,
+  eventLosses: 0, duelsWon: 0, duelsLost: 0, betsWon: 0, betsLost: 0, betProfit: 0,
   sipsDrunk: 0, sipsDistributed: 0, sabotages: 0, sabotaged: 0, bankruptcies: 0,
   biggestBet: 0, powerupsUsed: 0, shieldSaves: 0, rescues: 0, loansGiven: 0,
 };
@@ -35,7 +36,7 @@ const stripNulls = (obj = {}) => Object.fromEntries(Object.entries(obj).filter((
 
 // ------------------------------------------------------------------ Lobby
 
-export async function createRoom({ hostId, mode, expectedPlayers, equipment, totalRounds }) {
+export async function createRoom({ hostId, mode, expectedPlayers, equipment, totalRounds, liveEvents = true }) {
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = makeRoomCode();
     const ref = roomRef(code);
@@ -56,6 +57,9 @@ export async function createRoom({ hostId, mode, expectedPlayers, equipment, tot
         currentDuelId: null,
         lastGameId: null,
         lastDuelists: [],
+        liveEvents,
+        liveEvent: null,
+        lastEventRound: -1,
         createdAt: serverTimestamp(),
       });
       return true;
@@ -408,4 +412,50 @@ export async function resolveRescue(code, rescueId, approve) {
     });
     tx.update(rescueRef(code, rescueId), { status: 'approved', amount });
   });
+}
+
+// ------------------------------------------------------------------ Live-Events
+
+const liveEventRef = (code, id) => doc(db, 'rooms', code, 'liveEvents', id);
+
+/** "Nächstes Duell": manchmal kommt stattdessen ein spontanes Live-Event. */
+export async function nextStep(code) {
+  const room = (await getDoc(roomRef(code))).data();
+  if (shouldTriggerLiveEvent(room)) return triggerLiveEvent(code, { thenDraw: true });
+  return drawDuel(code);
+}
+
+/** Startet ein Live-Event für alle Geräte gleichzeitig (über das Raum-Dokument). */
+export async function triggerLiveEvent(code, { type, thenDraw = false } = {}) {
+  const room = (await getDoc(roomRef(code))).data();
+  const id = `e${Date.now()}`;
+  const ev = createLiveEvent(makeRng(`${code}:${id}`), type);
+  const batch = writeBatch(db);
+  batch.set(liveEventRef(code, id), { ...ev, status: 'active', reactions: {}, createdAt: serverTimestamp() });
+  batch.update(roomRef(code), {
+    liveEvent: { id, ...ev, status: 'active', loserId: null, thenDraw, startedAt: Date.now() },
+    lastEventRound: room.round,
+  });
+  await batch.commit();
+}
+
+/** Spieler meldet seine Sensor-Reaktion (z. B. bei "Statue!" bewegt nach X ms). */
+export async function reactLiveEvent(code, id, uid, data) {
+  await updateDoc(liveEventRef(code, id), { [`reactions.${uid}`]: data });
+}
+
+/** Host legt fest, wer trinkt (loserId null = niemand). */
+export async function resolveLiveEvent(code, id, loserId) {
+  const batch = writeBatch(db);
+  batch.update(roomRef(code), { 'liveEvent.status': 'done', 'liveEvent.loserId': loserId });
+  batch.update(liveEventRef(code, id), { status: 'done', loserId });
+  if (loserId) batch.update(playerRef(code, loserId), { 'stats.eventLosses': increment(1) });
+  await batch.commit();
+}
+
+/** Event schließen und – falls es "Nächstes Duell" ersetzt hat – direkt auslosen. */
+export async function closeLiveEvent(code) {
+  const room = (await getDoc(roomRef(code))).data();
+  await updateDoc(roomRef(code), { liveEvent: null });
+  if (room.liveEvent?.thenDraw) await drawDuel(code);
 }
