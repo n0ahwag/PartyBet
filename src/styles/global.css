@@ -207,3 +207,9 @@ body.phase-suddenDeath .phase-strip { background: #dc2626; animation: pulse 0.8s
 .board.compact .ficon { font-size: 15px; }
 .board.compact .token { width: 18px; height: 18px; font-size: 11px; border-width: 1.5px; }
 .mode-card { flex-direction: column; padding: 16px; border-radius: 18px; text-align: center; }
+
+/* Bibliotheks-Lobby: eingeklappte Host-Optionen – im Spiel sieht jeder dasselbe */
+.host-menu { align-self: center; width: 100%; text-align: center; }
+.host-menu summary { cursor: pointer; list-style: none; font-size: 13px; font-weight: 700; color: var(--muted, #888); padding: 6px; }
+.host-menu summary::-webkit-details-marker { display: none; }
+.host-menu[open] { text-align: left; }

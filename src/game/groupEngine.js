@@ -52,7 +52,7 @@ export async function startGroupRound(code) {
 }
 
 /** Legt das Runden-Dokument an und setzt es als aktuelle Runde. */
-function writeRound(tx, code, room, players, game, rng, round, phase, playedGames) {
+function writeRound(tx, code, room, players, game, rng, round, phase, playedGames, extra = {}) {
   const id = `r${String(round).padStart(2, '0')}`;
   tx.set(roundRef(code, id), {
     round,
@@ -68,6 +68,7 @@ function writeRound(tx, code, room, players, game, rng, round, phase, playedGame
     results: {},
     ranks: null,
     points: null,
+    ...extra,
     createdAt: serverTimestamp(),
   });
   tx.update(roomRef(code), {
@@ -100,9 +101,13 @@ export async function startLibraryRound(code, gameId) {
     const round = room.round + 1;
     const played = room.playedGames || [];
     const rng = makeRng(`${code}:library:${round}:${Date.now()}`);
-    return writeRound(tx, code, room, players, game, rng, round, 'warmup', played.includes(game.id) ? played : [...played, game.id]);
+    return writeRound(tx, code, room, players, game, rng, round, 'warmup',
+      played.includes(game.id) ? played : [...played, game.id], { introEndsAt: Date.now() + LIBRARY_INTRO_MS });
   });
 }
+
+/** Regeln lesen, dann startet die Runde von selbst. */
+export const LIBRARY_INTRO_MS = 10000;
 
 /** Zurück zur Spielauswahl. */
 export async function backToPicker(code) {

@@ -30,7 +30,12 @@ function HivemindInput({ round, byId, onConfirm, busy }) {
   );
 }
 
-export function GroupHostControls({ code, room, round, byId, run, busy }) {
+/**
+ * Host-Steuerung einer Gruppen-Runde. In der Bibliotheks-Lobby (room.gameMode 'library')
+ * läuft alles automatisch: Start nach Countdown, Auswertung, Beicht-Quiz-Schritte. Sichtbar
+ * bleibt dort nur, was ein Mensch eintragen muss (Platzierungen) – der Rest steckt im ⚙️-Menü.
+ */
+export function GroupHostControls({ code, room, round, byId, run, busy, children }) {
   const fired = useRef({});
   const game = round && GAMES[round.gameId];
   const n = round?.participants.length ?? 0;
@@ -61,12 +66,30 @@ export function GroupHostControls({ code, room, round, byId, run, busy }) {
     }
   }, [round]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const library = room.gameMode === 'library';
+
+  // Bibliotheks-Lobby: Runde startet nach dem Regel-Countdown von selbst
+  useEffect(() => {
+    if (!library || round?.stage !== 'intro' || !round.introEndsAt) return undefined;
+    const t = setTimeout(() => once(`${round.id}:begin`, () => run(() => beginGroupRound(code, round.id))),
+      Math.max(0, round.introEndsAt - Date.now()));
+    return () => clearTimeout(t);
+  }, [library, round?.id, round?.stage]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Bibliotheks-Lobby: Beicht-Quiz nach dem Auflösen automatisch weiter
+  useEffect(() => {
+    if (!library || round?.gameId !== 'confession' || round.stage !== 'playing' || round.step !== 'quiz' || !round.revealed) return undefined;
+    const t = setTimeout(() => once(`${round.id}:next:${round.quizIndex}`, () => (round.quizIndex + 1 < round.order.length
+      ? run(() => setRoundState(code, round.id, { quizIndex: round.quizIndex + 1, revealed: false }))
+      : finish(confessionResult(round)))), 5000);
+    return () => clearTimeout(t);
+  }, [library, round?.id, round?.stage, round?.revealed, round?.quizIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (round?.stage === 'intro') sfx.gong();
     if (round?.stage === 'resolved') sfx.coins();
   }, [round?.stage, round?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const library = room.gameMode === 'library';
   // Bibliotheks-Lobby: zwischen den Runden steuert LibraryLobby (Nochmal / anderes Spiel)
   if (library && (!round || round.stage === 'resolved')) return null;
 
@@ -109,6 +132,22 @@ export function GroupHostControls({ code, room, round, byId, run, busy }) {
         if (round.gameId === 'chainStory') return finish({ ...storyResult(round), extra: { story: storyState(round).text } });
         return finishRanks(rankGroupRound(round, round.participants));
       }}>{label}</button>
+    );
+  }
+
+  if (library) {
+    const needsInput = round.stage === 'playing' && (round.gameId === 'hivemind' || game.bracket || game.judge === 'host');
+    return (
+      <>
+        {needsInput && <div className="card stack">{main}</div>}
+        <details className="host-menu">
+          <summary>⚙️ {t('Host-Optionen')}</summary>
+          <div className="stack" style={{ gap: 8, marginTop: 10 }}>
+            {!needsInput && main}
+            {children}
+          </div>
+        </details>
+      </>
     );
   }
 

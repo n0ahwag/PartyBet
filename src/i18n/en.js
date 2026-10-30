@@ -885,4 +885,6 @@ export const EN = {
   "Tippe auf ein Spiel, um es alleine auf diesem Gerät zu üben.": "Tap a game to practise it on this device.",
   "Bibliotheks-Lobby": "Library lobby",
   "Dieses Spiel lebt von der ganzen Gruppe – erstelle in der Bibliothek eine Lobby und wähle es dort aus.": "This game needs the whole group – create a lobby in the library and pick it there.",
+  "Host-Optionen": "Host options",
+  "Start in {n} s": "Starting in {n} s",
 };
