@@ -775,6 +775,52 @@ Object.assign(GAMES, {
   },
 });
 
+// ------------------------------------------------------------------ Sensor-Spiele (Gyroskop, Kompass, Beschleunigung, Licht)
+const sensorBase = { kind: 'sensor', minPlayers: 2, equipment: [], devices: 'own', judge: 'auto' };
+Object.assign(GAMES, {
+  spiritLevel: {
+    ...sensorBase, id: 'spiritLevel', name: 'Die virtuelle Wasserwaage', icon: '🫧', needsMotion: true, accent: '#0891B2',
+    rules: 'Eine digitale Wasserwaage erscheint – mit einer schiefen Ziel-Neigung. Kipp dein Handy, bis die Blase exakt in der Mitte sitzt, und halte sie dort zitterfrei. Wer am längsten am Stück stabil bleibt, gewinnt (15 Sekunden).',
+    groupRules: 'Alle bekommen dieselbe Ziel-Neigung. Blase in die Mitte bringen und zitterfrei halten – die längste stabile Phase gewinnt.',
+    createState(rng) {
+      const tilt = () => rng.pick([-1, 1]) * rng.int(6, 22);
+      return { target: { beta: tilt(), gamma: tilt() }, toleranceDeg: 2.5, durationMs: 15000 };
+    },
+  },
+  safeCracker: {
+    ...sensorBase, id: 'safeCracker', name: 'Der Tresor-Dreher', icon: '🔒', needsCompass: true, accent: '#B45309',
+    rules: 'Dein Handy wird zum Zahlenschloss. Halte es flach vor dich und dreh dich einmal komplett um 360° im Uhrzeigersinn – der Kompass misst die echte Drehung. Wer den Tresor am schnellsten knackt, gewinnt.',
+    groupRules: 'Alle drehen sich gleichzeitig einmal komplett im Uhrzeigersinn. Der Kompass misst mit – wer den Tresor zuerst knackt, gewinnt.',
+    createState: () => ({ degrees: 360, timeoutMs: 25000 }),
+  },
+  heightStretch: {
+    ...sensorBase, id: 'heightStretch', name: 'Der Höhen-Strecker', icon: '🙌', needsMotion: true, accent: '#16A34A',
+    rules: 'Handy auf Brusthöhe ruhig halten. Nach dem Countdown: so schnell wie möglich senkrecht nach oben strecken und oben 3 Sekunden ganz ruhig halten. Der Beschleunigungssensor schätzt Höhe, Tempo und Ruhe.',
+    groupRules: 'Alle strecken gleichzeitig ihr Handy nach oben und halten es ruhig. Höchster, schnellster und ruhigster Streck gewinnt.',
+    createState: () => ({ holdMs: 3000 }),
+  },
+  lightFlash: {
+    ...sensorBase, id: 'lightFlash', name: 'Der Lichtsensor-Blitz', icon: '💡', needsCamera: true, accent: '#CA8A04',
+    rules: 'Hand weg vom Handy-Oberteil und warten. Sobald das Signal erscheint: blitzschnell die Oberseite mit dem Handteller abdecken! Der Sensor (Frontkamera) misst deine Reaktion in Millisekunden. Zu früh abgedeckt = Frühstart.',
+    groupRules: 'Alle warten gleichzeitig auf das Signal und decken dann blitzschnell den Sensor ab. Schnellste Reaktion gewinnt, Frühstarter sind raus.',
+    createState: (rng) => ({ delayMs: rng.int(2000, 5500), timeoutMs: 3000 }),
+  },
+  marbleMaze: {
+    ...sensorBase, id: 'marbleMaze', name: 'Das Kugel-Labyrinth', icon: '🌀', needsMotion: true, accent: '#7C3AED',
+    rules: 'Wie beim Holz-Labyrinth: Neige und kippe dein Handy sanft, um die Kugel ins Ziel zu rollen. Wer am schnellsten ankommt, gewinnt (90 Sekunden).',
+    groupRules: 'Alle bekommen dasselbe Labyrinth. Wer die Kugel am schnellsten ins Ziel kippt, gewinnt.',
+    createState: (rng) => ({ seed: rng.int(1, 999999), timeoutMs: 90000 }),
+  },
+});
+
+Object.assign(NEW_SCORES, {
+  spiritLevel: (r) => -r.bestMs,
+  safeCracker: (r) => (r.ms == null ? 1e6 - (r.degrees ?? 0) : r.ms), // nicht geschafft: mehr Drehung ist besser
+  heightStretch: (r) => -r.score,
+  lightFlash: (r) => (r.jumpStart || r.ms == null ? Infinity : r.ms),
+  marbleMaze: (r) => (r.ms == null ? Infinity : r.ms),
+});
+
 for (const [id, fn] of Object.entries(NEW_SCORES)) {
   GAMES[id].groupScore = fn;
   GAMES[id].decide = decideByScore(id);

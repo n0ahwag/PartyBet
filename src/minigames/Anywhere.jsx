@@ -15,7 +15,7 @@ import { sfx, vibrate } from '../lib/sound.js';
 const idsOf = (duel) => duel.participants ?? [duel.playerA, duel.playerB];
 
 /** Ergebnisliste für Duell & Gruppe – Werte erst sichtbar, wenn alle fertig sind. */
-function ResultList({ duel, byId }) {
+export function ResultList({ duel, byId }) {
   const ids = idsOf(duel);
   const fmt = FORMAT_RESULT[duel.gameId];
   const allDone = ids.every((id) => resultComplete(duel.gameId, duel.results?.[id]));
