@@ -12,6 +12,7 @@ export function CreateRoom({ uid }) {
   const [count, setCount] = useState(4);
   const [equipment, setEquipment] = useState([]);
   const [rounds, setRounds] = useState(8);
+  const [liveEvents, setLiveEvents] = useState(true);
   const [name, setName] = useState(localStorage.getItem('fo_name') || '');
   const [toast, toastNode] = useToast();
   const [run, busy] = useAction(toast);
@@ -20,7 +21,7 @@ export function CreateRoom({ uid }) {
   const toggle = (id) => setEquipment((eq) => (eq.includes(id) ? eq.filter((e) => e !== id) : [...eq, id]));
 
   const create = () => run(async () => {
-    const code = await createRoom({ hostId: uid, mode, expectedPlayers: count, equipment, totalRounds: rounds });
+    const code = await createRoom({ hostId: uid, mode, expectedPlayers: count, equipment, totalRounds: rounds, liveEvents });
     if (mode === 'mobile') {
       localStorage.setItem('fo_name', name);
       await joinRoom(code, uid, { name, avatar: AVATARS[0], caps: detectCaps() });
@@ -91,6 +92,14 @@ export function CreateRoom({ uid }) {
         <p className="small muted center" style={{ margin: 0 }}>
           Warm-up: {Math.max(1, Math.ceil((rounds - 1) * 0.5))} · Chaos: {rounds - 1 - Math.max(1, Math.ceil((rounds - 1) * 0.5))} · Sudden Death: 1
         </p>
+      </div>
+
+      <div className="card row">
+        <div className="grow">
+          <b>⚡ Spontane Live-Events</b>
+          <div className="small muted">Zwischen den Duellen unerwartete Vollbild-Alarme – der Langsamste trinkt 5 Schlücke.</div>
+        </div>
+        <button className={`chip ${liveEvents ? 'on' : ''}`} onClick={() => setLiveEvents((v) => !v)}>{liveEvents ? 'An' : 'Aus'}</button>
       </div>
 
       <button className="btn primary lg block" disabled={busy || !uid || (mode === 'mobile' && !name.trim())} onClick={create}>Raum erstellen</button>

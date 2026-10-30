@@ -61,6 +61,9 @@ export function buildWrapped(players, events) {
   award('shield', top('shieldSaves'), ['#00B4DB', '#0083B0'], 'Unverwundbar 🛡️', top('shieldSaves')?.name,
     (p) => `${p.stats.shieldSaves}× vom Schild gerettet.`);
 
+  award('slowpoke', top('eventLosses'), ['#F2994A', '#F2C94C'], 'Die Schnecke 🐌', top('eventLosses')?.name,
+    (p) => `${p.stats.eventLosses}× bei Live-Events der Langsamste.`);
+
   award('banker', top('loansGiven'), ['#56AB2F', '#A8E063'], 'Die Bank 🏦', top('loansGiven')?.name,
     (p) => `Hat ${p.stats.loansGiven}× Kredit gegeben. Mit Zinsen.`);
 

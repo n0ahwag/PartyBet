@@ -7,6 +7,7 @@ import { HostControls } from '../components/HostControls.jsx';
 import { BankruptPanel, LoanInbox, RescueAdmin } from '../components/Rescue.jsx';
 import { Scoreboard } from '../components/Scoreboard.jsx';
 import { PhaseOverlay, PhaseBadge } from '../components/PhaseOverlay.jsx';
+import { LiveEventOverlay } from '../components/LiveEventOverlay.jsx';
 import { Avatar, Inventory, OfflineBanner, Loading, Sips, useToast, useAction } from '../components/ui.jsx';
 import { Wrapped } from './Wrapped.jsx';
 import { navigate } from '../lib/router.js';
@@ -41,6 +42,7 @@ export function PlayerController({ uid, code }) {
     <div className="page">
       <PhaseOverlay phase={overlay} />
       <OfflineBanner online={online} />
+      <LiveEventOverlay code={code} room={room} players={players} byId={byId} me={me} isHost={isHost} run={run} />
       <header className="row">
         <Avatar player={me} />
         <div className="grow">

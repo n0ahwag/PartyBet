@@ -6,6 +6,7 @@ import { HostControls } from '../components/HostControls.jsx';
 import { RescueAdmin } from '../components/Rescue.jsx';
 import { Scoreboard } from '../components/Scoreboard.jsx';
 import { PhaseOverlay, PhaseBadge } from '../components/PhaseOverlay.jsx';
+import { LiveEventOverlay } from '../components/LiveEventOverlay.jsx';
 import { OfflineBanner, Loading, useToast, useAction } from '../components/ui.jsx';
 import { Wrapped } from './Wrapped.jsx';
 import { navigate } from '../lib/router.js';
@@ -26,6 +27,7 @@ export function HostScreen({ uid, code }) {
     <div className="page wide">
       <PhaseOverlay phase={overlay} />
       <OfflineBanner online={online} />
+      <LiveEventOverlay code={code} room={room} players={players} byId={byId} me={null} isHost run={run} />
       <header className="row between">
         <h1 className="logo" style={{ fontSize: 36 }}>FaceOff <span>Party</span></h1>
         <div className="row">
