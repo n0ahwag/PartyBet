@@ -1,4 +1,5 @@
 import { EQUIPMENT } from '../game/constants.js';
+import { GameArt } from './GameArt.jsx';
 import { GAMES } from '../game/gameLibrary.js';
 import { startGame, updateLobby, kickPlayer } from '../game/engine.js';
 import { startBoardGame } from '../game/boardEngine.js';
@@ -33,7 +34,7 @@ export function Lobby({ code, room, players, meId, isHost, run, busy, big }) {
         <div className="card stack">
           <h3>{t('Spielebibliothek')} ({room.library.length})</h3>
           <div className="row wrap" style={{ gap: 6 }}>
-            {room.library.map((id) => <span key={id} className="pill">{GAMES[id].icon} {t(GAMES[id].name)}</span>)}
+            {room.library.map((id) => <span key={id} className="pill" style={{ paddingLeft: 4 }}><GameArt game={GAMES[id]} size={20} /> {t(GAMES[id].name)}</span>)}
           </div>
           <p className="small muted" style={{ margin: 0 }}>
             {board ? `🎲 ${t('Spielfeld-Modus ({n} Felder, alkoholfrei)', { n: BOARD_LENGTHS[room.board.length].fields })}`

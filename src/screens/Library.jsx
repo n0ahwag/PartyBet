@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { GameArt } from '../components/GameArt.jsx';
 import { GAMES, CATEGORIES, requirementsOf } from '../game/gameLibrary.js';
 import '../game/group.js';
 import { EQUIPMENT } from '../game/constants.js';
@@ -20,7 +21,7 @@ export function GameCard({ game, onClick, disabled = false, note = null }) {
   return (
     <button className="card row" disabled={disabled} style={{ textAlign: 'left', cursor: disabled ? 'default' : 'pointer', padding: 14, width: '100%' }}
       onClick={onClick ?? (() => navigate(`/library/${game.id}`))}>
-      <div className="avatar" style={{ background: `color-mix(in srgb, ${game.accent} 18%, var(--card))`, width: 52, height: 52, fontSize: 28 }}>{game.icon}</div>
+      <GameArt game={game} size={56} />
       <div className="grow stack" style={{ gap: 4 }}>
         <b style={{ fontSize: 17 }}>{t(game.name)}</b>
         <div className="row wrap" style={{ gap: 4 }}>

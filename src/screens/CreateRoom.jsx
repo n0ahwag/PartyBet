@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { GameArt } from '../components/GameArt.jsx';
 import { EQUIPMENT } from '../game/constants.js';
 import { libraryFor } from '../game/group.js';
 import { BOARD_LENGTHS } from '../game/board.js';
@@ -108,7 +109,7 @@ export function CreateRoom({ uid }) {
         <div className="card flat tinted stack" style={{ gap: 8, padding: 14 }}>
           <b>{t('{n} Gruppen-Runden verfügbar – keine Utensilien nötig', { n: library.length })}</b>
           <div className="row wrap" style={{ gap: 6 }}>
-            {library.map((g) => <span key={g.id} className="pill" style={{ background: `color-mix(in srgb, ${g.accent} 16%, var(--card))` }}>{g.icon} {t(g.name)}</span>)}
+            {library.map((g) => <span key={g.id} className="pill" style={{ background: `color-mix(in srgb, ${g.accent} 16%, var(--card))`, paddingLeft: 4 }}><GameArt game={g} size={20} /> {t(g.name)}</span>)}
           </div>
           {count < 3 && <p className="small muted" style={{ margin: 0 }}>{t('Abstimmung, Hivemind & Beicht-Quiz brauchen mind. 3 Spieler.')}</p>}
         </div>
@@ -123,7 +124,7 @@ export function CreateRoom({ uid }) {
         <div className="card flat tinted stack" style={{ gap: 8, padding: 14 }}>
           <b>{t('{n} Spiele verfügbar', { n: library.length })}{board ? ` ${t('(als Gruppen-Challenge)')}` : ''}</b>
           <div className="row wrap" style={{ gap: 6 }}>
-            {library.map((g) => <span key={g.id} className="pill" style={{ background: `color-mix(in srgb, ${g.accent} 16%, var(--card))` }}>{g.icon} {t(g.name)}</span>)}
+            {library.map((g) => <span key={g.id} className="pill" style={{ background: `color-mix(in srgb, ${g.accent} 16%, var(--card))`, paddingLeft: 4 }}><GameArt game={g} size={20} /> {t(g.name)}</span>)}
           </div>
           {count < 3 && <p className="small muted" style={{ margin: 0 }}>{t('Farb-Sprint & Schätz-Duell brauchen mind. 3 Spieler.')}</p>}
         </div>

@@ -1,4 +1,5 @@
 import { GAMES, CATEGORIES, resultComplete } from '../../game/gameLibrary.js';
+import { GameArt } from '../GameArt.jsx';
 import { RANK_POINTS, FINAL_MULTIPLIER } from '../../game/group.js';
 import { submitGroupResult } from '../../game/groupEngine.js';
 import { MINIGAMES } from '../../minigames/index.js';
@@ -50,7 +51,7 @@ export function GroupRound({ code, round, byId, me, big = false, run, isHost = f
 
   const header = (
     <div className="game-title">
-      <div className="icon">{game.icon}</div>
+      <GameArt game={game} size={big ? 72 : 56} />
       <div>
         <div className="kicker">{t('Runde')} {round.round} · {t(CATEGORIES[game.kind]?.label)} · {t('alle gleichzeitig')}{final ? ` · ${t('Punkte')} ×${FINAL_MULTIPLIER}` : ''}</div>
         <h2 style={{ fontSize: big ? 34 : 24 }}>{t(game.name)}</h2>
