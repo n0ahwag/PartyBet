@@ -1,9 +1,12 @@
 import { PHASES } from '../game/constants.js';
 import { BOARD_PHASES } from '../game/board.js';
+import { GROUP_PHASES } from '../game/group.js';
 
-export function PhaseOverlay({ phase, board = false }) {
+export function PhaseOverlay({ phase, mode = 'party' }) {
   if (!phase) return null;
-  const p = board ? { ...PHASES[phase], ...BOARD_PHASES[phase] } : PHASES[phase];
+  const texts = mode === 'board' ? BOARD_PHASES : mode === 'group' ? GROUP_PHASES : null;
+  const board = !!texts; // eigene Titel statt CHAOS!/SUDDEN DEATH
+  const p = texts ? { ...PHASES[phase], ...texts[phase] } : PHASES[phase];
   if (phase === 'chaos') {
     return (
       <div className="overlay phase-alarm">
@@ -29,11 +32,12 @@ export function PhaseOverlay({ phase, board = false }) {
 export function PhaseBadge({ room }) {
   if (!room || room.status !== 'playing') return null;
   const p = PHASES[room.phase];
-  if (room.gameMode === 'board') {
+  if (room.gameMode === 'board' || room.gameMode === 'group') {
+    const texts = room.gameMode === 'board' ? BOARD_PHASES : GROUP_PHASES;
     return (
       <div className="row" style={{ gap: 8 }}>
-        <span className="pill accent" style={{ background: p.accent }}>{BOARD_PHASES[room.phase].label}</span>
-        <span className="pill">Runde {room.round}</span>
+        <span className="pill accent" style={{ background: p.accent }}>{texts[room.phase].label}</span>
+        <span className="pill">Runde {room.round}{room.gameMode === 'group' ? `/${room.totalRounds}` : ''}</span>
       </div>
     );
   }

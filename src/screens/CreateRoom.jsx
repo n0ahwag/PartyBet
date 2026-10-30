@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { EQUIPMENT } from '../game/constants.js';
-import { filterLibrary } from '../game/gameLibrary.js';
+import { libraryFor } from '../game/group.js';
 import { BOARD_LENGTHS } from '../game/board.js';
 import { createRoom, joinRoom } from '../game/engine.js';
 import { navigate } from '../lib/router.js';
@@ -21,10 +21,8 @@ export function CreateRoom({ uid }) {
   const [run, busy] = useAction(toast);
 
   const board = gameMode === 'board';
-  const library = useMemo(
-    () => filterLibrary({ playerCount: count, equipment }).filter((g) => !board || g.group !== false),
-    [count, equipment, board],
-  );
+  const group = gameMode === 'group';
+  const library = useMemo(() => libraryFor(gameMode, count, equipment), [gameMode, count, equipment]);
   // Jedes Spiel nur einmal pro Party → höchstens so viele Duelle wie Spiele
   const maxRounds = Math.max(1, library.length);
   useEffect(() => setRounds((r) => Math.min(r, maxRounds)), [maxRounds]);
@@ -63,6 +61,10 @@ export function CreateRoom({ uid }) {
             <span className="small muted" style={{ fontWeight: 500 }}>Alkoholfrei: alle spielen jede Challenge, wer zuerst im Ziel ist, gewinnt</span>
           </button>
         </div>
+        <button className={`chip mode-card ${group ? 'on' : ''}`} style={{ width: '100%' }} onClick={() => setGameMode('group')}>
+          <span style={{ fontSize: 30 }}>👥</span>Gruppen-Modus
+          <span className="small muted" style={{ fontWeight: 500 }}>Alle spielen gleichzeitig, ohne Utensilien, für Punkte: Abstimmungen, Synch-Test, Hivemind, Beicht-Quiz, Ketten-Story & mehr</span>
+        </button>
         {board && (
           <div className="stack" style={{ gap: 6 }}>
             <span className="small muted">Länge des Spielfelds</span>
@@ -101,7 +103,15 @@ export function CreateRoom({ uid }) {
         </div>
       </div>
 
-      <div className="card stack">
+      {group ? (
+        <div className="card flat tinted stack" style={{ gap: 8, padding: 14 }}>
+          <b>{library.length} Gruppen-Runden verfügbar – keine Utensilien nötig</b>
+          <div className="row wrap" style={{ gap: 6 }}>
+            {library.map((g) => <span key={g.id} className="pill" style={{ background: `color-mix(in srgb, ${g.accent} 16%, var(--card))` }}>{g.icon} {g.name}</span>)}
+          </div>
+          {count < 3 && <p className="small muted" style={{ margin: 0 }}>Abstimmung, Hivemind & Beicht-Quiz brauchen mind. 3 Spieler.</p>}
+        </div>
+      ) : <div className="card stack">
         <h3>Vorhandene Utensilien</h3>
         <div className="row wrap">
           {EQUIPMENT.map((e) => (
@@ -116,18 +126,20 @@ export function CreateRoom({ uid }) {
           </div>
           {count < 3 && <p className="small muted" style={{ margin: 0 }}>Farb-Sprint & Schätz-Duell brauchen mind. 3 Spieler.</p>}
         </div>
-      </div>
+      </div>}
 
       {!board && <div className="card stack">
-        <h3>Anzahl Duelle</h3>
+        <h3>{group ? 'Anzahl Runden' : 'Anzahl Duelle'}</h3>
         <div className="stepper" style={{ justifyContent: 'center' }}>
           <button onClick={() => setRounds((r) => Math.max(Math.min(3, maxRounds), r - 1))}>−</button>
           <div className="value">{rounds}</div>
           <button onClick={() => setRounds((r) => Math.min(maxRounds, r + 1))}>+</button>
         </div>
         <p className="small muted center" style={{ margin: 0 }}>
-          Jedes Spiel nur einmal – max. {maxRounds} Duelle.<br />
-          Warm-up: {Math.max(1, Math.ceil((rounds - 1) * 0.5))} · Chaos: {rounds - 1 - Math.max(1, Math.ceil((rounds - 1) * 0.5))} · Sudden Death: 1
+          Jedes Spiel nur einmal – max. {maxRounds} {group ? 'Runden' : 'Duelle'}.<br />
+          {group
+            ? 'Die letzte Runde ist das Finale mit doppelten Punkten.'
+            : `Warm-up: ${Math.max(1, Math.ceil((rounds - 1) * 0.5))} · Chaos: ${rounds - 1 - Math.max(1, Math.ceil((rounds - 1) * 0.5))} · Sudden Death: 1`}
         </p>
       </div>}
 
@@ -137,6 +149,7 @@ export function CreateRoom({ uid }) {
           <div className="small muted">
             {board
               ? 'Zwischendurch unerwartete Vollbild-Alarme – der Langsamste geht ein Feld zurück.'
+              : group ? 'Zwischendurch unerwartete Vollbild-Alarme – der Langsamste verliert einen Punkt.'
               : 'Zwischen den Duellen unerwartete Vollbild-Alarme – der Langsamste trinkt 5 Schlücke.'}
           </div>
         </div>

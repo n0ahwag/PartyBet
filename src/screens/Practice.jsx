@@ -92,19 +92,21 @@ export function Practice({ gameId }) {
           <span className="pill">{game.judge === 'auto' ? '🤖 App wertet aus' : '👀 Ihr entscheidet'}</span>
         </div>
         <div className="card stack">
-          <h3>Übungsmodus</h3>
-          <p className="small muted" style={{ margin: 0 }}>
+          <h3>{game.groupOnly ? 'Gruppen-Spiel' : 'Übungsmodus'}</h3>
+          {!game.groupOnly && <p className="small muted" style={{ margin: 0 }}>
             {game.devices === 'own'
               ? 'Ihr spielt nacheinander auf diesem Gerät und gebt es dazwischen weiter.'
               : game.devices === 'shared' ? 'Ihr spielt gleichzeitig auf diesem Gerät.' : 'Spielt in echt – die App zeigt die Aufgabe, ihr tragt den Gewinner ein.'}
-          </p>
-          <div className="grid-2">
+          </p>}
+          {!game.groupOnly && <div className="grid-2">
             {[0, 1].map((i) => (
               <input key={i} className="input" style={{ fontSize: 16 }} maxLength={16} value={names[i]}
                 onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
             ))}
-          </div>
-          <button className="btn primary lg block" onClick={start}>▶️ Spielen</button>
+          </div>}
+          {game.groupOnly
+            ? <p className="muted" style={{ margin: 0, fontWeight: 700 }}>👥 Dieses Spiel lebt von der ganzen Gruppe – du spielst es im <b>Gruppen-Modus</b> (Party erstellen → Gruppen-Modus).</p>
+            : <button className="btn primary lg block" onClick={start}>▶️ Spielen</button>}
         </div>
       </div>
     );

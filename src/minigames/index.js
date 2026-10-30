@@ -1,3 +1,4 @@
+import '../game/group.js'; // registriert die Gruppen-Spiele in GAMES
 import { ColorSprint } from './ColorSprint.jsx';
 import { SpeedTap } from './SpeedTap.jsx';
 import { Balance } from './Balance.jsx';

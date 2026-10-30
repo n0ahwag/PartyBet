@@ -32,7 +32,7 @@ rooms/{CODE}                         ← 4-stelliger Raumcode, z. B. "KXQP"
 | `currentDuelId` | string \| null | Zeigt auf `duels/{id}` |
 | `lastGameId`, `lastDuelists` | | Damit nicht dasselbe Paar direkt wiederkommt |
 | `playedGames` | string[] | Bereits gespielte Spiele – jedes Spiel nur einmal pro Party |
-| `gameMode` | `'party' \| 'board'` | Party-Modus oder alkoholfreier Spielfeld-Modus |
+| `gameMode` | `'party' \| 'board' \| 'group'` | Party-, Spielfeld- oder Gruppen-Modus |
 | `board` | `{ length, fields[] }` | Nur Spielfeld: `fields[i]` = `start`, `normal`, `rocket`, `portal`, `chaos`, `stumble`, `goal` |
 | `currentRoundId`, `winnerId` | string | Nur Spielfeld: aktuelle Challenge, Sieger |
 | `liveEvents` | bool | Live-Events an/aus |
@@ -51,6 +51,7 @@ rooms/{CODE}                         ← 4-stelliger Raumcode, z. B. "KXQP"
 | `caps` | `{ touch, motion }` | Gerätefähigkeiten (Gyroskop → Handy-Balance) |
 | `isHost` | bool | |
 | `position`, `skipNext` | number, bool | Nur Spielfeld: Feld & Aussetzen in der nächsten Runde |
+| `points` | number | Nur Gruppen-Modus: Punktestand |
 | `stats` | object | `duelsWon/Lost`, `betsWon/Lost`, `betProfit`, `sipsDrunk`, `sipsWon`, `sabotages`, `sabotaged`, `bankruptcies`, `biggestBet`, `powerupsUsed`, `shieldSaves`, `rescues`, `loansGiven` |
 
 ## `rooms/{CODE}/duels/{id}`
@@ -80,7 +81,7 @@ rooms/{CODE}                         ← 4-stelliger Raumcode, z. B. "KXQP"
 | `lenderId`, `amount` | Bei Kredit |
 | `status` | `pending` → `approved/rejected`; Kredit: `asked` → `accepted/declined` (Kreditgeber) → `approved` (Host) |
 
-## `rooms/{CODE}/rounds/{id}` (Spielfeld-Modus)
+## `rooms/{CODE}/rounds/{id}` (Spielfeld- und Gruppen-Modus)
 
 | Feld | Geschrieben von | Beschreibung |
 |---|---|---|
@@ -91,6 +92,16 @@ rooms/{CODE}                         ← 4-stelliger Raumcode, z. B. "KXQP"
 | `ranks` | Host (automatisch oder per Eingabe) | `{ uid: Platz }`, ohne Ergebnis: Platz n+1 (zieht nicht) |
 | `moves` | Host beim Ziehen | `{ uid: { rank, roll, steps, from, landed, to, field, effect, skipped } }` |
 | `chaos`, `chaosDone`, `winnerId` | Host | Chaos-Feld betreten? / Sieger |
+| `step`, `order`, `quizIndex`, `revealed` | Host | Gruppen-Modus, Beicht-Quiz: Sammel-/Rate-Phase |
+| `points`, `multiplier` | Host | Gruppen-Modus: vergebene Punkte dieser Runde |
+
+Gruppen-Spiele schreiben in `results.{uid}`:
+- `{ vote }` (Wer am ehesten)
+- `{ at: serverTimestamp }` (Synch-Test)
+- `{ fact, guesses: { idx: uid } }` (Beicht-Quiz)
+- `{ words: { idx: wort } }` (Ketten-Story)
+
+Hinweis: Geheimnisse und Stimmen sind in Firestore für alle Teilnehmer lesbar. Die Anonymität gilt nur in der App-Oberfläche.
 
 ## `rooms/{CODE}/liveEvents/{id}`
 

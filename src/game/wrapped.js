@@ -146,3 +146,59 @@ export function buildBoardWrapped(players, events, room) {
   });
   return cards;
 }
+
+/** Wrapped für den Gruppen-Modus (Punkte). */
+export function buildGroupWrapped(players, events) {
+  const list = players.map((p) => ({ ...p, stats: p.stats || {}, points: p.points ?? 0 }));
+  const top = (key) => {
+    const best = [...list].sort((a, b) => (b.stats[key] ?? 0) - (a.stats[key] ?? 0))[0];
+    return best && (best.stats[key] ?? 0) >= 1 ? best : null;
+  };
+  const rounds = events.filter((e) => e.type === 'groupRound');
+  const syncWins = rounds.filter((e) => e.gameId === 'syncTest' && e.success).length;
+  const stories = rounds.filter((e) => e.story).map((e) => e.story);
+
+  const cards = [{
+    id: 'intro',
+    gradient: ['#A18CD1', '#FBC2EB'],
+    kicker: 'Eure Gruppe in Zahlen',
+    title: `${rounds.length} Runden`,
+    lines: [
+      `${list.reduce((s, p) => s + p.points, 0)} Punkte gesammelt`,
+      syncWins ? `${syncWins}× perfekt synchron 🤝` : null,
+    ].filter(Boolean),
+  }];
+
+  const maxPts = Math.max(...list.map((p) => p.points));
+  const champs = list.filter((p) => p.points === maxPts && maxPts > 0);
+  if (champs.length) {
+    cards.push({
+      id: 'champion', gradient: ['#B8860B', '#FFD700'], kicker: 'Gruppen-Champion 👑',
+      title: champs.map((p) => p.name).join(' & '), player: champs[0], lines: [`${maxPts} Punkte`],
+    });
+  }
+
+  const award = (id, key, gradient, kicker, line) => {
+    const p = top(key);
+    if (p) cards.push({ id, gradient, kicker, title: p.name, player: p, lines: [line(p.stats[key])] });
+  };
+  award('magnet', 'votesReceived', ['#F43F5E', '#FB923C'], 'Der Gruppen-Magnet 🧲', (n) => `${n} Stimmen bei „Wer am ehesten …“ kassiert.`);
+  award('psychic', 'confessCorrect', ['#8B5CF6', '#6366F1'], 'Der Hellseher 🔮', (n) => `${n} Geheimnisse richtig zugeordnet.`);
+  award('poker', 'confessFooled', ['#334155', '#64748B'], 'Das Pokerface 🎭', (n) => `${n}× mit dem eigenen Geheimnis alle getäuscht.`);
+  award('hive', 'hivemindHits', ['#EAB308', '#F59E0B'], 'Das Herdentier 🐑', (n) => `${n}× genau wie die Mehrheit gedacht.`);
+  award('champ', 'firstPlaces', ['#11998E', '#38EF7D'], 'Runden-Sieger 🥇', (n) => `${n}× Platz 1 geholt.`);
+  award('slowpoke', 'eventLosses', ['#F2994A', '#F2C94C'], 'Die Schnecke 🐌', (n) => `${n}× bei Live-Events der Langsamste.`);
+
+  if (stories.length) {
+    cards.push({ id: 'story', gradient: ['#0EA5E9', '#22D3EE'], kicker: 'Eure Ketten-Story 📜', title: 'Vorgelesen:', lines: [stories.at(-1)] });
+  }
+
+  cards.push({
+    id: 'outro',
+    gradient: ['#141E30', '#243B55'],
+    kicker: 'Endstand',
+    title: 'Danke fürs Spielen!',
+    ranking: [...list].sort((a, b) => b.points - a.points).map((p) => ({ ...p, value: `${p.points} Punkte` })),
+  });
+  return cards;
+}

@@ -12,6 +12,8 @@ import { Wrapped } from './Wrapped.jsx';
 import { BoardView, Standings, FieldLegend, useAnimatedPositions } from '../components/board/BoardView.jsx';
 import { BoardRound } from '../components/board/BoardRound.jsx';
 import { BoardHostControls } from '../components/board/BoardHostControls.jsx';
+import { GroupRound, PointsBoard } from '../components/group/GroupRound.jsx';
+import { GroupHostControls } from '../components/group/GroupHostControls.jsx';
 import { navigate } from '../lib/router.js';
 
 /** Hauptbildschirm (Laptop/TV). Der Host bedient ihn per Maus/Touch. */
@@ -29,7 +31,7 @@ export function HostScreen({ uid, code }) {
 
   return (
     <div className="page wide">
-      <PhaseOverlay phase={overlay} board={room.gameMode === 'board'} />
+      <PhaseOverlay phase={overlay} mode={room.gameMode} />
       <OfflineBanner online={online} />
       <LiveEventOverlay code={code} room={room} players={players} byId={byId} me={null} isHost run={run} />
       <header className="row between">
@@ -43,6 +45,20 @@ export function HostScreen({ uid, code }) {
 
       {room.status === 'lobby' ? (
         <Lobby code={code} room={room} players={players} isHost run={run} busy={busy} big />
+      ) : room.gameMode === 'group' ? (
+        <div className="host-grid">
+          <div className="stack">
+            {round ? <div className="card"><GroupRound code={code} round={round} byId={byId} me={null} big run={run} isHost /></div>
+              : <div className="card center"><h2>Bereit für die erste Runde?</h2></div>}
+          </div>
+          <div className="stack">
+            <GroupHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />
+            <div className="card stack">
+              <h3>Punktestand</h3>
+              <PointsBoard players={players} />
+            </div>
+          </div>
+        </div>
       ) : room.gameMode === 'board' ? (
         <div className="host-grid">
           <div className="stack">

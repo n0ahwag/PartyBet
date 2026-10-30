@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useEvents } from '../hooks/useRoom.js';
-import { buildWrapped, buildBoardWrapped } from '../game/wrapped.js';
+import { buildWrapped, buildBoardWrapped, buildGroupWrapped } from '../game/wrapped.js';
 import { sfx } from '../lib/sound.js';
 import { navigate } from '../lib/router.js';
 
@@ -10,7 +10,9 @@ const SLIDE_MS = 6500;
 export function Wrapped({ code, players, room }) {
   const events = useEvents(code, true);
   const cards = useMemo(
-    () => (room?.gameMode === 'board' ? buildBoardWrapped(players, events, room) : buildWrapped(players, events)),
+    () => (room?.gameMode === 'board' ? buildBoardWrapped(players, events, room)
+      : room?.gameMode === 'group' ? buildGroupWrapped(players, events)
+        : buildWrapped(players, events)),
     [players, events, room],
   );
   const [i, setI] = useState(0);
@@ -53,7 +55,7 @@ export function Wrapped({ code, players, room }) {
           </div>
         )}
       </div>
-      <div className="small center" style={{ opacity: 0.7 }}>Tippen für weiter · FaceOff {room?.gameMode === 'board' ? 'Spielfeld' : 'Party'} Wrapped</div>
+      <div className="small center" style={{ opacity: 0.7 }}>Tippen für weiter · FaceOff {room?.gameMode === 'board' ? 'Spielfeld' : room?.gameMode === 'group' ? 'Gruppen' : 'Party'} Wrapped</div>
     </div>
   );
 }
