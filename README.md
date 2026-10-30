@@ -58,7 +58,7 @@ Weitere Sprache hinzufügen: in `LANGS` eintragen, ein Wörterbuch wie `en.js` a
   - Social: Wahrheit oder Bluff
   - Utensilien: Kartenduell, Bluff-Karten-Duell, Münz-Orakel, Münz-Sprint, Würfel-Showdown, Becher-Flip
 - **⚡ Spontane Live-Events:** Zwischen den Duellen (35 % Chance bei „Nächstes Duell“ oder per Knopf) erscheint auf allen Geräten gleichzeitig ein Vollbild-Alarm: „Der Boden ist Lava!“, „Statue!“, „An die Nase!“, „Handy-Tausch!“ oder „Farb-Ansturm!“. Nach 3 Sekunden tippt der Host den Langsamsten an. Bei „Statue!“ messen die Handys per Sensor, wer sich zuerst bewegt. Wer verliert, trinkt 5 Schlücke. Abschaltbar beim Erstellen
-- **📚 Bibliothek:** alle Spiele nach Kategorie oder Spieleranzahl, mit **Übungsmodus** ohne ganze Runde (Hot-Seat auf einem Gerät, läuft ohne Anmeldung)
+- **📚 Bibliothek:** oben **Lobby erstellen** – erst treten alle per Raumcode bei (auch später noch jederzeit), dann wählt der Host frei Spiele aus, die zur Spielerzahl und den Geräten passen (beliebig oft, alle gleichzeitig, 3/2/1 Punkte; „Nochmal“ / „Anderes Spiel“, am Ende Wrapped). Darunter alle Spiele nach Kategorie oder Spieleranzahl, mit **Übungsmodus** auf einem Gerät
 - **Jedes Spiel nur einmal pro Party:** Die Anzahl Duelle ist auf die verfügbaren Spiele begrenzt
 - **Phasen:** Warm-up → Chaos-Runde (Alarm-Screen, Einsätze ×2) → Sudden Death (Doom-Screen, ×3, die zwei Führenden)
 - **Power-ups:** 🛡️ Schild, ✌️ Double-Down, 🧪 Sabotage-Trank, 🔄 Joker-Tausch

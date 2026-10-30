@@ -2,7 +2,7 @@ import {
   collection, doc, getDocs, updateDoc, runTransaction, serverTimestamp, increment,
 } from 'firebase/firestore';
 import { db } from '../firebase.js';
-import { groupPlayable, pickGame } from './gameLibrary.js';
+import { GAMES, groupPlayable, pickGame } from './gameLibrary.js';
 import { phaseForRound } from './constants.js';
 import { FINAL_MULTIPLIER, confessionOrder } from './group.js';
 import { makeRng } from '../lib/random.js';
@@ -47,33 +47,66 @@ export async function startGroupRound(code) {
     const game = pickGame(social.length && rng.next() < 0.6 ? social : candidates, room.lastGameId, seed);
     if (!game) throw new Error('Keine Gruppen-Spiele verfügbar.');
 
-    const id = `r${String(round).padStart(2, '0')}`;
-    tx.set(roundRef(code, id), {
-      round,
-      phase,
-      gameId: game.id,
-      game: game.createState(rng, { phase }),
-      participants: players.map((p) => p.id),
-      playerA: game.id === 'truthBluff' ? rng.pick(players).id : null,
-      playerB: null,
-      sabotage: null,
-      stage: 'intro',
-      step: game.id === 'confession' ? 'collect' : null,
-      results: {},
-      ranks: null,
-      points: null,
-      createdAt: serverTimestamp(),
-    });
-    tx.update(roomRef(code), {
-      round,
-      phase,
-      ...(phase !== room.phase ? { phaseChangedAt: Date.now() } : {}),
-      currentRoundId: id,
-      lastGameId: game.id,
-      playedGames: [...played, game.id],
-    });
-    return id;
+    return writeRound(tx, code, room, players, game, rng, round, phase, [...played, game.id]);
   });
+}
+
+/** Legt das Runden-Dokument an und setzt es als aktuelle Runde. */
+function writeRound(tx, code, room, players, game, rng, round, phase, playedGames) {
+  const id = `r${String(round).padStart(2, '0')}`;
+  tx.set(roundRef(code, id), {
+    round,
+    phase,
+    gameId: game.id,
+    game: game.createState(rng, { phase }),
+    participants: players.map((p) => p.id),
+    playerA: game.id === 'truthBluff' ? rng.pick(players).id : null,
+    playerB: null,
+    sabotage: null,
+    stage: 'intro',
+    step: game.id === 'confession' ? 'collect' : null,
+    results: {},
+    ranks: null,
+    points: null,
+    createdAt: serverTimestamp(),
+  });
+  tx.update(roomRef(code), {
+    round,
+    phase,
+    ...(phase !== room.phase ? { phaseChangedAt: Date.now() } : {}),
+    currentRoundId: id,
+    lastGameId: game.id,
+    playedGames,
+  });
+  return id;
+}
+
+// ------------------------------------------------------------------ Bibliotheks-Lobby
+
+/**
+ * Bibliotheks-Lobby: Der Host wählt das Spiel selbst. Der Raum bleibt im Status
+ * "lobby", damit jederzeit weitere Leute beitreten können (sie spielen ab der
+ * nächsten Runde mit). Jedes Spiel darf beliebig oft gespielt werden.
+ */
+export async function startLibraryRound(code, gameId) {
+  const refs = (await getDocs(collection(db, 'rooms', code, 'players'))).docs.map((d) => d.ref);
+  return runTransaction(db, async (tx) => {
+    const room = (await tx.get(roomRef(code))).data();
+    const snaps = await Promise.all(refs.map((r) => tx.get(r)));
+    const players = snaps.filter((s) => s.exists()).map((s) => ({ id: s.id, ...s.data() }));
+    const game = GAMES[gameId];
+    if (!game || game.group === false) throw new Error('Spiel nicht gefunden');
+    if (players.length < game.minPlayers) throw new Error('Zu wenige Spieler für dieses Spiel.');
+    const round = room.round + 1;
+    const played = room.playedGames || [];
+    const rng = makeRng(`${code}:library:${round}:${Date.now()}`);
+    return writeRound(tx, code, room, players, game, rng, round, 'warmup', played.includes(game.id) ? played : [...played, game.id]);
+  });
+}
+
+/** Zurück zur Spielauswahl. */
+export async function backToPicker(code) {
+  await updateDoc(roomRef(code), { currentRoundId: null });
 }
 
 export async function beginGroupRound(code, id) {
