@@ -1,4 +1,5 @@
 import { GAMES } from './gameLibrary.js';
+import { finalDistributors } from './economy.js';
 
 /** Berechnet die "Party-Wrapped"-Karten aus Spielerstatistiken und Duell-Events. */
 export function buildWrapped(players, events) {
@@ -11,6 +12,7 @@ export function buildWrapped(players, events) {
 
   const duels = events.filter((e) => e.type === 'duel');
   const totalDrunk = list.reduce((s, p) => s + (p.stats.sipsDrunk ?? 0), 0);
+  const totalGiven = list.reduce((s, p) => s + (p.stats.sipsDistributed ?? 0), 0);
   const totalBets = list.reduce((s, p) => s + (p.stats.betsWon ?? 0) + (p.stats.betsLost ?? 0), 0);
   const gameCounts = {};
   for (const d of duels) gameCounts[d.gameId] = (gameCounts[d.gameId] ?? 0) + 1;
@@ -24,7 +26,8 @@ export function buildWrapped(players, events) {
       title: `${duels.length} Duelle`,
       lines: [
         `${totalBets} Wetten platziert`,
-        `${totalDrunk} Schlücke getrunken`,
+        `${totalDrunk} Schlücke verloren`,
+        `${totalGiven} Schlücke verteilt`,
         favGameId ? `Meistgespielt: ${GAMES[favGameId]?.name}` : null,
       ].filter(Boolean),
     },
@@ -34,15 +37,14 @@ export function buildWrapped(players, events) {
     if (player) cards.push({ id, gradient, kicker, title, player, lines: [line(player)] });
   };
 
-  const champ = [...list].sort((a, b) => b.balance - a.balance)[0];
-  award('champion', champ, ['#F7971E', '#FFD200'], 'Schluck-Millionär 👑', champ?.name,
-    (p) => `Beendet die Party mit ${p.balance} Schlücken.`);
-
   award('betKing', top('betProfit'), ['#11998E', '#38EF7D'], 'Der Wett-König 💰', top('betProfit')?.name,
-    (p) => `+${p.stats.betProfit} Schlücke Reingewinn aus ${p.stats.betsWon} richtigen Tipps.`);
+    (p) => `+${p.stats.betProfit} Schlücke Wett-Bilanz aus ${p.stats.betsWon} richtigen Tipps.`);
+
+  award('generous', top('sipsDistributed'), ['#FC5C7D', '#6A82FB'], 'Der Spendable 🍻', top('sipsDistributed')?.name,
+    (p) => `Hat ${p.stats.sipsDistributed} Schlücke an andere verteilt.`);
 
   award('unlucky', top('sipsDrunk'), ['#4568DC', '#B06AB3'], 'Der Pechvogel 🐦', top('sipsDrunk')?.name,
-    (p) => `${p.stats.sipsDrunk} Schlücke getrunken. Prost!`);
+    (p) => `${p.stats.sipsDrunk} Schlücke selbst getrunken. Prost!`);
 
   award('saboteur', top('sabotages'), ['#8E2DE2', '#4A00E0'], 'Der Saboteur 🧪', top('sabotages')?.name,
     (p) => `${p.stats.sabotages}× Sabotage-Trank verteilt. Niemand traut dir mehr.`);
@@ -61,6 +63,23 @@ export function buildWrapped(players, events) {
 
   award('banker', top('loansGiven'), ['#56AB2F', '#A8E063'], 'Die Bank 🏦', top('loansGiven')?.name,
     (p) => `Hat ${p.stats.loansGiven}× Kredit gegeben. Mit Zinsen.`);
+
+  const finalists = finalDistributors(list);
+  if (finalists.length) {
+    const n = finalists[0].balance;
+    cards.push({
+      id: 'finale',
+      gradient: ['#B8860B', '#FFD700'],
+      kicker: '👑 Das große Finale',
+      title: finalists.map((p) => p.name).join(' & '),
+      player: finalists[0],
+      lines: [
+        finalists.length > 1
+          ? `Gleichstand mit ${n} Schlücken – jeder von euch darf seine ${n} Schlücke verteilen!`
+          : `Hat am meisten Schlücke übrig und darf alle ${n} jetzt verteilen! 🍻`,
+      ],
+    });
+  }
 
   cards.push({
     id: 'outro',

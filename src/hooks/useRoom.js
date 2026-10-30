@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { collection, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '../firebase.js';
+import { forceReconnect } from '../lib/liveSync.js';
 
 /**
  * Live-Abo eines Raums: Raum-Dokument, Spieler, aktuelles Duell, Rettungen.
@@ -11,11 +12,16 @@ export function useRoom(code) {
   const [players, setPlayers] = useState([]);
   const [duel, setDuel] = useState(null);
   const [rescues, setRescues] = useState([]);
+  const [online, setOnline] = useState(true);
 
   useEffect(() => {
     if (!code) return undefined;
     const unsubs = [
-      onSnapshot(doc(db, 'rooms', code), (s) => setRoom(s.exists() ? { id: s.id, ...s.data() } : null)),
+      // fromCache = keine Live-Verbindung zum Server → Banner zeigen
+      onSnapshot(doc(db, 'rooms', code), { includeMetadataChanges: true }, (s) => {
+        setOnline(!s.metadata.fromCache);
+        setRoom(s.exists() ? { id: s.id, ...s.data() } : null);
+      }),
       onSnapshot(query(collection(db, 'rooms', code, 'players'), orderBy('joinedAt')), (s) =>
         setPlayers(s.docs.map((d) => ({ id: d.id, ...d.data() })))),
       onSnapshot(collection(db, 'rooms', code, 'rescues'), (s) =>
@@ -34,8 +40,15 @@ export function useRoom(code) {
       setDuel(s.exists() ? { id: s.id, ...s.data() } : null));
   }, [code, duelId]);
 
+  // Bleibt die Verbindung weg, nach 4 s aktiv neu verbinden
+  useEffect(() => {
+    if (online) return undefined;
+    const t = setInterval(forceReconnect, 4000);
+    return () => clearInterval(t);
+  }, [online]);
+
   const byId = useMemo(() => Object.fromEntries(players.map((p) => [p.id, p])), [players]);
-  return { room, players, byId, duel, rescues, loading: room === undefined };
+  return { room, players, byId, duel, rescues, online, loading: room === undefined };
 }
 
 export function useEvents(code, enabled) {

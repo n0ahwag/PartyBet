@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useRoute } from './lib/router.js';
 import { useUid } from './hooks/useAuth.js';
 import { unlockAudio } from './lib/sound.js';
+import { startLiveSync } from './lib/liveSync.js';
 import { Loading } from './components/ui.jsx';
 import { Home } from './screens/Home.jsx';
 import { CreateRoom } from './screens/CreateRoom.jsx';
@@ -12,6 +13,8 @@ import { PlayerController } from './screens/PlayerController.jsx';
 export function App() {
   const { name, params } = useRoute();
   const { uid, error } = useUid();
+
+  useEffect(() => startLiveSync(), []);
 
   useEffect(() => {
     const unlock = () => unlockAudio();

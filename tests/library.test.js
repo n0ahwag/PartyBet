@@ -58,6 +58,7 @@ describe('buildWrapped', () => {
     expect(byId.betKing.player.name).toBe('Ana');
     expect(byId.unlucky.player.name).toBe('Ben');
     expect(byId.saboteur.player.name).toBe('Ben');
+    expect(byId.finale.player.name).toBe('Ana');
     expect(cards.at(-1).ranking[0].name).toBe('Ana');
   });
 });

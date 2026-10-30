@@ -87,3 +87,12 @@ export function useAction(toast) {
 export function Loading({ text = 'Lade…' }) {
   return <div className="page center"><p className="muted" style={{ fontWeight: 800 }}>{text}</p></div>;
 }
+
+export function OfflineBanner({ online }) {
+  if (online) return null;
+  return (
+    <div className="toast" style={{ top: 'calc(12px + env(safe-area-inset-top))', bottom: 'auto', background: 'var(--bad)' }}>
+      📡 Verbindung wird wiederhergestellt…
+    </div>
+  );
+}
