@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   GAMES, makeMathTask, categoryWordValid, associationValid, secretTargetOf, buildBracket, ranksFromBracket,
-  resultComplete, rankGroupRound, filterLibrary,
+  resultComplete, rankGroupRound, filterLibrary, CHAIN_CATEGORIES,
 } from '../src/game/gameLibrary.js';
 import { makeRng } from '../src/lib/random.js';
 
@@ -72,5 +72,16 @@ describe('Überall spielbar', () => {
     expect(Math.max(...Object.values(ranks))).toBeLessThanOrEqual(5);
     // gleicher Seed → gleiche Paarungen auf allen Geräten
     expect(buildBracket(ids, 'seed').rounds[0]).toEqual(buildBracket(ids, 'seed').rounds[0]);
+  });
+});
+
+describe('Wortkette', () => {
+  it('hat immer eine Kategorie, und das Startwort gehört dazu', () => {
+    for (let i = 0; i < 40; i++) {
+      const s = GAMES.wordChain.createState(makeRng(`chain${i}`), { phase: 'warmup' });
+      const cat = CHAIN_CATEGORIES.find((c) => c.category === s.category);
+      expect(cat).toBeTruthy();
+      expect(cat.words).toContain(s.startWord);
+    }
   });
 });
