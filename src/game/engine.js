@@ -7,7 +7,7 @@ import {
   START_BALANCE, BETTING_SECONDS, POWERUPS, POWERUP_IDS, SABOTAGE_RULES, RESCUE_OPTIONS,
   LOAN_INTEREST, EMERGENCY_TASKS, VIDEO_PROMPTS, PLAYER_COLORS, AVATARS, phaseForRound,
 } from './constants.js';
-import { GAMES, filterLibrary, playableFor, pickGame } from './gameLibrary.js';
+import { filterLibrary, planDuel } from './gameLibrary.js';
 import { lockDuel, settleDuel, applyRepayments } from './economy.js';
 import { createLiveEvent, shouldTriggerLiveEvent } from './liveEvents.js';
 import { makeRng, makeRoomCode } from '../lib/random.js';
@@ -51,12 +51,13 @@ export async function createRoom({ hostId, mode, expectedPlayers, equipment, tot
         expectedPlayers,
         equipment,
         library: filterLibrary({ playerCount: expectedPlayers, equipment }).map((g) => g.id),
-        totalRounds,
+        totalRounds: Math.min(totalRounds, filterLibrary({ playerCount: expectedPlayers, equipment }).length),
         round: 0,
         phase: 'warmup',
         currentDuelId: null,
         lastGameId: null,
         lastDuelists: [],
+        playedGames: [], // jedes Spiel nur einmal pro Party
         liveEvents,
         liveEvent: null,
         lastEventRound: -1,
@@ -70,11 +71,12 @@ export async function createRoom({ hostId, mode, expectedPlayers, equipment, tot
 }
 
 export async function updateLobby(code, { expectedPlayers, equipment, totalRounds }) {
+  const library = filterLibrary({ playerCount: expectedPlayers, equipment }).map((g) => g.id);
   await updateDoc(roomRef(code), {
     expectedPlayers,
     equipment,
-    totalRounds,
-    library: filterLibrary({ playerCount: expectedPlayers, equipment }).map((g) => g.id),
+    totalRounds: Math.min(totalRounds, library.length), // jedes Spiel nur einmal
+    library,
   });
 }
 
@@ -143,20 +145,21 @@ export async function drawDuel(code) {
       throw new Error('Zu wenige Spieler mit Schlücken – erst Pleite-Rettungen abschließen!');
     }
 
-    let duelists;
-    if (phase === 'suddenDeath') {
-      duelists = [...solvent].sort((a, b) => b.balance - a.balance).slice(0, 2);
-    } else {
-      // Wer zuletzt nicht im Duell war, wird bevorzugt
-      const rested = rng.shuffle(solvent.filter((p) => !room.lastDuelists.includes(p.id)));
-      const tired = rng.shuffle(solvent.filter((p) => room.lastDuelists.includes(p.id)));
-      duelists = [...rested, ...tired].slice(0, 2);
+    // Wunschreihenfolge: Sudden Death = die Führenden, sonst Ausgeruhte zuerst
+    const ordered = phase === 'suddenDeath'
+      ? [...solvent].sort((a, b) => b.balance - a.balance)
+      : [
+        ...rng.shuffle(solvent.filter((p) => !room.lastDuelists.includes(p.id))),
+        ...rng.shuffle(solvent.filter((p) => room.lastDuelists.includes(p.id))),
+      ];
+    const playedGames = room.playedGames || [];
+    const plan = planDuel({ orderedPlayers: ordered, libraryIds: room.library, playedIds: playedGames, seed });
+    if (!plan) {
+      // Alle passenden Spiele wurden schon gespielt → Party ist vorbei
+      tx.update(roomRef(code), { status: 'finished', finishedAt: serverTimestamp(), endedEarly: 'noGamesLeft' });
+      return null;
     }
-
-    const library = (room.library || []).map((id) => GAMES[id]).filter(Boolean);
-    const game = pickGame(playableFor(library, duelists), room.lastGameId, seed)
-      || pickGame(library.filter((g) => !g.needsMotion), room.lastGameId, seed);
-    if (!game) throw new Error('Keine passenden Spiele in der Bibliothek.');
+    const { duelists, game } = plan;
 
     const duelId = `r${String(round).padStart(2, '0')}`;
     tx.set(duelRef(code, duelId), {
@@ -180,6 +183,7 @@ export async function drawDuel(code) {
       phase,
       currentDuelId: duelId,
       lastGameId: game.id,
+      playedGames: [...playedGames, game.id],
       lastDuelists: duelists.map((d) => d.id),
       ...(phase !== room.phase ? { phaseChangedAt: Date.now() } : {}),
     });

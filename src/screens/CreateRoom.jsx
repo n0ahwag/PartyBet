@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { EQUIPMENT } from '../game/constants.js';
 import { filterLibrary } from '../game/gameLibrary.js';
 import { createRoom, joinRoom } from '../game/engine.js';
@@ -18,6 +18,9 @@ export function CreateRoom({ uid }) {
   const [run, busy] = useAction(toast);
 
   const library = useMemo(() => filterLibrary({ playerCount: count, equipment }), [count, equipment]);
+  // Jedes Spiel nur einmal pro Party → höchstens so viele Duelle wie Spiele
+  const maxRounds = Math.max(1, library.length);
+  useEffect(() => setRounds((r) => Math.min(r, maxRounds)), [maxRounds]);
   const toggle = (id) => setEquipment((eq) => (eq.includes(id) ? eq.filter((e) => e !== id) : [...eq, id]));
 
   const create = () => run(async () => {
@@ -85,11 +88,12 @@ export function CreateRoom({ uid }) {
       <div className="card stack">
         <h3>Anzahl Duelle</h3>
         <div className="stepper" style={{ justifyContent: 'center' }}>
-          <button onClick={() => setRounds((r) => Math.max(3, r - 1))}>−</button>
+          <button onClick={() => setRounds((r) => Math.max(Math.min(3, maxRounds), r - 1))}>−</button>
           <div className="value">{rounds}</div>
-          <button onClick={() => setRounds((r) => Math.min(30, r + 1))}>+</button>
+          <button onClick={() => setRounds((r) => Math.min(maxRounds, r + 1))}>+</button>
         </div>
         <p className="small muted center" style={{ margin: 0 }}>
+          Jedes Spiel nur einmal – max. {maxRounds} Duelle.<br />
           Warm-up: {Math.max(1, Math.ceil((rounds - 1) * 0.5))} · Chaos: {rounds - 1 - Math.max(1, Math.ceil((rounds - 1) * 0.5))} · Sudden Death: 1
         </p>
       </div>
