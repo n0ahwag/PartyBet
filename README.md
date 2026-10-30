@@ -52,7 +52,7 @@ Weitere Sprache hinzufügen: in `LANGS` eintragen, ein Wörterbuch wie `en.js` a
   - Real-Life: Farb-Sprint, Handy-Balance
   - Digital: Speed-Tap (Split-Screen), Memory-Code, Emoji-Hit-Raten
   - Multi-Device: Schätz-Duell
-  - Sensor: Schüttel-Manie, Kompass-Axt
+  - Sensor: Schüttel-Manie, Kompass-Axt, Die virtuelle Wasserwaage (Gyroskop), Der Tresor-Dreher (Kompass, 360°-Drehung), Der Höhen-Strecker (Beschleunigung, Hub geschätzt), Der Lichtsensor-Blitz (Umgebungslicht-Sensor, sonst Frontkamera als Lichtmesser), Das Kugel-Labyrinth (Neigung)
   - Frontkamera: Starr-Duell (Blinzel-/Lach-Erkennung per MediaPipe Face-Tracking)
   - Audio: Rhythmus-Echo
   - Social: Wahrheit oder Bluff

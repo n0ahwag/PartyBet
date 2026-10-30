@@ -28,6 +28,11 @@ export const FORMAT_RESULT = {
   association: (r) => (r.valid ? `„${r.word}“ · ${sec(r.ms)}` : r.word ? `„${r.word}“ ❌` : `⏱ ${t('keine Antwort')}`),
   categorySprint: (r) => (r.valid ? `„${r.word}“ · ${sec(r.ms)}` : r.word ? `„${r.word}“ ❌` : `⏱ ${t('keine Antwort')}`),
   numberMemory: (r) => `${t('{n} Ziffern', { n: r.digits })} · ${sec(r.ms)}`,
+  spiritLevel: (r) => t('{n} s stabil', { n: num(r.bestMs / 1000, 1) }),
+  safeCracker: (r) => (r.ms == null ? `❌ ${r.degrees ?? 0}° / 360°` : `🔓 ${sec(r.ms)}`),
+  heightStretch: (r) => `${t('{n} Punkte', { n: r.score })} · ${t('ca. {n} cm Hub', { n: r.heightCm })}`,
+  lightFlash: (r) => (r.jumpStart ? `🚫 ${t('Frühstart')}` : r.ms == null ? t('zu spät') : `${r.ms} ms`),
+  marbleMaze: (r) => (r.ms == null ? `❌ ${t('nicht geschafft')}` : `🏁 ${sec(r.ms)}`),
   truthBluff: (r, round, uid) => {
     const claim = round.results?.[round.playerA];
     if (uid === round.playerA) return `${t('Erzähler')} (${claim?.truth ? t('stimmt') : t('gelogen')})`;

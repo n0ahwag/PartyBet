@@ -430,6 +430,77 @@ const ART = {
       <Sparkle x={13} y={13} s={4} fill={YEL} />
     </>
   ),
+  spiritLevel: ({ a, d }) => (
+    <>
+      <Shadow c={d} rx={17} y={56} />
+      <circle cx="32" cy="33" r="21" fill={d} />
+      <circle cx="32" cy="31" r="21" fill={INK} />
+      <circle cx="32" cy="31" r="16.5" fill="#C9F2E0" />
+      <path d="M32 15v32M16 31h32" stroke={INK} strokeWidth="1.2" opacity="0.25" />
+      <circle cx="32" cy="31" r="6.5" fill="none" stroke={a} strokeWidth="2" />
+      <circle cx="36.5" cy="27" r="5" fill={W} />
+      <circle cx="35" cy="25.5" r="1.6" fill={W} opacity="0.9" stroke="#A7E8CB" strokeWidth="0.8" />
+      <Sparkle x={53} y={12} s={4} fill={YEL} />
+    </>
+  ),
+  safeCracker: ({ a, d }) => (
+    <>
+      <Shadow c={d} rx={19} y={57} />
+      <rect x="10" y="10" width="44" height="43" rx="7" fill={a} />
+      <rect x="13.5" y="13.5" width="37" height="36" rx="4.5" fill={d} opacity="0.35" />
+      <circle cx="30" cy="31.5" r="12" fill="#E5E7EB" />
+      {Array.from({ length: 8 }, (_, i) => (
+        <path key={i} d="M30 21v3" stroke={INK} strokeWidth="1.6" strokeLinecap="round" transform={`rotate(${i * 45} 30 31.5)`} />
+      ))}
+      <circle cx="30" cy="31.5" r="5.5" fill={INK} />
+      <path d="M30 31.5l3-6" stroke={W} strokeWidth="1.8" strokeLinecap="round" />
+      <rect x="45" y="25" width="4.5" height="13" rx="2.2" fill={YEL} />
+      <path d="M47 6.5a8 8 0 0 1 7 7" stroke={INK} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+      <path d="M55.5 9.5l-1.5 4.5-4-2.5z" fill={INK} />
+    </>
+  ),
+  heightStretch: ({ a, d }) => (
+    <>
+      <path d="M32 6l13 14h-7.5v24h-11V20H19z" fill={mix(a, 0.45)} />
+      <g transform="rotate(-6 32 30)">
+        <rect x="24" y="14" width="16" height="28" rx="4.5" fill={INK} />
+        <rect x="26.5" y="17.5" width="11" height="20" rx="2" fill={a} />
+      </g>
+      <path d="M20 44c-2 4-1 9 3 12M44 44c2 4 1 9-3 12" stroke="#F2B48C" strokeWidth="5" strokeLinecap="round" fill="none" />
+      <path d="M12 30h5M47 30h5M14 38h4M46 38h4" stroke={INK} strokeWidth="2.2" strokeLinecap="round" opacity="0.5" />
+      <Sparkle x={52} y={12} s={4} fill={YEL} />
+      <Sparkle x={12} y={14} s={3} />
+    </>
+  ),
+  lightFlash: ({ a, d }) => (
+    <>
+      <Shadow c={d} rx={14} y={57} />
+      {[-60, -30, 0, 30, 60].map((r) => <path key={r} d="M32 12V5" stroke={YEL_D} strokeWidth="3" strokeLinecap="round" transform={`rotate(${r} 32 22)`} />)}
+      <rect x="20" y="16" width="24" height="40" rx="6" fill={INK} />
+      <rect x="23" y="22" width="18" height="30" rx="2.5" fill={mix(a, 0.6)} />
+      <circle cx="32" cy="19.2" r="1.6" fill={YEL} />
+      <g transform="rotate(-25 46 30)">
+        <rect x="40" y="16" width="6" height="16" rx="3" fill="#F2B48C" />
+        <rect x="46.5" y="15" width="6" height="18" rx="3" fill="#F2B48C" />
+        <rect x="53" y="17" width="5.5" height="16" rx="2.75" fill="#F2B48C" />
+        <path d="M39 28h20v8a9 9 0 0 1-9 9h-2a9 9 0 0 1-9-9z" fill="#F2B48C" />
+        <path d="M44 30v4M50 30v4" stroke="#D9906A" strokeWidth="1.4" strokeLinecap="round" />
+      </g>
+    </>
+  ),
+  marbleMaze: ({ a, d }) => (
+    <>
+      <Shadow c={d} rx={20} y={57} />
+      <rect x="9" y="9" width="46" height="46" rx="8" fill="#A47148" />
+      <rect x="13" y="13" width="38" height="38" rx="4" fill="#F3E9DC" />
+      <path d="M13 24h14M37 13v13M24 24v14M24 38h16M40 38v-12h11M31 51v-6" stroke="#8B5E34" strokeWidth="3" strokeLinecap="round" fill="none" />
+      <circle cx="45.5" cy="45.5" r="3.6" fill={INK} />
+      <circle cx="45.5" cy="45.5" r="2" fill={a} />
+      <circle cx="19" cy="18.5" r="3.6" fill="#64748B" />
+      <circle cx="18" cy="17.3" r="1.3" fill={W} />
+      <path d="M22 30q4 6 10 4" stroke={a} strokeWidth="1.8" strokeDasharray="1.5 2.5" fill="none" strokeLinecap="round" />
+    </>
+  ),
 };
 
 /** Bild eines Spiels. Fällt auf das Emoji zurück, falls (noch) keine Illustration existiert. */
