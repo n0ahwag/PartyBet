@@ -1,0 +1,160 @@
+import { useEffect, useRef, useState } from 'react';
+import { Waiting } from './shared.jsx';
+import { sfx, vibrate } from '../lib/sound.js';
+
+const SABOTAGE_PENALTY_MS = 150;
+const ROUND_TIMEOUT_MS = 1500;
+const IDLE = '#cfc8bc';
+
+/**
+ * Spiel 2 – Split-Screen Speed-Tap auf EINEM Gerät (dem von Spieler A).
+ * Obere Hälfte ist gedreht für das Gegenüber.
+ */
+function SharedDevice({ duel, byId, submit }) {
+  const [phase, setPhase] = useState('ready'); // ready | running | done
+  const [roundIdx, setRoundIdx] = useState(0);
+  const [color, setColor] = useState(IDLE);
+  const [log, setLog] = useState([]);
+  const r = useRef({ changedAt: 0, taps: {}, timer: null, settled: false });
+
+  const rounds = duel.game.rounds;
+  const sabotaged = duel.sabotage?.target;
+
+  const finishRound = () => {
+    const st = r.current;
+    if (st.settled) return;
+    st.settled = true;
+    clearTimeout(st.timer);
+    const adj = (side) => {
+      const t = st.taps[side];
+      if (t == null) return Infinity;
+      const pid = side === 'A' ? duel.playerA : duel.playerB;
+      return t + (pid === sabotaged ? SABOTAGE_PENALTY_MS : 0);
+    };
+    let winner;
+    let foul = null;
+    if (st.taps.foulA) { winner = 'B'; foul = 'A'; } else if (st.taps.foulB) { winner = 'A'; foul = 'B'; } else {
+      winner = adj('A') <= adj('B') ? 'A' : 'B';
+      if (adj('A') === Infinity && adj('B') === Infinity) winner = Math.random() < 0.5 ? 'A' : 'B';
+    }
+    const entry = {
+      winner, foul,
+      msA: Number.isFinite(st.taps.A) ? Math.round(st.taps.A) : null,
+      msB: Number.isFinite(st.taps.B) ? Math.round(st.taps.B) : null,
+    };
+    setLog((l) => [...l, entry]);
+    setColor(IDLE);
+    sfx.tap();
+    setTimeout(() => setRoundIdx((i) => i + 1), 900);
+  };
+
+  useEffect(() => {
+    if (phase !== 'running') return undefined;
+    if (roundIdx >= rounds.length) {
+      setPhase('done');
+      return undefined;
+    }
+    const st = r.current;
+    st.taps = {};
+    st.settled = false;
+    st.changedAt = 0;
+    const t = setTimeout(() => {
+      if (st.settled) return;
+      st.changedAt = performance.now();
+      setColor(rounds[roundIdx].color);
+      vibrate(30);
+      st.timer = setTimeout(finishRound, ROUND_TIMEOUT_MS);
+    }, rounds[roundIdx].delay);
+    return () => { clearTimeout(t); clearTimeout(st.timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, roundIdx]);
+
+  useEffect(() => {
+    if (phase === 'done') submit('shared', { rounds: log });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  const tap = (side) => (e) => {
+    e.preventDefault();
+    const st = r.current;
+    if (phase !== 'running' || st.settled || st.taps[side] != null) return;
+    if (!st.changedAt) {
+      st.taps[`foul${side}`] = true;
+      sfx.fail();
+      finishRound();
+      return;
+    }
+    st.taps[side] = performance.now() - st.changedAt;
+    if (st.taps.A != null && st.taps.B != null) finishRound();
+  };
+
+  const score = (side) => log.filter((l) => l.winner === side).length;
+  const half = (side, cls) => {
+    const p = byId[side === 'A' ? duel.playerA : duel.playerB];
+    return (
+      <div className={`half ${cls}`}>
+        <div className="label">{p?.avatar} {p?.name} · {score(side)} Punkte</div>
+        <button className="tapzone" style={{ background: color }} onPointerDown={tap(side)}>
+          {phase === 'ready' ? 'Warte…' : color === IDLE ? '…' : 'TAP!'}
+        </button>
+      </div>
+    );
+  };
+
+  if (phase === 'ready') {
+    return (
+      <div className="stack">
+        <Waiting text={`Leg das Handy flach zwischen ${byId[duel.playerA]?.name} und ${byId[duel.playerB]?.name}. Tippe erst, wenn der Button die Farbe wechselt!`} />
+        <button className="btn primary lg" onClick={() => setPhase('running')}>Start</button>
+      </div>
+    );
+  }
+  if (phase === 'done') return <Review duel={{ ...duel, results: { shared: { rounds: log } } }} byId={byId} />;
+  return (
+    <div className="split">
+      {half('B', 'top')}
+      <div className="divider" />
+      {half('A', 'bottom')}
+      <div style={{ position: 'fixed', top: '50%', left: 12, transform: 'translateY(-50%)', fontWeight: 900, zIndex: 41 }}>
+        {Math.min(roundIdx + 1, rounds.length)}/{rounds.length}
+      </div>
+    </div>
+  );
+}
+
+/** Review-Ansicht: Reaktionszeiten aller 5 Runden. */
+function Review({ duel, byId }) {
+  const rounds = duel.results?.shared?.rounds;
+  if (!rounds) return <Waiting text={`Gespielt wird auf dem Handy von ${byId[duel.playerA]?.name} …`} />;
+  const name = (s) => byId[s === 'A' ? duel.playerA : duel.playerB]?.name;
+  const fmt = (ms) => (ms == null ? '–' : `${ms} ms`);
+  return (
+    <div className="card stack">
+      <h3>Review</h3>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontWeight: 700 }}>
+        <thead>
+          <tr className="small muted"><th align="left">#</th><th>{name('A')}</th><th>{name('B')}</th><th align="right">Punkt</th></tr>
+        </thead>
+        <tbody>
+          {rounds.map((rd, i) => (
+            <tr key={i} style={{ borderTop: '1px solid var(--line)' }}>
+              <td style={{ padding: '8px 0' }}>{i + 1}</td>
+              <td align="center">{rd.foul === 'A' ? '❌ zu früh' : fmt(rd.msA)}</td>
+              <td align="center">{rd.foul === 'B' ? '❌ zu früh' : fmt(rd.msB)}</td>
+              <td align="right">{name(rd.winner)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {duel.sabotage && <p className="small muted" style={{ margin: 0 }}>🧪 {byId[duel.sabotage.target]?.name} hatte +{SABOTAGE_PENALTY_MS} ms Strafe pro Runde.</p>}
+    </div>
+  );
+}
+
+export const SpeedTap = {
+  Play: ({ duel, me, byId, submit }) => (me.id === duel.playerA
+    ? <SharedDevice duel={duel} byId={byId} submit={submit} />
+    : <Waiting text={`Ab zum Handy von ${byId[duel.playerA]?.name} – ihr spielt auf einem Gerät!`} />),
+  Stage: Review,
+  Review,
+};

@@ -1,0 +1,77 @@
+rules_version = '2';
+
+// Autoritäts-Modell (siehe docs/DATABASE.md):
+//  * Jedes Gerät meldet sich anonym an (request.auth.uid = playerId bzw. hostId).
+//  * Der Host darf alles in seinem Raum schreiben (Kontostände, Duell-Stages, Auszahlungen).
+//  * Spieler schreiben nur ihre eigenen "Absichten": Wette, Power-up, Spiel-Ergebnis,
+//    Rettungsanfrage – jeweils unter ihrem eigenen Schlüssel.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function room(code) { return get(/databases/$(database)/documents/rooms/$(code)).data; }
+    function isHost(code) { return signedIn() && room(code).hostId == request.auth.uid; }
+    function isPlayer(code) {
+      return signedIn() && exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.auth.uid));
+    }
+    function onlyChanged(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+    // Bei Map-Feldern (bets, powerups, results) nur den eigenen Schlüssel ändern
+    function onlyOwnKey(field) {
+      return !(field in resource.data)
+        ? request.resource.data[field].keys().hasOnly([request.auth.uid])
+        : request.resource.data[field].diff(resource.data[field]).affectedKeys().hasOnly([request.auth.uid]);
+    }
+
+    match /rooms/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.hostId == request.auth.uid
+        && request.resource.data.status == 'lobby';
+      allow update, delete: if isHost(code);
+
+      match /players/{uid} {
+        allow read: if signedIn();
+        // Beitritt nur in der Lobby, nur für sich selbst, nur mit Startguthaben 20
+        allow create: if signedIn() && uid == request.auth.uid
+          && room(code).status == 'lobby'
+          && request.resource.data.balance == 20;
+        // Spieler darf nur Name/Avatar/Geräte-Fähigkeiten ändern; Host alles
+        allow update: if isHost(code)
+          || (uid == request.auth.uid && onlyChanged(['name', 'avatar', 'caps']));
+        allow delete: if isHost(code) || uid == request.auth.uid;
+      }
+
+      match /duels/{duelId} {
+        allow read: if signedIn();
+        allow create, delete: if isHost(code);
+        allow update: if isHost(code) || (
+          isPlayer(code) && (
+            (onlyChanged(['bets']) && onlyOwnKey('bets') && resource.data.stage == 'betting'
+              && request.auth.uid != resource.data.playerA && request.auth.uid != resource.data.playerB)
+            || (onlyChanged(['powerups']) && onlyOwnKey('powerups') && resource.data.stage in ['intro', 'betting'])
+            || (onlyChanged(['results']) && resource.data.stage == 'playing'
+              && request.auth.uid in [resource.data.playerA, resource.data.playerB])
+          )
+        );
+      }
+
+      match /rescues/{id} {
+        allow read: if signedIn();
+        allow create: if isPlayer(code) && request.resource.data.playerId == request.auth.uid
+          && request.resource.data.status in ['pending', 'asked'];
+        // Kreditgeber sagt zu/ab; alles andere entscheidet der Host
+        allow update: if isHost(code) || (
+          resource.data.lenderId == request.auth.uid && resource.data.status == 'asked'
+          && onlyChanged(['status']) && request.resource.data.status in ['accepted', 'declined']
+        );
+      }
+
+      match /events/{id} {
+        allow read: if signedIn();
+        allow write: if isHost(code);
+      }
+    }
+  }
+}
