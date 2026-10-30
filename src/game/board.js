@@ -19,7 +19,7 @@ export const FIELD_TYPES = {
   portal: { id: 'portal', label: 'Portal', icon: '🌀', color: '#8B5CF6', desc: 'Platz tauschen mit dem Führenden' },
   chaos: { id: 'chaos', label: 'Chaos', icon: '💥', color: '#F97316', desc: 'Challenge für alle – der Letzte geht 2 zurück' },
   stumble: { id: 'stumble', label: 'Stolperstein', icon: '🪨', color: '#78716C', desc: '1 Feld zurück oder einmal aussetzen' },
-  goal: { id: 'goal', label: 'Ziel', icon: '🏆', color: '#EAB308' },
+  goal: { id: 'goal', label: 'Zielfeld', icon: '🏆', color: '#EAB308' },
 };
 
 export const ROCKET_STEPS = 3;

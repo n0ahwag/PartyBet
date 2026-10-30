@@ -1,4 +1,5 @@
 import { makeRng } from '../lib/random.js';
+import { t } from '../i18n/index.js';
 
 /**
  * Spielebibliothek. Reine Daten + Logik (keine React-Komponenten), damit
@@ -75,7 +76,7 @@ export const EMOJI_PUZZLES = [
   { emojis: '🧊🧊👶', hint: 'Song', answers: ['iceicebaby'], solution: 'Ice Ice Baby – Vanilla Ice' },
   { emojis: '👋🎤', hint: 'Song', answers: ['hello'], solution: 'Hello – Adele' },
   { emojis: '💃👑', hint: 'Song', answers: ['dancingqueen'], solution: 'Dancing Queen – ABBA' },
-  { emojis: '🌍🏃‍♂️⚡', hint: 'Begriff', answers: ['blitzlauf', 'weltrekord', 'bolt'], solution: 'Usain Bolt / Weltrekord' },
+  { emojis: '🌍🏃‍♂️⚡', hint: 'Begriff', answers: ['blitzlauf', 'weltrekord', 'worldrecord', 'bolt'], solution: 'Usain Bolt / Weltrekord' },
   { emojis: '🍺🎪🥨', hint: 'Begriff', answers: ['oktoberfest', 'wiesn'], solution: 'Oktoberfest' },
 ];
 
@@ -454,13 +455,13 @@ export function playableFor(library, duelists) {
 /** Kurzbeschreibung der Voraussetzungen für die Bibliothek. */
 export function requirementsOf(game) {
   const r = [];
-  r.push(game.minPlayers >= 3 ? `ab ${game.minPlayers} Spieler` : '2 Spieler');
-  if (game.groupOnly) r.push('ganze Gruppe gleichzeitig');
-  if (game.devices === 'shared') r.push('1 geteiltes Gerät');
-  if (game.devices === 'own') r.push('eigene Smartphones');
-  if (game.needsMotion) r.push('Bewegungssensor');
-  if (game.needsCompass) r.push('Kompass');
-  if (game.needsCamera) r.push('Frontkamera');
+  r.push(game.minPlayers >= 3 ? t('ab {n} Spieler', { n: game.minPlayers }) : t('2 Spieler'));
+  if (game.groupOnly) r.push(t('ganze Gruppe gleichzeitig'));
+  if (game.devices === 'shared') r.push(t('1 geteiltes Gerät'));
+  if (game.devices === 'own') r.push(t('eigene Smartphones'));
+  if (game.needsMotion) r.push(t('Bewegungssensor'));
+  if (game.needsCompass) r.push(t('Kompass'));
+  if (game.needsCamera) r.push(t('Frontkamera'));
   return r;
 }
 

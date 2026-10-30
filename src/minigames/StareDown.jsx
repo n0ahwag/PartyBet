@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
 import { sfx, vibrate } from '../lib/sound.js';
+import { t } from '../i18n/index.js';
 
 // WASM wird beim Build nach dist/mediapipe kopiert (siehe vite.config.js)
 const WASM_URL = new URL('mediapipe', document.baseURI).href.replace(/\/?$/, '');
@@ -56,7 +57,7 @@ function Play({ duel, me, submit }) {
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
     } catch {
-      setError('Kamera nicht freigegeben – spiel im Ehrlichkeits-Modus.');
+      setError(t('Kamera nicht freigegeben – spiel im Ehrlichkeits-Modus.'));
       setManual(true);
       setStep('count');
       return;
@@ -64,7 +65,7 @@ function Play({ duel, me, submit }) {
     try {
       st.current.landmarker = await loadLandmarker();
     } catch {
-      setError('Face-Tracking konnte nicht geladen werden – Ehrlichkeits-Modus.');
+      setError(t('Face-Tracking konnte nicht geladen werden – Ehrlichkeits-Modus.'));
       setManual(true);
     }
     setStep('count');
@@ -124,25 +125,25 @@ function Play({ duel, me, submit }) {
       style={{ width: '100%', borderRadius: 24, transform: 'scaleX(-1)', background: '#111', display: manual ? 'none' : 'block', aspectRatio: '4/3', objectFit: 'cover' }} />
   );
 
-  if (step === 'done') return <Waiting text={`Du hast ${(elapsed / 1000).toFixed(1)}s durchgehalten. Warte auf das Ergebnis…`} />;
+  if (step === 'done') return <Waiting text={t('Du hast {n}s durchgehalten. Warte auf das Ergebnis…', { n: (elapsed / 1000).toFixed(1) })} />;
   return (
     <div className="stack center">
       {step !== 'perm' && video}
       {step === 'perm' && (
         <>
-          <Waiting text="Schaut euch in die Augen. Die Frontkamera erkennt Blinzeln und Lachen – wer zuerst schwächelt, verliert!" />
+          <Waiting text={t('Schaut euch in die Augen. Die Frontkamera erkennt Blinzeln und Lachen – wer zuerst schwächelt, verliert!')} />
           {video}
-          <button className="btn primary lg block" onClick={start}>📷 Kamera starten</button>
+          <button className="btn primary lg block" onClick={start}>📷 {t('Kamera starten')}</button>
         </>
       )}
-      {step === 'loading' && <p className="muted" style={{ fontWeight: 700 }}>Lade Face-Tracking…</p>}
+      {step === 'loading' && <p className="muted" style={{ fontWeight: 700 }}>{t('Lade Face-Tracking…')}</p>}
       {step === 'count' && <CountdownView n={n} />}
       {error && <p className="small" style={{ color: 'var(--bad)', margin: 0 }}>{error}</p>}
       {step === 'run' && (
         <>
           <div className="big-number">{(elapsed / 1000).toFixed(1)}s</div>
-          {!faceSeen && !manual && <span className="pill bad">Gesicht nicht erkannt – schau in die Kamera!</span>}
-          {manual && <button className="btn danger lg block" onClick={() => finish('manual')}>😅 Ich hab geblinzelt/gelacht</button>}
+          {!faceSeen && !manual && <span className="pill bad">{t('Gesicht nicht erkannt – schau in die Kamera!')}</span>}
+          {manual && <button className="btn danger lg block" onClick={() => finish('manual')}>😅 {t('Ich hab geblinzelt/gelacht')}</button>}
         </>
       )}
     </div>
@@ -154,13 +155,13 @@ const REASON = { blink: '😑 geblinzelt', laugh: '😂 gelacht', manual: '😅 
 function Review({ duel, byId }) {
   return (
     <div className="card stack">
-      <h3>Durchgehalten</h3>
+      <h3>{t('Durchgehalten')}</h3>
       {[duel.playerA, duel.playerB].map((id) => {
         const r = duel.results?.[id];
         return (
           <div key={id} className="row between">
             <b>{byId[id]?.avatar} {byId[id]?.name}</b>
-            <span>{r ? `${(r.survivedMs / 1000).toFixed(1)}s · ${REASON[r.reason] ?? ''}` : 'starrt…'}</span>
+            <span>{r ? `${(r.survivedMs / 1000).toFixed(1)}s · ${t(REASON[r.reason] ?? '')}` : t('starrt…')}</span>
           </div>
         );
       })}

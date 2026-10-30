@@ -1,4 +1,5 @@
 import { GAMES, CATEGORIES, filterLibrary } from './gameLibrary.js';
+import { t } from '../i18n/index.js';
 
 /*
  * Gruppen-Modus: Alle spielen gleichzeitig, ohne Utensilien, für Punkte.
@@ -186,7 +187,7 @@ export function storyState(round) {
     total,
     done: count >= total,
     turn: round.participants[count % n],
-    text: [round.game.start, ...words.filter(Boolean)].join(' '),
+    text: [t(round.game.start), ...words.filter(Boolean)].join(' '),
   };
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FIELD_TYPES } from '../../game/board.js';
 import { sfx } from '../../lib/sound.js';
+import { t } from '../../i18n/index.js';
 
 const STEP_MS = 260;
 
@@ -74,7 +75,7 @@ export function BoardView({ fields, players, positions, compact = false }) {
         return (
           <div key={i} className={`field ${fields[i]} ${here.length && i === leaderPos && i > 0 ? 'lead' : ''}`}
             style={type.color ? { background: `color-mix(in srgb, ${type.color} 22%, var(--card))`, borderColor: type.color } : undefined}
-            title={type.desc || type.label}>
+            title={t(type.desc || type.label)}>
             <span className="num">{i === 0 ? '' : i}</span>
             {type.icon && <span className="ficon">{type.icon}</span>}
             <div className="tokens">
@@ -92,8 +93,8 @@ export function BoardView({ fields, players, positions, compact = false }) {
 export function FieldLegend() {
   return (
     <div className="row wrap small" style={{ gap: 6 }}>
-      {['rocket', 'portal', 'chaos', 'stumble'].map((t) => (
-        <span key={t} className="pill" title={FIELD_TYPES[t].desc}>{FIELD_TYPES[t].icon} {FIELD_TYPES[t].label}: {FIELD_TYPES[t].desc}</span>
+      {['rocket', 'portal', 'chaos', 'stumble'].map((type) => (
+        <span key={type} className="pill" title={t(FIELD_TYPES[type].desc)}>{FIELD_TYPES[type].icon} {t(FIELD_TYPES[type].label)}: {t(FIELD_TYPES[type].desc)}</span>
       ))}
     </div>
   );
@@ -111,7 +112,7 @@ export function Standings({ players, fields, meId }) {
           <div className="avatar" style={{ background: `color-mix(in srgb, ${p.color} 22%, var(--card))` }}>{p.avatar}</div>
           <div className="grow">
             <b>{p.name}</b>
-            {p.skipNext && <span className="pill bad" style={{ marginLeft: 6 }}>setzt aus</span>}
+            {p.skipNext && <span className="pill bad" style={{ marginLeft: 6 }}>{t('setzt aus')}</span>}
             <div className="bar" style={{ marginTop: 4 }}><div style={{ width: `${((p.position ?? 0) / goal) * 100}%` }} /></div>
           </div>
           <span className="balance">{p.position ?? 0}/{goal}</span>

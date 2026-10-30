@@ -3,7 +3,8 @@ import { AVATARS } from '../game/constants.js';
 import { joinRoom } from '../game/engine.js';
 import { navigate } from '../lib/router.js';
 import { detectCaps, requestMotionPermission } from '../lib/device.js';
-import { useToast, useAction } from '../components/ui.jsx';
+import { useToast, useAction, LangSwitch } from '../components/ui.jsx';
+import { t } from '../i18n/index.js';
 
 export function JoinRoom({ uid, code: initialCode }) {
   const [code, setCode] = useState(initialCode || '');
@@ -25,11 +26,11 @@ export function JoinRoom({ uid, code: initialCode }) {
     <div className="page">
       <div className="row between">
         <button className="btn ghost sm" onClick={() => navigate('/')}>←</button>
-        <h2>Beitreten</h2>
-        <span style={{ width: 40 }} />
+        <h2>{t('Beitreten')}</h2>
+        <LangSwitch />
       </div>
       <input className="input code" maxLength={4} placeholder="CODE" value={code} onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''))} />
-      <input className="input" placeholder="Dein Name" maxLength={16} value={name} onChange={(e) => setName(e.target.value)} />
+      <input className="input" placeholder={t('Dein Name')} maxLength={16} value={name} onChange={(e) => setName(e.target.value)} />
       <div className="card stack">
         <h3>Avatar</h3>
         <div className="row wrap" style={{ gap: 8 }}>
@@ -38,7 +39,7 @@ export function JoinRoom({ uid, code: initialCode }) {
           ))}
         </div>
       </div>
-      <button className="btn primary lg block" disabled={busy || !uid || code.length !== 4 || !name.trim()} onClick={join}>Los geht's</button>
+      <button className="btn primary lg block" disabled={busy || !uid || code.length !== 4 || !name.trim()} onClick={join}>{t("Los geht's")}</button>
       {toastNode}
     </div>
   );

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import {
   GAMES, categoryWordValid, associationValid, secretTargetOf, resultComplete, buildBracket,
 } from '../game/gameLibrary.js';
-import { FORMAT_RESULT, revealOf } from './format.js';
+import { FORMAT_RESULT, revealOf, num } from './format.js';
+import { t } from '../i18n/index.js';
 import { useGo, CountdownView, Waiting, Rules } from './shared.jsx';
 import { sfx, vibrate } from '../lib/sound.js';
 
@@ -28,7 +29,7 @@ function ResultList({ duel, byId }) {
         return (
           <div key={id} className="row between">
             <b>{byId[id]?.avatar} {byId[id]?.name}</b>
-            <span>{!done ? 'spielt…' : allDone ? fmt(r, duel, id) : '✓ fertig'}</span>
+            <span>{!done ? t('spielt…') : allDone ? fmt(r, duel, id) : `✓ ${t('fertig')}`}</span>
           </div>
         );
       })}
@@ -66,15 +67,15 @@ function TimedWordInput({ limitMs, prompt, validate, placeholder, submit, intro 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
-  if (step === 'ready') return <div className="stack"><Waiting text={intro} /><button className="btn primary lg" onClick={() => setStep('count')}>Bereit</button></div>;
+  if (step === 'ready') return <div className="stack"><Waiting text={intro} /><button className="btn primary lg" onClick={() => setStep('count')}>{t('Bereit')}</button></div>;
   if (step === 'count') return <CountdownView n={n} />;
-  if (step === 'done') return <Waiting text={validate(val) ? `✅ „${val}“ – warte auf die anderen…` : '⏱ Kein gültiges Wort – warte auf die anderen…'} />;
+  if (step === 'done') return <Waiting text={validate(val) ? `✅ „${val}“ – ${t('warte auf die anderen…')}` : `⏱ ${t('Kein gültiges Wort – warte auf die anderen…')}`} />;
   return (
     <form className="stack" onSubmit={(e) => { e.preventDefault(); if (val.trim()) finish(val.trim()); }}>
       <div className="card center stack pop" style={{ gap: 4 }}>{prompt}</div>
       <div className="bar"><div style={{ width: `${(left / limitMs) * 100}%` }} /></div>
       <input className="input" autoFocus autoComplete="off" autoCapitalize="off" placeholder={placeholder} value={val} onChange={(e) => setVal(e.target.value)} />
-      <button className="btn primary lg" disabled={!val.trim()}>Abschicken</button>
+      <button className="btn primary lg" disabled={!val.trim()}>{t('Abschicken')}</button>
     </form>
   );
 }
@@ -85,21 +86,21 @@ function Stopwatch({ duel, submit }) {
   const [step, setStep] = useState('ready');
   const [ms, setMs] = useState(null);
   const t0 = useRef(0);
-  const label = `${(target / 1000).toFixed(2).replace('.', ',')} s`;
+  const label = `${num(target / 1000)} s`;
   if (step === 'ready') {
     return (
       <div className="stack center">
-        <div className="kicker">Zielzeit</div>
+        <div className="kicker">{t('Zielzeit')}</div>
         <div className="big-number">{label}</div>
-        <p className="muted" style={{ margin: 0 }}>Es läuft keine Anzeige mit – zähl im Kopf!</p>
-        <button className="btn primary lg block" onClick={() => { t0.current = performance.now(); sfx.tick(); setStep('run'); }}>▶️ Start</button>
+        <p className="muted" style={{ margin: 0 }}>{t('Es läuft keine Anzeige mit – zähl im Kopf!')}</p>
+        <button className="btn primary lg block" onClick={() => { t0.current = performance.now(); sfx.tick(); setStep('run'); }}>▶️ {t('Start')}</button>
       </div>
     );
   }
   if (step === 'run') {
     return (
       <div className="stack center">
-        <div className="kicker">Ziel: {label}</div>
+        <div className="kicker">{t('Ziel')}: {label}</div>
         <button className="btn danger lg block" style={{ minHeight: 220, fontSize: 36 }}
           onPointerDown={() => {
             const v = Math.round(performance.now() - t0.current);
@@ -108,12 +109,12 @@ function Stopwatch({ duel, submit }) {
             sfx.gong();
             vibrate(150);
             setStep('done');
-          }}>⏹ STOPP</button>
+          }}>⏹ {t('STOPP')}</button>
       </div>
     );
   }
   const diff = ms - target;
-  return <Waiting text={`${(ms / 1000).toFixed(2).replace('.', ',')} s – ${diff >= 0 ? '+' : ''}${(diff / 1000).toFixed(2).replace('.', ',')} s daneben`} />;
+  return <Waiting text={t('{a} s – {b} s daneben', { a: num(ms / 1000), b: `${diff >= 0 ? '+' : '−'}${num(Math.abs(diff) / 1000)}` })} />;
 }
 
 // ------------------------------------------------------------------ 2 Blitz-Kopfrechnen
@@ -137,21 +138,21 @@ function MathBlitz({ duel, submit }) {
       setVal('');
     }
   };
-  if (step === 'ready') return <div className="stack"><Waiting text="Gleich erscheint eine Rechenaufgabe. Tipp das Ergebnis so schnell wie möglich ein!" /><button className="btn primary lg" onClick={() => setStep('count')}>Bereit</button></div>;
+  if (step === 'ready') return <div className="stack"><Waiting text={t('Gleich erscheint eine Rechenaufgabe. Tipp das Ergebnis so schnell wie möglich ein!')} /><button className="btn primary lg" onClick={() => setStep('count')}>{t('Bereit')}</button></div>;
   if (step === 'count') return <CountdownView n={n} />;
-  if (step === 'done') return <Waiting text="✅ Richtig! Warte auf die anderen…" />;
+  if (step === 'done') return <Waiting text={`✅ ${t('Richtig! Warte auf die anderen…')}`} />;
   return (
     <div className="stack">
       <div className="card center"><div className="big-number">{text} = ?</div></div>
       <div className="card"><div className="code-display">{val || '…'}</div></div>
-      {wrong > 0 && <p className="center small" style={{ color: 'var(--bad)', margin: 0 }}>Falsch ({wrong}× = +{wrong}s)</p>}
+      {wrong > 0 && <p className="center small" style={{ color: 'var(--bad)', margin: 0 }}>{t('Falsch ({n}× = +{n}s)', { n: wrong })}</p>}
       <div className="keypad">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => <button key={d} onClick={() => press(String(d))}>{d}</button>)}
         <button onClick={() => setVal((v) => v.slice(0, -1))}>⌫</button>
         <button onClick={() => press('0')}>0</button>
         <button style={{ background: 'var(--accent)', color: '#fff' }} disabled={!val} onClick={check}>✓</button>
       </div>
-      <button className="btn ghost sm" onClick={() => { submit({ correct: false, ms: null, wrong }); setStep('done'); }}>Aufgeben</button>
+      <button className="btn ghost sm" onClick={() => { submit({ correct: false, ms: null, wrong }); setStep('done'); }}>{t('Aufgeben')}</button>
     </div>
   );
 }
@@ -197,7 +198,7 @@ function F1Start({ duel, submit }) {
   };
 
   if (done) {
-    return <Waiting text={done.jumpStart ? '🚫 Frühstart – disqualifiziert!' : done.ms == null ? 'Zu spät…' : `⚡ ${done.ms} ms – warte auf die anderen…`} />;
+    return <Waiting text={done.jumpStart ? `🚫 ${t('Frühstart – disqualifiziert!')}` : done.ms == null ? t('Zu spät…') : `⚡ ${done.ms} ms – ${t('warte auf die anderen…')}`} />;
   }
   return (
     <div onPointerDown={tap} style={{ position: 'fixed', inset: 0, zIndex: 45, background: '#050505', display: 'grid', placeItems: 'center', touchAction: 'manipulation', userSelect: 'none' }}>
@@ -208,7 +209,7 @@ function F1Start({ duel, submit }) {
           ))}
         </div>
         <div style={{ color: out ? '#22C55E' : '#737373', fontWeight: 900, fontSize: out ? 64 : 22 }}>
-          {out ? 'TIPPEN!' : lights === 0 ? 'Gleich geht\'s los – Finger bereit…' : 'Warten…'}
+          {out ? t('TIPPEN!') : lights === 0 ? t("Gleich geht's los – Finger bereit…") : t('Warten…')}
         </div>
       </div>
     </div>
@@ -233,13 +234,13 @@ function SecretNumber({ duel, me, byId, submit }) {
   if (!bot && own?.secret == null) {
     return (
       <div className="stack">
-        <div className="card tinted"><b>Deine Geheimzahl</b> – nicht zeigen! 🙈</div>
+        <div className="card tinted"><b>{t('Deine Geheimzahl')}</b> – {t('nicht zeigen! 🙈')}</div>
         <input className="input code" inputMode="numeric" maxLength={2} placeholder="10–99" value={secret} onChange={(e) => setSecret(e.target.value.replace(/\D/g, ''))} />
-        <button className="btn primary lg" disabled={!(Number(secret) >= 10 && Number(secret) <= 99)} onClick={() => submit({ secret: Number(secret) })}>Geheim speichern</button>
+        <button className="btn primary lg" disabled={!(Number(secret) >= 10 && Number(secret) <= 99)} onClick={() => submit({ secret: Number(secret) })}>{t('Geheim speichern')}</button>
       </div>
     );
   }
-  if (targetSecret == null) return <Waiting text={`Warte, bis ${byId[targetId]?.name} eine Geheimzahl gewählt hat…`} />;
+  if (targetSecret == null) return <Waiting text={t('Warte, bis {name} eine Geheimzahl gewählt hat…', { name: byId[targetId]?.name })} />;
 
   const tryGuess = () => {
     const g = Number(guess);
@@ -251,18 +252,18 @@ function SecretNumber({ duel, me, byId, submit }) {
       return;
     }
     sfx.tap();
-    setHints((h) => [{ g, dir: g < targetSecret ? 'höher ⬆️' : 'tiefer ⬇️' }, ...h]);
+    setHints((h) => [{ g, dir: g < targetSecret ? `${t('höher')} ⬆️` : `${t('tiefer')} ⬇️` }, ...h]);
     setGuess('');
   };
   return (
     <div className="stack">
-      <div className="card center"><b>{bot ? 'Knacke die Zahl des Computers 🤖' : `Knacke die Zahl von ${byId[targetId]?.avatar} ${byId[targetId]?.name}`}</b><div className="small muted">zwischen 10 und 99</div></div>
+      <div className="card center"><b>{bot ? t('Knacke die Zahl des Computers 🤖') : t('Knacke die Zahl von {name}', { name: `${byId[targetId]?.avatar} ${byId[targetId]?.name}` })}</b><div className="small muted">{t('zwischen 10 und 99')}</div></div>
       <form className="row" onSubmit={(e) => { e.preventDefault(); tryGuess(); }}>
         <input className="input code" inputMode="numeric" autoFocus maxLength={2} value={guess} onChange={(e) => setGuess(e.target.value.replace(/\D/g, ''))} />
-        <button className="btn primary" style={{ minWidth: 90 }} disabled={guess.length !== 2}>Raten</button>
+        <button className="btn primary" style={{ minWidth: 90 }} disabled={guess.length !== 2}>{t('Raten')}</button>
       </form>
       {hints.map((h, i) => <div key={i} className="row between card flat" style={{ padding: 10 }}><b>{h.g}</b><span>{h.dir}</span></div>)}
-      <button className="btn ghost sm" onClick={() => submit({ secret: own?.secret ?? null, done: true, gaveUp: true, guesses: hints.length, ms: null })}>Aufgeben</button>
+      <button className="btn ghost sm" onClick={() => submit({ secret: own?.secret ?? null, done: true, gaveUp: true, guesses: hints.length, ms: null })}>{t('Aufgeben')}</button>
     </div>
   );
 }
@@ -306,12 +307,12 @@ function NumberMemory({ duel, submit }) {
     return undefined;
   };
 
-  if (step === 'ready') return <div className="stack"><Waiting text={`Merk dir die Zahlenfolge – sie startet mit ${startLength} Ziffern und wird jede Runde länger.`} /><button className="btn primary lg" onClick={() => { t0.current = performance.now(); setStep('show'); }}>Bereit</button></div>;
-  if (step === 'done') return <Waiting text={`${best.current} Ziffern geschafft! Warte auf die anderen…`} />;
-  if (step === 'show') return <div className="stack center"><div className="kicker">{len} Ziffern</div><div className="card"><div className="code-display pop" key={len}>{digits.slice(0, len)}</div></div></div>;
+  if (step === 'ready') return <div className="stack"><Waiting text={t('Merk dir die Zahlenfolge – sie startet mit {n} Ziffern und wird jede Runde länger.', { n: startLength })} /><button className="btn primary lg" onClick={() => { t0.current = performance.now(); setStep('show'); }}>{t('Bereit')}</button></div>;
+  if (step === 'done') return <Waiting text={t('{n} Ziffern geschafft! Warte auf die anderen…', { n: best.current })} />;
+  if (step === 'show') return <div className="stack center"><div className="kicker">{t('{n} Ziffern', { n: len })}</div><div className="card"><div className="code-display pop" key={len}>{digits.slice(0, len)}</div></div></div>;
   return (
     <div className="stack">
-      <div className="kicker center">{len} Ziffern</div>
+      <div className="kicker center">{t('{n} Ziffern', { n: len })}</div>
       <div className="card"><div className="code-display" style={{ fontSize: len > 9 ? 30 : undefined }}>{val.padEnd(len, '·')}</div></div>
       <div className="keypad">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => <button key={d} onClick={() => press(String(d))}>{d}</button>)}
@@ -328,10 +329,10 @@ function WordChainView({ duel, big }) {
   const game = GAMES.wordChain;
   return (
     <div className="stack center">
-      <div className="kicker">Startwort</div>
-      <div className="big-number" style={{ fontSize: big ? 72 : 44 }}>{duel.game.startWord}</div>
+      <div className="kicker">{t('Startwort')}</div>
+      <div className="big-number" style={{ fontSize: big ? 72 : 44 }}>{t(duel.game.startWord)}</div>
       <p className="muted" style={{ margin: 0, fontWeight: 700 }}>
-        Nächstes Wort beginnt mit „{duel.game.startWord.slice(-1).toUpperCase()}“ …
+        {t('Nächstes Wort beginnt mit „{letter}“ …', { letter: t(duel.game.startWord).slice(-1).toUpperCase() })}
       </p>
       <Rules game={{ ...game, rules: duel.participants ? game.groupRules : game.rules }} />
     </div>
@@ -345,7 +346,7 @@ function RpsView({ duel, byId, big }) {
       <div className="stack center">
         <div style={{ fontSize: big ? 120 : 64 }}>{RPS_ICONS.join(' ')}</div>
         <Rules game={GAMES.rps} />
-        <p className="muted" style={{ margin: 0, fontWeight: 700 }}>Der Host bestätigt den Sieger.</p>
+        <p className="muted" style={{ margin: 0, fontWeight: 700 }}>{t('Der Host bestätigt den Sieger.')}</p>
       </div>
     );
   }
@@ -355,10 +356,10 @@ function RpsView({ duel, byId, big }) {
       <div className="center" style={{ fontSize: big ? 64 : 40 }}>{RPS_ICONS.join(' ')}</div>
       {bracket.rounds.map((matches, r) => (
         <div key={r} className="card stack" style={{ gap: 6 }}>
-          <h3>{r === bracket.rounds.length - 1 && matches.length === 1 && !matches[0].bye ? 'Finale' : `Runde ${r + 1}`}</h3>
+          <h3>{r === bracket.rounds.length - 1 && matches.length === 1 && !matches[0].bye ? t('Finale') : `${t('Runde')} ${r + 1}`}</h3>
           {matches.map((m) => (
             <div key={m.key} className="row between">
-              {m.bye ? <span>{byId[m.a]?.avatar} {byId[m.a]?.name} <span className="pill">Freilos</span></span> : (
+              {m.bye ? <span>{byId[m.a]?.avatar} {byId[m.a]?.name} <span className="pill">{t('Freilos')}</span></span> : (
                 <>
                   <span style={{ fontWeight: m.winner === m.a ? 900 : 500, opacity: m.winner && m.winner !== m.a ? 0.45 : 1 }}>{byId[m.a]?.avatar} {byId[m.a]?.name}</span>
                   <span className="faint">vs</span>
@@ -384,16 +385,16 @@ export const AnywhereGames = {
   secretNumber: auto(({ duel, me, byId, submit }) => <SecretNumber duel={duel} me={me} byId={byId} submit={(d) => submit(null, d)} />),
   numberMemory: auto(({ duel, submit }) => <NumberMemory duel={duel} submit={(d) => submit(null, d)} />),
   association: auto(({ duel, submit }) => (
-    <TimedWordInput limitMs={duel.game.limitMs} submit={(d) => submit(null, d)} placeholder="Erstes Wort, das dir einfällt"
-      intro="Gleich erscheint ein Begriff – tipp sofort das erste Wort ein, das dir dazu einfällt!"
-      validate={(w) => associationValid(w, duel.game.prompt)}
-      prompt={<><div className="kicker">Deine erste Assoziation zu</div><div className="big-number">{duel.game.prompt}</div></>} />
+    <TimedWordInput limitMs={duel.game.limitMs} submit={(d) => submit(null, d)} placeholder={t('Erstes Wort, das dir einfällt')}
+      intro={t('Gleich erscheint ein Begriff – tipp sofort das erste Wort ein, das dir dazu einfällt!')}
+      validate={(w) => associationValid(w, duel.game.prompt) && associationValid(w, t(duel.game.prompt))}
+      prompt={<><div className="kicker">{t('Deine erste Assoziation zu')}</div><div className="big-number">{t(duel.game.prompt)}</div></>} />
   )),
   categorySprint: auto(({ duel, submit }) => (
-    <TimedWordInput limitMs={duel.game.limitMs} submit={(d) => submit(null, d)} placeholder={`${duel.game.category} mit ${duel.game.letter} …`}
-      intro="Gleich erscheinen Kategorie und Anfangsbuchstabe – tipp blitzschnell einen passenden Begriff!"
-      validate={(w) => categoryWordValid(w, duel.game.letter, duel.game.category)}
-      prompt={<><div className="kicker">{duel.game.category}</div><div className="big-number" style={{ fontSize: 88 }}>{duel.game.letter}</div></>} />
+    <TimedWordInput limitMs={duel.game.limitMs} submit={(d) => submit(null, d)} placeholder={`${t('{category} mit „{letter}“', { category: t(duel.game.category), letter: duel.game.letter })} …`}
+      intro={t('Gleich erscheinen Kategorie und Anfangsbuchstabe – tipp blitzschnell einen passenden Begriff!')}
+      validate={(w) => categoryWordValid(w, duel.game.letter, t(duel.game.category))}
+      prompt={<><div className="kicker">{t(duel.game.category)}</div><div className="big-number" style={{ fontSize: 88 }}>{duel.game.letter}</div></>} />
   )),
   wordChain: { Play: WordChainView, Stage: WordChainView, GroupStage: WordChainView },
   rps: { Play: RpsView, Stage: RpsView, GroupStage: RpsView },

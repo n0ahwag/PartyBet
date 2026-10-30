@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Waiting } from './shared.jsx';
 import { sfx, vibrate } from '../lib/sound.js';
+import { t } from '../i18n/index.js';
 
 const SABOTAGE_PENALTY_MS = 150;
 const ROUND_TIMEOUT_MS = 1500;
@@ -93,9 +94,9 @@ function SharedDevice({ duel, byId, submit }) {
     const p = byId[side === 'A' ? duel.playerA : duel.playerB];
     return (
       <div className={`half ${cls}`}>
-        <div className="label">{p?.avatar} {p?.name} · {score(side)} Punkte</div>
+        <div className="label">{p?.avatar} {p?.name} · {score(side)} {t('Punkte')}</div>
         <button className="tapzone" style={{ background: color }} onPointerDown={tap(side)}>
-          {phase === 'ready' ? 'Warte…' : color === IDLE ? '…' : 'TAP!'}
+          {phase === 'ready' ? t('Warte…') : color === IDLE ? '…' : 'TAP!'}
         </button>
       </div>
     );
@@ -104,8 +105,8 @@ function SharedDevice({ duel, byId, submit }) {
   if (phase === 'ready') {
     return (
       <div className="stack">
-        <Waiting text={`Leg das Handy flach zwischen ${byId[duel.playerA]?.name} und ${byId[duel.playerB]?.name}. Tippe erst, wenn der Button die Farbe wechselt!`} />
-        <button className="btn primary lg" onClick={() => setPhase('running')}>Start</button>
+        <Waiting text={t('Leg das Handy flach zwischen {a} und {b}. Tippe erst, wenn der Button die Farbe wechselt!', { a: byId[duel.playerA]?.name, b: byId[duel.playerB]?.name })} />
+        <button className="btn primary lg" onClick={() => setPhase('running')}>{t('Start')}</button>
       </div>
     );
   }
@@ -125,7 +126,7 @@ function SharedDevice({ duel, byId, submit }) {
 /** Review-Ansicht: Reaktionszeiten aller 5 Runden. */
 function Review({ duel, byId }) {
   const rounds = duel.results?.shared?.rounds;
-  if (!rounds) return <Waiting text={`Gespielt wird auf dem Handy von ${byId[duel.playerA]?.name} …`} />;
+  if (!rounds) return <Waiting text={t('Gespielt wird auf dem Handy von {name} …', { name: byId[duel.playerA]?.name })} />;
   const name = (s) => byId[s === 'A' ? duel.playerA : duel.playerB]?.name;
   const fmt = (ms) => (ms == null ? '–' : `${ms} ms`);
   return (
@@ -133,20 +134,20 @@ function Review({ duel, byId }) {
       <h3>Review</h3>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontWeight: 700 }}>
         <thead>
-          <tr className="small muted"><th align="left">#</th><th>{name('A')}</th><th>{name('B')}</th><th align="right">Punkt</th></tr>
+          <tr className="small muted"><th align="left">#</th><th>{name('A')}</th><th>{name('B')}</th><th align="right">{t('Punkt')}</th></tr>
         </thead>
         <tbody>
           {rounds.map((rd, i) => (
             <tr key={i} style={{ borderTop: '1px solid var(--line)' }}>
               <td style={{ padding: '8px 0' }}>{i + 1}</td>
-              <td align="center">{rd.foul === 'A' ? '❌ zu früh' : fmt(rd.msA)}</td>
-              <td align="center">{rd.foul === 'B' ? '❌ zu früh' : fmt(rd.msB)}</td>
+              <td align="center">{rd.foul === 'A' ? `❌ ${t('zu früh')}` : fmt(rd.msA)}</td>
+              <td align="center">{rd.foul === 'B' ? `❌ ${t('zu früh')}` : fmt(rd.msB)}</td>
               <td align="right">{name(rd.winner)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      {duel.sabotage && <p className="small muted" style={{ margin: 0 }}>🧪 {byId[duel.sabotage.target]?.name} hatte +{SABOTAGE_PENALTY_MS} ms Strafe pro Runde.</p>}
+      {duel.sabotage && <p className="small muted" style={{ margin: 0 }}>🧪 {t('{name} hatte +{n} ms Strafe pro Runde.', { name: byId[duel.sabotage.target]?.name, n: SABOTAGE_PENALTY_MS })}</p>}
     </div>
   );
 }
@@ -154,7 +155,7 @@ function Review({ duel, byId }) {
 export const SpeedTap = {
   Play: ({ duel, me, byId, submit }) => (me.id === duel.playerA
     ? <SharedDevice duel={duel} byId={byId} submit={submit} />
-    : <Waiting text={`Ab zum Handy von ${byId[duel.playerA]?.name} – ihr spielt auf einem Gerät!`} />),
+    : <Waiting text={t('Ab zum Handy von {name} – ihr spielt auf einem Gerät!', { name: byId[duel.playerA]?.name })} />),
   Stage: Review,
   Review,
 };
@@ -221,21 +222,21 @@ function SoloReaction({ duel, submit }) {
   if (phase === 'ready') {
     return (
       <div className="stack">
-        <Waiting text="Tippe auf den Kreis, sobald er die Farbe wechselt – 5 Mal. Zu früh tippen kostet 300 ms Strafe!" />
-        <button className="btn primary lg" onClick={() => setPhase('running')}>Start</button>
+        <Waiting text={t('Tippe auf den Kreis, sobald er die Farbe wechselt – 5 Mal. Zu früh tippen kostet 300 ms Strafe!')} />
+        <button className="btn primary lg" onClick={() => setPhase('running')}>{t('Start')}</button>
       </div>
     );
   }
   if (phase === 'done') {
     const avg = Math.round(times.reduce((s, t) => s + t, 0) / Math.max(1, times.length));
-    return <Waiting text={`Ø ${avg} ms${st.current.fouls ? ` · ${st.current.fouls}× zu früh` : ''} – warte auf die anderen…`} />;
+    return <Waiting text={`Ø ${avg} ms${st.current.fouls ? ` · ${st.current.fouls}× ${t('zu früh')}` : ''} – ${t('warte auf die anderen…')}`} />;
   }
   return (
     <div className="stack center">
       <div className="kicker">{Math.min(idx + 1, rounds.length)}/{rounds.length}</div>
       <button onPointerDown={tap}
         style={{ width: 'min(75vw, 300px)', aspectRatio: '1', borderRadius: '50%', border: 'none', margin: '0 auto', background: color, color: '#fff', fontSize: 28, fontWeight: 900 }}>
-        {color === IDLE ? 'Warte…' : 'TAP!'}
+        {color === IDLE ? t('Warte…') : 'TAP!'}
       </button>
       <div className="small muted">{times.map((t) => `${t} ms`).join(' · ')}</div>
     </div>

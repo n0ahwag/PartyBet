@@ -8,9 +8,10 @@ import { BankruptPanel, LoanInbox, RescueAdmin } from '../components/Rescue.jsx'
 import { Scoreboard } from '../components/Scoreboard.jsx';
 import { PhaseOverlay, PhaseBadge } from '../components/PhaseOverlay.jsx';
 import { LiveEventOverlay } from '../components/LiveEventOverlay.jsx';
-import { Avatar, Inventory, OfflineBanner, Loading, Sips, useToast, useAction } from '../components/ui.jsx';
+import { Avatar, Inventory, OfflineBanner, Loading, Sips, useToast, useAction, LangSwitch } from '../components/ui.jsx';
 import { Wrapped } from './Wrapped.jsx';
 import { navigate } from '../lib/router.js';
+import { t } from '../i18n/index.js';
 import { isMuted, setMuted } from '../lib/sound.js';
 import { BoardView, Standings, useAnimatedPositions } from '../components/board/BoardView.jsx';
 import { BoardRound } from '../components/board/BoardRound.jsx';
@@ -29,14 +30,14 @@ export function PlayerController({ uid, code }) {
   const [muted, setMutedState] = useState(isMuted());
 
   if (loading) return <Loading />;
-  if (!room) return <div className="page center"><h2>Raum {code} nicht gefunden</h2><button className="btn" onClick={() => navigate('/')}>Start</button></div>;
+  if (!room) return <div className="page center"><h2>{t('Raum {code} nicht gefunden', { code })}</h2><button className="btn" onClick={() => navigate('/')}>{t('Zur Startseite')}</button></div>;
   const me = byId[uid];
   if (!me) {
     if (players.length === 0 && room.status === 'lobby') return <Loading />;
     return (
       <div className="page center">
-        <h2>Du bist (noch) nicht in diesem Raum.</h2>
-        {room.status === 'lobby' && <button className="btn primary" onClick={() => navigate(`/join/${code}`)}>Beitreten</button>}
+        <h2>{t('Du bist (noch) nicht in diesem Raum.')}</h2>
+        {room.status === 'lobby' && <button className="btn primary" onClick={() => navigate(`/join/${code}`)}>{t('Beitreten')}</button>}
       </div>
     );
   }
@@ -56,12 +57,13 @@ export function PlayerController({ uid, code }) {
         <Avatar player={me} />
         <div className="grow">
           <div style={{ fontWeight: 900, fontSize: 18 }}>{me.name}{isHost && <span className="pill" style={{ marginLeft: 6 }}>Host</span>}</div>
-          {board ? <span className="small muted">🎲 Spielfeld-Modus</span> : group ? <span className="small muted">👥 Gruppen-Modus</span> : <Inventory inventory={me.inventory} />}
+          {board ? <span className="small muted">🎲 {t('Spielfeld-Modus')}</span> : group ? <span className="small muted">👥 {t('Gruppen-Modus')}</span> : <Inventory inventory={me.inventory} />}
         </div>
         {group ? <span className="balance">⭐ {me.points ?? 0} P</span> : board
           ? <span className="balance">📍 {me.position ?? 0}/{goal}{me.skipNext ? ' ⏸️' : ''}</span>
           : <Sips n={me.balance} className="big" />}
         <button className="btn ghost sm" onClick={() => { setMuted(!muted); setMutedState(!muted); }}>{muted ? '🔇' : '🔊'}</button>
+        <LangSwitch />
       </header>
 
       {room.status === 'lobby' ? (
@@ -70,9 +72,9 @@ export function PlayerController({ uid, code }) {
         <>
           <PhaseBadge room={room} />
           <div className="phase-strip" />
-          {round ? <GroupRound code={code} round={round} byId={byId} me={me} run={run} isHost={isHost} /> : <div className="card center muted">Gleich geht's los…</div>}
+          {round ? <GroupRound code={code} round={round} byId={byId} me={me} run={run} isHost={isHost} /> : <div className="card center muted">{t("Gleich geht's los…")}</div>}
           {isHost && <GroupHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />}
-          <button className="btn ghost sm" onClick={() => setShowBoard((s) => !s)}>{showBoard ? 'Punktestand ausblenden' : '⭐ Punktestand'}</button>
+          <button className="btn ghost sm" onClick={() => setShowBoard((s) => !s)}>{showBoard ? t('Punktestand ausblenden') : `⭐ ${t('Punktestand')}`}</button>
           {showBoard && <PointsBoard players={players} meId={uid} />}
         </>
       ) : board ? (
@@ -80,9 +82,9 @@ export function PlayerController({ uid, code }) {
           <PhaseBadge room={room} />
           <div className="phase-strip" />
           <BoardView fields={room.board.fields} players={players} positions={positions} compact />
-          {round ? <BoardRound code={code} round={round} byId={byId} me={me} run={run} /> : <div className="card center muted">Gleich geht's los…</div>}
+          {round ? <BoardRound code={code} round={round} byId={byId} me={me} run={run} /> : <div className="card center muted">{t("Gleich geht's los…")}</div>}
           {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />}
-          <button className="btn ghost sm" onClick={() => setShowBoard((s) => !s)}>{showBoard ? 'Rangliste ausblenden' : '🏆 Wer führt?'}</button>
+          <button className="btn ghost sm" onClick={() => setShowBoard((s) => !s)}>{showBoard ? t('Rangliste ausblenden') : `🏆 ${t('Wer führt?')}`}</button>
           {showBoard && <Standings players={players} fields={room.board.fields} meId={uid} />}
         </>
       ) : (
@@ -94,7 +96,7 @@ export function PlayerController({ uid, code }) {
           {duel ? (
             <PlayerDuelView code={code} room={room} duel={duel} me={me} byId={byId} players={players} run={run} />
           ) : (
-            <div className="card center muted">Gleich geht's los…</div>
+            <div className="card center muted">{t("Gleich geht's los…")}</div>
           )}
           {isHost && (
             <>
@@ -102,10 +104,10 @@ export function PlayerController({ uid, code }) {
               <RescueAdmin code={code} byId={byId} rescues={rescues} run={run} />
             </>
           )}
-          <button className="btn ghost sm" onClick={() => setShowBoard((s) => !s)}>{showBoard ? 'Rangliste ausblenden' : '🏆 Rangliste'}</button>
+          <button className="btn ghost sm" onClick={() => setShowBoard((s) => !s)}>{showBoard ? t('Rangliste ausblenden') : `🏆 ${t('Rangliste')}`}</button>
           {showBoard && <Scoreboard players={players} meId={uid} duel={duel} />}
           {me.debts?.length > 0 && (
-            <p className="small muted center">Offene Schulden: {me.debts.map((d) => `${d.amount} an ${d.to === 'bank' ? 'Bank' : byId[d.to]?.name}`).join(', ')}</p>
+            <p className="small muted center">{t('Offene Schulden')}: {me.debts.map((d) => t('{n} an {name}', { n: d.amount, name: d.to === 'bank' ? t('Bank') : byId[d.to]?.name })).join(', ')}</p>
           )}
         </>
       )}

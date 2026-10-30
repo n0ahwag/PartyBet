@@ -3,6 +3,7 @@ import { GAMES, rankGroupRound, resultComplete, buildBracket, ranksFromBracket }
 import { beginChallenge, setRanks, moveTokens, triggerChaos, setBracketWinner } from '../../game/boardEngine.js';
 import { nextStep, triggerLiveEvent, finishGame } from '../../game/engine.js';
 import { sfx } from '../../lib/sound.js';
+import { t } from '../../i18n/index.js';
 
 /**
  * Host trägt bei Real-Life-Challenges die Reihenfolge ein.
@@ -26,10 +27,10 @@ export function RankingInput({ round, byId, onConfirm, busy, elimination = false
   };
   return (
     <div className="stack" style={{ gap: 8 }}>
-      <h3>{elimination ? 'Wer fliegt raus? (der Reihe nach antippen)' : 'Reihenfolge antippen'}</h3>
+      <h3>{elimination ? t('Wer fliegt raus? (der Reihe nach antippen)') : t('Reihenfolge antippen')}</h3>
       {order.map((id, i) => (
         <div key={id} className={`pill ${elimination ? 'bad' : 'accent'}`}>
-          {elimination ? `❌ raus (Platz ${n - i})` : `${i + 1}.`} {byId[id]?.avatar} {byId[id]?.name}
+          {elimination ? `❌ ${t('raus (Platz {n})', { n: n - i })}` : `${i + 1}.`} {byId[id]?.avatar} {byId[id]?.name}
         </div>
       ))}
       <div className="row wrap" style={{ gap: 6 }}>
@@ -38,9 +39,9 @@ export function RankingInput({ round, byId, onConfirm, busy, elimination = false
         ))}
       </div>
       <div className="row">
-        <button className="btn ghost sm" disabled={!order.length} onClick={() => setOrder((o) => o.slice(0, -1))}>↩︎ Zurück</button>
+        <button className="btn ghost sm" disabled={!order.length} onClick={() => setOrder((o) => o.slice(0, -1))}>↩︎ {t('Zurück')}</button>
         <button className="btn primary grow" disabled={busy || !order.length || (elimination && open.length > 1)} onClick={confirm}>
-          {elimination && open.length === 1 ? `🏆 ${byId[open[0]]?.name} gewinnt – bestätigen` : 'Platzierung bestätigen'}
+          {elimination && open.length === 1 ? `🏆 ${t('{name} gewinnt – bestätigen', { name: byId[open[0]]?.name })}` : t('Platzierung bestätigen')}
         </button>
       </div>
     </div>
@@ -58,13 +59,13 @@ export function BracketInput({ code, round, byId, run, busy, onConfirm }) {
           const ranks = ranksFromBracket(round.participants, bracket);
           return onConfirm ? onConfirm(ranks) : run(() => setRanks(code, round.id, ranks));
         }}>
-        🏆 {byId[bracket.champion]?.name} gewinnt – Platzierung übernehmen
+        🏆 {t('{name} gewinnt – Platzierung übernehmen', { name: byId[bracket.champion]?.name })}
       </button>
     );
   }
   return (
     <div className="stack" style={{ gap: 8 }}>
-      <h3>Wer hat gewonnen?</h3>
+      <h3>{t('Wer hat gewonnen?')}</h3>
       {open.map((m) => (
         <div key={m.key} className="grid-2">
           {[m.a, m.b].map((id) => (
@@ -98,21 +99,21 @@ export function BoardHostControls({ code, room, round, byId, run, busy }) {
 
   let main;
   if (room.winnerId && round?.stage === 'resolved') {
-    main = <button className="btn primary lg block" disabled={busy} onClick={() => run(() => finishGame(code))}>🏆 Siegerehrung & Wrapped</button>;
+    main = <button className="btn primary lg block" disabled={busy} onClick={() => run(() => finishGame(code))}>🏆 {t('Siegerehrung & Wrapped')}</button>;
   } else if (!round || round.stage === 'resolved') {
     main = round?.chaos && !round.chaosDone ? (
       <button className="btn primary lg block" style={{ background: '#F97316' }} disabled={busy || !!room.liveEvent}
-        onClick={() => run(() => triggerChaos(code, round.id))}>💥 Chaos-Challenge starten</button>
+        onClick={() => run(() => triggerChaos(code, round.id))}>💥 {t('Chaos-Challenge starten')}</button>
     ) : (
       <>
-        <button className="btn primary lg block" disabled={busy || !!room.liveEvent} onClick={() => run(() => nextStep(code))}>▶️ Nächste Challenge</button>
+        <button className="btn primary lg block" disabled={busy || !!room.liveEvent} onClick={() => run(() => nextStep(code))}>▶️ {t('Nächste Challenge')}</button>
         {room.liveEvents !== false && (
-          <button className="btn soft block" disabled={busy || !!room.liveEvent} onClick={() => run(() => triggerLiveEvent(code))}>⚡ Live-Event jetzt auslösen</button>
+          <button className="btn soft block" disabled={busy || !!room.liveEvent} onClick={() => run(() => triggerLiveEvent(code))}>⚡ {t('Live-Event jetzt auslösen')}</button>
         )}
       </>
     );
   } else if (round.stage === 'intro') {
-    main = <button className="btn primary lg block" disabled={busy} onClick={() => run(() => beginChallenge(code, round.id))}>🚦 Los geht's!</button>;
+    main = <button className="btn primary lg block" disabled={busy} onClick={() => run(() => beginChallenge(code, round.id))}>🚦 {t("Los geht's!")}</button>;
   } else if (round.stage === 'playing') {
     if (game.bracket) {
       main = <BracketInput code={code} round={round} byId={byId} run={run} busy={busy} />;
@@ -125,22 +126,22 @@ export function BoardHostControls({ code, room, round, byId, run, busy }) {
       const n = round.participants.filter((id) => resultComplete(round.gameId, round.results?.[id])).length;
       main = (
         <>
-          <p className="muted small" style={{ margin: 0 }}>{n}/{round.participants.length} haben abgegeben – die App wertet automatisch aus.</p>
+          <p className="muted small" style={{ margin: 0 }}>{t('{a}/{b} haben abgegeben – die App wertet automatisch aus.', { a: n, b: round.participants.length })}</p>
           <button className="btn ghost sm" disabled={busy} onClick={() => run(() => setRanks(code, round.id, rankGroupRound(round, round.participants)))}>
-            Jetzt auswerten (Fehlende werden Letzte)
+            {t('Jetzt auswerten (Fehlende werden Letzte)')}
           </button>
         </>
       );
     }
   } else if (round.stage === 'review') {
-    main = <button className="btn primary lg block" disabled={busy} onClick={() => run(() => moveTokens(code, round.id))}>🎲 Würfeln & ziehen</button>;
+    main = <button className="btn primary lg block" disabled={busy} onClick={() => run(() => moveTokens(code, round.id))}>🎲 {t('Würfeln & ziehen')}</button>;
   }
 
   return (
     <div className="card stack">
       <div className="row between">
-        <h3>Host-Steuerung</h3>
-        <span className="pill">Runde {room.round}</span>
+        <h3>{t('Host-Steuerung')}</h3>
+        <span className="pill">{t('Runde')} {room.round}</span>
       </div>
       {main}
     </div>
