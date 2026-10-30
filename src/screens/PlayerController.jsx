@@ -1,0 +1,82 @@
+import { useState } from 'react';
+import { useRoom } from '../hooks/useRoom.js';
+import { usePhaseFx } from '../hooks/usePhaseFx.js';
+import { Lobby } from '../components/Lobby.jsx';
+import { PlayerDuelView } from '../components/DuelViews.jsx';
+import { HostControls } from '../components/HostControls.jsx';
+import { BankruptPanel, LoanInbox, RescueAdmin } from '../components/Rescue.jsx';
+import { Scoreboard } from '../components/Scoreboard.jsx';
+import { PhaseOverlay, PhaseBadge } from '../components/PhaseOverlay.jsx';
+import { Avatar, Inventory, Loading, Sips, useToast, useAction } from '../components/ui.jsx';
+import { Wrapped } from './Wrapped.jsx';
+import { navigate } from '../lib/router.js';
+import { isMuted, setMuted } from '../lib/sound.js';
+
+/** Handy-Controller. Im Modus "Nur Handys" enthält das Host-Handy zusätzlich die Host-Steuerung. */
+export function PlayerController({ uid, code }) {
+  const { room, players, byId, duel, rescues, loading } = useRoom(code);
+  const overlay = usePhaseFx(room, duel);
+  const [toast, toastNode] = useToast();
+  const [run, busy] = useAction(toast);
+  const [showBoard, setShowBoard] = useState(false);
+  const [muted, setMutedState] = useState(isMuted());
+
+  if (loading) return <Loading />;
+  if (!room) return <div className="page center"><h2>Raum {code} nicht gefunden</h2><button className="btn" onClick={() => navigate('/')}>Start</button></div>;
+  const me = byId[uid];
+  if (!me) {
+    if (players.length === 0 && room.status === 'lobby') return <Loading />;
+    return (
+      <div className="page center">
+        <h2>Du bist (noch) nicht in diesem Raum.</h2>
+        {room.status === 'lobby' && <button className="btn primary" onClick={() => navigate(`/join/${code}`)}>Beitreten</button>}
+      </div>
+    );
+  }
+  if (room.status === 'finished') return <Wrapped code={code} players={players} />;
+
+  const isHost = room.hostId === uid;
+
+  return (
+    <div className="page">
+      <PhaseOverlay phase={overlay} />
+      <header className="row">
+        <Avatar player={me} />
+        <div className="grow">
+          <div style={{ fontWeight: 900, fontSize: 18 }}>{me.name}{isHost && <span className="pill" style={{ marginLeft: 6 }}>Host</span>}</div>
+          <Inventory inventory={me.inventory} />
+        </div>
+        <Sips n={me.balance} className="big" />
+        <button className="btn ghost sm" onClick={() => { setMuted(!muted); setMutedState(!muted); }}>{muted ? '🔇' : '🔊'}</button>
+      </header>
+
+      {room.status === 'lobby' ? (
+        <Lobby code={code} room={room} players={players} meId={uid} isHost={isHost} run={run} busy={busy} />
+      ) : (
+        <>
+          <PhaseBadge room={room} />
+          <div className="phase-strip" />
+          <LoanInbox code={code} me={me} byId={byId} rescues={rescues} run={run} />
+          {me.balance <= 0 && <BankruptPanel code={code} me={me} players={players} rescues={rescues} run={run} />}
+          {duel ? (
+            <PlayerDuelView code={code} room={room} duel={duel} me={me} byId={byId} players={players} run={run} />
+          ) : (
+            <div className="card center muted">Gleich geht's los…</div>
+          )}
+          {isHost && (
+            <>
+              <HostControls code={code} room={room} duel={duel} byId={byId} run={run} busy={busy} />
+              <RescueAdmin code={code} byId={byId} rescues={rescues} run={run} />
+            </>
+          )}
+          <button className="btn ghost sm" onClick={() => setShowBoard((s) => !s)}>{showBoard ? 'Rangliste ausblenden' : '🏆 Rangliste'}</button>
+          {showBoard && <Scoreboard players={players} meId={uid} duel={duel} />}
+          {me.debts?.length > 0 && (
+            <p className="small muted center">Offene Schulden: {me.debts.map((d) => `${d.amount} an ${d.to === 'bank' ? 'Bank' : byId[d.to]?.name}`).join(', ')}</p>
+          )}
+        </>
+      )}
+      {toastNode}
+    </div>
+  );
+}
