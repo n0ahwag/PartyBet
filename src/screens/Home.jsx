@@ -12,6 +12,7 @@ export function Home() {
         <p className="muted" style={{ margin: 0, fontWeight: 600 }}>Duelle. Wetten. Schlücke.</p>
       </div>
       <button className="btn primary lg block" onClick={() => navigate('/create')}>🎉 Party erstellen</button>
+      <button className="btn soft lg block" onClick={() => navigate('/library')}>📚 Bibliothek</button>
       <div className="card stack">
         <h3>Beitreten</h3>
         <input className="input code" maxLength={4} placeholder="CODE" value={code}

@@ -4,10 +4,22 @@ import { makeRng } from '../lib/random.js';
  * Spielebibliothek. Reine Daten + Logik (keine React-Komponenten), damit
  * Host-Gerät und Tests die gleiche Auswertung nutzen.
  *
- * kind:    real (in echt gespielt) | digital (am Handy) | multi (mehrere Handys)
+ * kind:    Kategorie, siehe CATEGORIES
  * devices: none | shared (1 Gerät für beide) | own (jeder sein Handy)
+ * needs*:  Geräte-Fähigkeiten beider Duellanten (Bewegung, Kompass, Kamera)
  * judge:   host (Host tippt Gewinner) | auto (App wertet aus)
  */
+
+export const CATEGORIES = {
+  real: { label: 'Real-Life', icon: '🏃' },
+  digital: { label: 'Digital', icon: '📱' },
+  multi: { label: 'Multi-Device', icon: '📲' },
+  sensor: { label: 'Sensor', icon: '🧭' },
+  camera: { label: 'Frontkamera', icon: '📷' },
+  audio: { label: 'Audio', icon: '🎵' },
+  utensil: { label: 'Utensilien', icon: '🧰' },
+  social: { label: 'Social', icon: '🗣️' },
+};
 
 export const COLORS = [
   { id: 'red', label: 'ROT', hex: '#EF4444' },
@@ -35,6 +47,68 @@ export const ESTIMATE_QUESTIONS = [
   { q: 'Wie lang ist die Chinesische Mauer (inkl. aller Abschnitte)?', a: 21196, unit: 'km' },
   { q: 'Wie viele Herzschläge hat ein Mensch pro Tag (ca.)?', a: 100000, unit: 'Schläge' },
 ];
+
+export const COMPASS_DIRECTIONS = [
+  { label: 'Norden', short: 'N', deg: 0 },
+  { label: 'Nordosten', short: 'NO', deg: 45 },
+  { label: 'Osten', short: 'O', deg: 90 },
+  { label: 'Südosten', short: 'SO', deg: 135 },
+  { label: 'Süden', short: 'S', deg: 180 },
+  { label: 'Südwesten', short: 'SW', deg: 225 },
+  { label: 'Westen', short: 'W', deg: 270 },
+  { label: 'Nordwesten', short: 'NW', deg: 315 },
+];
+
+/** Emoji-Rätsel: answers sind normalisierte Schlüsselwörter (eins davon muss in der Eingabe vorkommen). */
+export const EMOJI_PUZZLES = [
+  { emojis: '🦁👑', hint: 'Film', answers: ['koenigderloewen', 'lionking'], solution: 'Der König der Löwen' },
+  { emojis: '❄️👸', hint: 'Film', answers: ['eiskoenigin', 'frozen'], solution: 'Die Eiskönigin' },
+  { emojis: '🐟🔍', hint: 'Film', answers: ['nemo'], solution: 'Findet Nemo' },
+  { emojis: '🚢🧊💔', hint: 'Film', answers: ['titanic'], solution: 'Titanic' },
+  { emojis: '⚡👓🧙‍♂️', hint: 'Film', answers: ['harrypotter', 'potter'], solution: 'Harry Potter' },
+  { emojis: '🦖🏝️', hint: 'Film', answers: ['jurassic'], solution: 'Jurassic Park' },
+  { emojis: '🏠👦🎄', hint: 'Film', answers: ['kevin', 'homealone', 'alleinzuhaus'], solution: 'Kevin – Allein zu Haus' },
+  { emojis: '🐭👨‍🍳', hint: 'Film', answers: ['ratatouille'], solution: 'Ratatouille' },
+  { emojis: '🏴‍☠️🌊💰', hint: 'Film', answers: ['karibik', 'caribbean', 'piratesofthe'], solution: 'Fluch der Karibik' },
+  { emojis: '☔💃', hint: 'Song', answers: ['umbrella'], solution: 'Umbrella – Rihanna' },
+  { emojis: '🌧️💜', hint: 'Song', answers: ['purplerain'], solution: 'Purple Rain – Prince' },
+  { emojis: '🧊🧊👶', hint: 'Song', answers: ['iceicebaby'], solution: 'Ice Ice Baby – Vanilla Ice' },
+  { emojis: '👋🎤', hint: 'Song', answers: ['hello'], solution: 'Hello – Adele' },
+  { emojis: '💃👑', hint: 'Song', answers: ['dancingqueen'], solution: 'Dancing Queen – ABBA' },
+  { emojis: '🌍🏃‍♂️⚡', hint: 'Begriff', answers: ['blitzlauf', 'weltrekord', 'bolt'], solution: 'Usain Bolt / Weltrekord' },
+  { emojis: '🍺🎪🥨', hint: 'Begriff', answers: ['oktoberfest', 'wiesn'], solution: 'Oktoberfest' },
+];
+
+/** Umlaute auflösen, Kleinschreibung, nur Buchstaben/Ziffern. */
+export function normalizeAnswer(text) {
+  return String(text).toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+export function emojiAnswerCorrect(puzzle, input) {
+  const n = normalizeAnswer(input);
+  return n.length >= 3 && puzzle.answers.some((a) => n.includes(a) || (n.length >= 5 && a.includes(n)));
+}
+
+/** Mittlere Abweichung der getippten Abstände vom Muster (ms). Fehlende Taps zählen voll. */
+export function rhythmError(pattern, tapTimes) {
+  const got = tapTimes.slice(1).map((t, i) => t - tapTimes[i]);
+  const errs = pattern.map((p, i) => (got[i] == null ? p : Math.abs(got[i] - p)));
+  return Math.round(errs.reduce((sum, e) => sum + e, 0) / pattern.length);
+}
+
+/** Kleinere Zahl gewinnt; fehlende/ungültige Werte verlieren; Gleichstand → null. */
+function lowerWins(duel, score) {
+  const a = duel.results?.[duel.playerA];
+  const b = duel.results?.[duel.playerB];
+  if (!a || !b) return undefined;
+  const sa = score(a, duel.playerA);
+  const sb = score(b, duel.playerB);
+  if (sa === sb) return null;
+  return sa < sb ? duel.playerA : duel.playerB;
+}
+const sabotaged = (duel, uid) => duel.sabotage?.target === uid;
 
 export const GAMES = {
   colorSprint: {
@@ -172,7 +246,7 @@ export const GAMES = {
     id: 'highCard',
     name: 'Kartenduell',
     icon: '🃏',
-    kind: 'real',
+    kind: 'utensil',
     minPlayers: 2,
     equipment: ['cards'],
     devices: 'none',
@@ -185,7 +259,7 @@ export const GAMES = {
     id: 'coinOracle',
     name: 'Münz-Orakel',
     icon: '🪙',
-    kind: 'real',
+    kind: 'utensil',
     minPlayers: 2,
     equipment: ['coins'],
     devices: 'none',
@@ -198,7 +272,7 @@ export const GAMES = {
     id: 'diceDuel',
     name: 'Würfel-Showdown',
     icon: '🎲',
-    kind: 'real',
+    kind: 'utensil',
     minPlayers: 2,
     equipment: ['dice'],
     devices: 'none',
@@ -211,7 +285,7 @@ export const GAMES = {
     id: 'cupFlip',
     name: 'Becher-Flip',
     icon: '🥤',
-    kind: 'real',
+    kind: 'utensil',
     minPlayers: 2,
     equipment: ['cups'],
     devices: 'none',
@@ -220,9 +294,147 @@ export const GAMES = {
     rules: 'Becher an die Tischkante, mit einem Finger hochschnipsen bis er umgedreht landet. Wer zuerst 3-mal schafft, gewinnt.',
     createState: () => ({}),
   },
+
+  // ---- Erweiterung: Spiele 6–13 ----
+  shake: {
+    id: 'shake',
+    name: 'Schüttel-Manie',
+    icon: '🫨',
+    kind: 'sensor',
+    minPlayers: 2,
+    equipment: [],
+    devices: 'own',
+    needsMotion: true,
+    judge: 'auto',
+    accent: '#EF4444',
+    rules: 'Handy gut festhalten und 5 Sekunden so oft wie möglich schütteln. Der Beschleunigungssensor zählt mit.',
+    createState: () => ({ durationMs: 5000 }),
+    /** results[uid] = { shakes } – mehr ist besser */
+    decide: (duel) => lowerWins(duel, (r, uid) => -(r.shakes * (sabotaged(duel, uid) ? 0.85 : 1))),
+  },
+  compass: {
+    id: 'compass',
+    name: 'Kompass-Axt',
+    icon: '🧭',
+    kind: 'sensor',
+    minPlayers: 2,
+    equipment: [],
+    devices: 'own',
+    needsCompass: true,
+    judge: 'auto',
+    accent: '#0EA5E9',
+    rules: 'Eine Himmelsrichtung erscheint. Richte dein Handy als Erster genau dorthin aus und halte es kurz still.',
+    createState(rng) {
+      return { target: rng.pick(COMPASS_DIRECTIONS), holdMs: 800, timeoutMs: 20000 };
+    },
+    /** results[uid] = { ms } (null = nicht geschafft) */
+    decide: (duel) => lowerWins(duel, (r, uid) => (r.ms == null ? Infinity : r.ms + (sabotaged(duel, uid) ? 1000 : 0))),
+  },
+  emojiQuiz: {
+    id: 'emojiQuiz',
+    name: 'Emoji-Hit-Raten',
+    icon: '🤩',
+    kind: 'digital',
+    minPlayers: 2,
+    equipment: [],
+    devices: 'own',
+    judge: 'auto',
+    accent: '#F59E0B',
+    rules: 'Eine Emoji-Kombination steht für einen Song, Film oder Begriff. Wer sie zuerst richtig eintippt, gewinnt.',
+    createState(rng) {
+      const idx = rng.int(0, EMOJI_PUZZLES.length - 1);
+      return { puzzleIdx: idx, emojis: EMOJI_PUZZLES[idx].emojis, hint: EMOJI_PUZZLES[idx].hint };
+    },
+    /** results[uid] = { ms, correct } */
+    decide: (duel) => lowerWins(duel, (r, uid) => (r.correct ? r.ms + (sabotaged(duel, uid) ? 2000 : 0) : Infinity)),
+  },
+  stareDown: {
+    id: 'stareDown',
+    name: 'Starr-Duell',
+    icon: '👁️',
+    kind: 'camera',
+    minPlayers: 2,
+    equipment: [],
+    devices: 'own',
+    needsCamera: true,
+    judge: 'auto',
+    accent: '#64748B',
+    rules: 'Schaut euch in die Augen – die Frontkamera beobachtet euch. Wer zuerst blinzelt oder lacht, verliert.',
+    createState: () => ({ maxMs: 60000, graceMs: 1500 }),
+    /** results[uid] = { survivedMs, reason } – länger ist besser */
+    decide: (duel) => lowerWins(duel, (r) => -r.survivedMs),
+  },
+  rhythm: {
+    id: 'rhythm',
+    name: 'Rhythmus-Echo',
+    icon: '🥁',
+    kind: 'audio',
+    minPlayers: 2,
+    equipment: [],
+    devices: 'own',
+    judge: 'auto',
+    accent: '#D946EF',
+    rules: 'Hör dir den Rhythmus an und klopf ihn danach so exakt wie möglich auf dem Button nach.',
+    createState(rng, { phase }) {
+      const beats = phase === 'warmup' ? 5 : 7;
+      return { intervals: Array.from({ length: beats - 1 }, () => rng.pick([250, 500, 500, 750])) };
+    },
+    /** results[uid] = { errorMs } – mittlere Abweichung, kleiner ist besser */
+    decide: (duel) => lowerWins(duel, (r, uid) => r.errorMs * (sabotaged(duel, uid) ? 1.15 : 1)),
+  },
+  bluffCard: {
+    id: 'bluffCard',
+    name: 'Bluff-Karten-Duell',
+    icon: '🎴',
+    kind: 'utensil',
+    minPlayers: 2,
+    equipment: ['cards'],
+    devices: 'none',
+    judge: 'host',
+    accent: '#BE123C',
+    rules: 'Jeder zieht verdeckt eine Karte. Nur Spieler A schaut heimlich auf seine und darf bluffen. Spieler B entscheidet blind: Karten tauschen oder behalten? Dann aufdecken – höhere Karte gewinnt.',
+    createState: () => ({}),
+  },
+  coinSprint: {
+    id: 'coinSprint',
+    name: 'Münz-Sprint',
+    icon: '🎯',
+    kind: 'utensil',
+    minPlayers: 2,
+    equipment: ['coins'],
+    devices: 'none',
+    judge: 'host',
+    accent: '#A16207',
+    rules: 'Legt eine Markierung (z. B. Bierdeckel) ans andere Tischende. Abwechselnd die Münze rüberschnippen – wer nach 3 Versuchen am nächsten dran ist (oder trifft), gewinnt.',
+    createState: () => ({}),
+  },
+  truthBluff: {
+    id: 'truthBluff',
+    name: 'Wahrheit oder Bluff',
+    icon: '🤥',
+    kind: 'social',
+    minPlayers: 2,
+    equipment: [],
+    devices: 'own',
+    judge: 'auto',
+    accent: '#14B8A6',
+    rules: 'Spieler A tippt eine verrückte Behauptung über sich ein und markiert geheim, ob sie stimmt. Spieler B (und alle Zuschauer) raten: Wahr oder Lüge? Liegt B richtig, gewinnt B – sonst A.',
+    sequential: true, // B braucht das Ergebnis von A
+    createState: () => ({}),
+    /** results[A] = { claim, truth }, results[B] = { guess } */
+    decide(duel) {
+      const a = duel.results?.[duel.playerA];
+      const b = duel.results?.[duel.playerB];
+      if (!a || !b) return undefined;
+      return b.guess === a.truth ? duel.playerB : duel.playerA;
+    },
+  },
 };
 
-export const CORE_GAME_IDS = ['colorSprint', 'speedTap', 'balance', 'memoryCode', 'estimate'];
+export const CORE_GAME_IDS = [
+  'colorSprint', 'speedTap', 'balance', 'memoryCode', 'estimate',
+  'shake', 'compass', 'emojiQuiz', 'stareDown', 'rhythm', 'bluffCard', 'coinSprint', 'truthBluff',
+];
 
 /** Filtert die Bibliothek nach Spieleranzahl und vorhandenen Utensilien. */
 export function filterLibrary({ playerCount, equipment = [] }) {
@@ -233,7 +445,22 @@ export function filterLibrary({ playerCount, equipment = [] }) {
 
 /** Spiele, die für ein konkretes Duell-Paar spielbar sind (z. B. Gyroskop bei beiden). */
 export function playableFor(library, duelists) {
-  return library.filter((g) => !g.needsMotion || duelists.every((p) => p?.caps?.motion));
+  const all = (cap) => duelists.every((p) => p?.caps?.[cap]);
+  return library.filter((g) => (!g.needsMotion || all('motion'))
+    && (!g.needsCompass || all('compass'))
+    && (!g.needsCamera || all('camera')));
+}
+
+/** Kurzbeschreibung der Voraussetzungen für die Bibliothek. */
+export function requirementsOf(game) {
+  const r = [];
+  r.push(game.minPlayers >= 3 ? `ab ${game.minPlayers} Spieler` : '2 Spieler');
+  if (game.devices === 'shared') r.push('1 geteiltes Gerät');
+  if (game.devices === 'own') r.push('eigene Smartphones');
+  if (game.needsMotion) r.push('Bewegungssensor');
+  if (game.needsCompass) r.push('Kompass');
+  if (game.needsCamera) r.push('Frontkamera');
+  return r;
 }
 
 /** Wählt ein Spiel; vermeidet direkte Wiederholung, wenn möglich. */

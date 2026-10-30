@@ -72,6 +72,7 @@ export const sfx = {
     tone(55, { start: 0.3, dur: 2.2, type: 'square', gain: 0.15 });
   },
   tap: () => tone(1200, { dur: 0.04, type: 'square', gain: 0.08 }),
+  beat: () => { tone(160, { dur: 0.12, type: 'sine', gain: 0.5, slideTo: 60 }); tone(2400, { dur: 0.03, type: 'square', gain: 0.05 }); },
 };
 
 export function vibrate(pattern) {
