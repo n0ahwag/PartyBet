@@ -35,7 +35,9 @@ export function Library() {
     if (groupBy === 'players') {
       return PLAYER_GROUPS.map((g) => ({ id: g.id, title: g.label, games: games.filter(g.test) }));
     }
-    return Object.entries(CATEGORIES).map(([id, c]) => ({
+    // "Überall spielbar" zuerst – die Spiele ohne Utensilien
+    const order = ['anywhere', ...Object.keys(CATEGORIES).filter((k) => k !== 'anywhere')];
+    return order.map((id) => [id, CATEGORIES[id]]).map(([id, c]) => ({
       id, title: `${c.icon} ${c.label}`, games: games.filter((g) => g.kind === id),
     }));
   }, [groupBy, games]);

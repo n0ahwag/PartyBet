@@ -572,3 +572,193 @@ export function rankGroupRound(round, participantIds) {
     return r ? game.groupScore(r, id, round) : Infinity;
   });
 }
+
+// ------------------------------------------------------------------ Überall spielbar (ohne Utensilien)
+/*
+ * Ortsunabhängige Spiele: kein Equipment, keine Sensoren – drinnen, draußen,
+ * im Zug oder im Café. Alle laufen als Duell UND als Gruppen-Challenge.
+ */
+CATEGORIES.anywhere = { label: 'Überall spielbar', icon: '🌍' };
+
+export const ASSOCIATION_WORDS = [
+  'Sommer', 'Pizza', 'Urlaub', 'Montag', 'Schule', 'Party', 'Hund', 'Kaffee', 'Regen', 'Geld', 'Liebe', 'Weihnachten',
+  'Fußball', 'Handy', 'Berlin', 'Strand', 'Zahnarzt', 'Kino', 'Oma', 'Wecker', 'Burger', 'Disco', 'Zug', 'Schnee',
+  'Hochzeit', 'Pommes', 'Chef', 'Katze', 'Bier', 'Fernseher',
+];
+
+export const SPRINT_CATEGORIES = [
+  'Tier', 'Stadt', 'Land', 'Beruf', 'Lebensmittel', 'Vorname', 'Marke', 'Sportart', 'Getränk', 'Pflanze',
+  'Film oder Serie', 'Musikinstrument', 'Körperteil', 'Kleidungsstück', 'Fahrzeug',
+];
+const SPRINT_LETTERS = 'ABDEFGHKLMNPRSTW';
+
+export const CHAIN_WORDS = ['Banane', 'Elefant', 'Taschenlampe', 'Regenschirm', 'Fußball', 'Kuchen', 'Sonnenbrille', 'Pinguin', 'Rakete', 'Schokolade'];
+
+/** Rechenaufgabe je Phase – gleiche Aufgabe auf allen Geräten (Seed). */
+export function makeMathTask(rng, phase = 'warmup') {
+  const r = (a, b) => rng.int(a, b);
+  const pick = phase === 'suddenDeath' ? 3 : phase === 'chaos' ? r(1, 2) : r(0, 1);
+  if (pick === 0) { const a = r(12, 89); const b = r(11, 79); return { text: `${a} + ${b}`, answer: a + b }; }
+  if (pick === 1) { const a = r(3, 9); const b = r(6, 19); return { text: `${a} × ${b}`, answer: a * b }; }
+  if (pick === 2) { const a = r(40, 99); const b = r(12, 39); const c = r(5, 29); return { text: `${a} − ${b} + ${c}`, answer: a - b + c }; }
+  const a = r(6, 14); const b = r(4, 9); const c = r(10, 60);
+  return { text: `${a} × ${b} + ${c}`, answer: a * b + c };
+}
+
+/** Kategorie-Sprint: Wort beginnt mit dem Buchstaben und hat mindestens 3 Zeichen. */
+export function categoryWordValid(word, letter, category) {
+  const n = normalizeAnswer(word);
+  return n.length >= 3 && n.startsWith(normalizeAnswer(letter)) && n !== normalizeAnswer(category);
+}
+
+/** Assoziation: irgendein echtes Wort (≥ 2 Buchstaben), nicht das Reizwort selbst. */
+export function associationValid(word, prompt) {
+  const n = normalizeAnswer(word);
+  return n.length >= 2 && n !== normalizeAnswer(prompt);
+}
+
+/** Wen muss ich bei "Geheime Zahlen" knacken? Duell: Gegner. Gruppe: nächster im Kreis. */
+export function secretTargetOf(round, uid) {
+  if (round.participants?.length) {
+    const ps = round.participants;
+    return ps[(ps.indexOf(uid) + 1) % ps.length];
+  }
+  return uid === round.playerA ? round.playerB : round.playerA;
+}
+
+/**
+ * Schere-Stein-Papier-Turnier: Paarungen werden aus dem Seed ausgelost (alle Geräte
+ * berechnen dasselbe), gespeichert werden nur die Sieger je Match.
+ */
+export function buildBracket(participantIds, seed, winners = {}) {
+  let alive = makeRng(`bracket:${seed}`).shuffle(participantIds);
+  const rounds = [];
+  const outInRound = {};
+  for (let r = 0; alive.length > 1 && r < 10; r++) {
+    const matches = [];
+    const next = [];
+    for (let i = 0; i < alive.length; i += 2) {
+      const a = alive[i];
+      const b = alive[i + 1];
+      if (!b) { matches.push({ key: `${r}-${i / 2}`, a, b: null, winner: a, bye: true }); next.push(a); continue; }
+      const winner = winners[`${r}-${i / 2}`] ?? null;
+      matches.push({ key: `${r}-${i / 2}`, a, b, winner });
+      if (winner) { next.push(winner); outInRound[winner === a ? b : a] = r; }
+    }
+    rounds.push(matches);
+    if (matches.some((m) => !m.winner)) break; // aktuelle Runde noch offen
+    alive = next;
+  }
+  const champion = alive.length === 1 ? alive[0] : null;
+  return { rounds, champion, outInRound };
+}
+
+/** Platzierung aus dem Turnier: wer später rausfliegt, ist besser. */
+export function ranksFromBracket(participantIds, bracket) {
+  const remainingAfter = [];
+  let alive = participantIds.length;
+  bracket.rounds.forEach((matches, r) => {
+    alive -= matches.filter((m) => !m.bye && m.winner).length;
+    remainingAfter[r] = alive;
+  });
+  return Object.fromEntries(participantIds.map((id) => [
+    id, id === bracket.champion ? 1 : (bracket.outInRound[id] != null ? remainingAfter[bracket.outInRound[id]] + 1 : participantIds.length),
+  ]));
+}
+
+/** Ist das Ergebnis vollständig? (Geheime Zahlen schreibt zuerst nur die eigene Zahl.) */
+export function resultComplete(gameId, r) {
+  if (!r) return false;
+  const g = GAMES[gameId];
+  return g?.isComplete ? g.isComplete(r) : true;
+}
+
+const NEW_SCORES = {
+  stopwatch: (r) => Math.abs(r.ms - r.target),
+  mathBlitz: (r) => (r.correct ? r.ms + (r.wrong ?? 0) * 1000 : Infinity),
+  f1Start: (r) => (r.jumpStart || r.ms == null ? Infinity : r.ms),
+  secretNumber: (r) => (r.done && !r.gaveUp ? r.ms : Infinity),
+  association: (r) => (r.valid ? r.ms : Infinity),
+  categorySprint: (r) => (r.valid ? r.ms : Infinity),
+  numberMemory: (r) => -r.digits * 1e6 + r.ms, // mehr Ziffern zuerst, dann Zeit
+};
+
+/** Duell-Auswertung aus der Punkte-Funktion – erst wenn beide Ergebnisse vollständig sind. */
+function decideByScore(gameId) {
+  return (duel) => {
+    const a = duel.results?.[duel.playerA];
+    const b = duel.results?.[duel.playerB];
+    if (!resultComplete(gameId, a) || !resultComplete(gameId, b)) return undefined;
+    const score = NEW_SCORES[gameId];
+    const sa = score(a);
+    const sb = score(b);
+    if (sa === sb) return null;
+    return sa < sb ? duel.playerA : duel.playerB;
+  };
+}
+
+const base = { kind: 'anywhere', minPlayers: 2, equipment: [], anywhere: true };
+Object.assign(GAMES, {
+  stopwatch: {
+    ...base, id: 'stopwatch', name: 'Mentale Stoppuhr', icon: '⏱️', devices: 'own', judge: 'auto', accent: '#0EA5E9',
+    rules: 'Die App nennt eine Zielzeit. Starte und stoppe die Uhr blind – ohne Anzeige. Wer am nächsten dran ist, gewinnt.',
+    groupRules: 'Alle stoppen gleichzeitig blind die vorgegebene Zielzeit. Wer am nächsten dran ist, gewinnt.',
+    createState: (rng) => ({ targetMs: rng.int(300, 800) * 10 }),
+  },
+  mathBlitz: {
+    ...base, id: 'mathBlitz', name: 'Blitz-Kopfrechnen', icon: '🧮', devices: 'own', judge: 'auto', accent: '#6366F1',
+    rules: 'Eine Rechenaufgabe erscheint – tipp das Ergebnis so schnell wie möglich ein. Jeder Fehlversuch kostet 1 Sekunde.',
+    groupRules: 'Alle bekommen dieselbe Aufgabe. Schnellste richtige Antwort gewinnt, Fehlversuche kosten je 1 Sekunde.',
+    createState: (rng, { phase }) => makeMathTask(rng, phase),
+  },
+  wordChain: {
+    ...base, id: 'wordChain', name: 'Wortketten-Duell', icon: '🔗', devices: 'none', judge: 'host', accent: '#14B8A6',
+    rankBy: 'elimination',
+    rules: 'Reihum laut sprechen: Jedes neue Wort beginnt mit dem letzten Buchstaben des vorherigen. Wer stockt, zögert oder ein Wort doppelt sagt, fliegt raus – der Host entscheidet.',
+    groupRules: 'Reihum laut: Jedes Wort beginnt mit dem letzten Buchstaben des vorherigen. Der Host tippt an, wer rausfliegt – der Letzte im Spiel gewinnt.',
+    createState: (rng) => ({ startWord: rng.pick(CHAIN_WORDS) }),
+  },
+  f1Start: {
+    ...base, id: 'f1Start', name: 'Formel-1-Frühstart', icon: '🏎️', devices: 'own', judge: 'auto', accent: '#DC2626',
+    rules: 'Der Bildschirm wird schwarz, fünf rote Lichter gehen an. Wenn sie ausgehen: TIPPEN! Wer zu früh tippt, ist disqualifiziert.',
+    groupRules: 'Alle Bildschirme werden gleichzeitig schwarz. Lichter aus → tippen! Der Schnellste gewinnt, Frühstarter sind raus.',
+    createState: (rng) => ({ holdMs: rng.int(500, 3000) }),
+  },
+  secretNumber: {
+    ...base, id: 'secretNumber', name: 'Geheime Zahlen knacken', icon: '🔐', devices: 'own', judge: 'auto', accent: '#7C3AED',
+    rules: 'Jeder tippt heimlich eine Zahl von 10 bis 99. Dann errätst du die Zahl deines Gegners mit Hinweisen „höher“ / „tiefer“. Wer zuerst knackt, gewinnt.',
+    groupRules: 'Jeder wählt heimlich eine Zahl von 10 bis 99 und knackt dann die Zahl seines Nachbarn mit „höher“/„tiefer“-Hinweisen. Wer am schnellsten knackt, gewinnt.',
+    isComplete: (r) => r.done === true,
+    createState: () => ({}),
+  },
+  association: {
+    ...base, id: 'association', name: 'Assoziations-Blitz', icon: '💭', devices: 'own', judge: 'auto', accent: '#EC4899',
+    rules: 'Ein Begriff erscheint – tipp sofort das erste Wort ein, das dir dazu einfällt. Der Schnellste gewinnt (8 Sekunden Zeit).',
+    groupRules: 'Alle sehen denselben Begriff und tippen ihre erste Assoziation. Schnellste gültige Antwort gewinnt – die Antworten werden danach aufgedeckt.',
+    createState: (rng) => ({ prompt: rng.pick(ASSOCIATION_WORDS), limitMs: 8000 }),
+  },
+  categorySprint: {
+    ...base, id: 'categorySprint', name: 'Kategorie-Sprint', icon: '🔤', devices: 'own', judge: 'auto', accent: '#F59E0B',
+    rules: 'Kategorie und Anfangsbuchstabe erscheinen – tipp blitzschnell einen passenden Begriff ein (20 Sekunden).',
+    groupRules: 'Alle bekommen dieselbe Kategorie und denselben Buchstaben. Schnellster gültiger Begriff gewinnt – die Gruppe sieht danach alle Antworten.',
+    createState: (rng) => ({ category: rng.pick(SPRINT_CATEGORIES), letter: rng.pick(SPRINT_LETTERS.split('')), limitMs: 20000 }),
+  },
+  numberMemory: {
+    ...base, id: 'numberMemory', name: 'Zahlen-Merker', icon: '🧠', devices: 'own', judge: 'auto', accent: '#0D9488',
+    rules: 'Eine Zahlenfolge blinkt kurz auf – tipp sie aus dem Kopf ein. Jede Runde kommt eine Ziffer dazu. Wer die längste Folge schafft, gewinnt.',
+    groupRules: 'Alle bekommen dieselbe, immer länger werdende Zahlenfolge. Die längste fehlerfreie Folge gewinnt, bei Gleichstand die schnellere Zeit.',
+    createState: (rng) => ({ digits: Array.from({ length: 14 }, () => rng.int(0, 9)).join(''), startLength: 4 }),
+  },
+  rps: {
+    ...base, id: 'rps', name: 'Echtes Schere-Stein-Papier', icon: '✊', devices: 'none', judge: 'host', accent: '#64748B',
+    bracket: true,
+    rules: 'Face-to-face am Tisch: Schere, Stein, Papier – Best of 3. Der Host bestätigt den Sieger.',
+    groupRules: 'Die App lost die Paarungen eines K.-o.-Turniers aus. Gespielt wird echt am Tisch (Best of 3), der Host bestätigt jeden Sieger.',
+    createState: () => ({}),
+  },
+});
+
+for (const [id, fn] of Object.entries(NEW_SCORES)) {
+  GAMES[id].groupScore = fn;
+  GAMES[id].decide = decideByScore(id);
+}

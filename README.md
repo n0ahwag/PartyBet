@@ -30,7 +30,8 @@ Im Spielfeld-Modus läuft jedes Minispiel als **Gruppen-Challenge**:
   - **Finale:** Wer am Ende die meisten Schlücke hat, darf alle seine verbleibenden verteilen
 - **Live-Sync für Tablets:** Bildschirm bleibt an (Wake Lock), sofortiges Neuverbinden nach Standby/Hintergrund, Banner bei Verbindungsverlust
 - **Pleite-Regel:** Notfall-Aufgabe, peinliches Video, Kredit bei Mitspielern (+50 % Zinsen) oder Bank-Darlehen. Schulden werden automatisch aus Gewinnen getilgt
-- **17 Spiele in 8 Kategorien:**
+- **26 Spiele in 9 Kategorien:**
+  - 🌍 Überall spielbar (ohne Utensilien & Sensoren): Mentale Stoppuhr, Blitz-Kopfrechnen, Wortketten-Duell, Formel-1-Frühstart, Geheime Zahlen knacken, Assoziations-Blitz, Kategorie-Sprint, Zahlen-Merker, Echtes Schere-Stein-Papier (K.-o.-Turnier)
   - Real-Life: Farb-Sprint, Handy-Balance
   - Digital: Speed-Tap (Split-Screen), Memory-Code, Emoji-Hit-Raten
   - Multi-Device: Schätz-Duell

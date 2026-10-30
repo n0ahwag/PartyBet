@@ -21,7 +21,11 @@ function newDuel(game) {
   const rng = makeRng(`practice:${game.id}:${Date.now()}`);
   return {
     id: 'practice', gameId: game.id, round: 0, phase: 'warmup', stage: 'playing',
-    game: game.createState(rng, { phase: 'warmup' }),
+    game: {
+      ...game.createState(rng, { phase: 'warmup' }),
+      // Geheime Zahlen: im Übungsmodus denkt sich der Computer die Zahl aus
+      ...(game.id === 'secretNumber' ? { botSecret: rng.int(10, 99) } : {}),
+    },
     playerA: A, playerB: B, results: {}, sabotage: null,
   };
 }
