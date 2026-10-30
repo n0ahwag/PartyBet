@@ -1,4 +1,5 @@
 import { GAMES, CATEGORIES, resultComplete } from '../../game/gameLibrary.js';
+import { GameArt } from '../GameArt.jsx';
 import { moveRule, FIELD_TYPES } from '../../game/board.js';
 import { submitRoundResult } from '../../game/boardEngine.js';
 import { MINIGAMES } from '../../minigames/index.js';
@@ -89,7 +90,7 @@ export function BoardRound({ code, round, byId, me, big = false, run }) {
 
   const header = (
     <div className="game-title">
-      <div className="icon">{game.icon}</div>
+      <GameArt game={game} size={56} />
       <div>
         <div className="kicker">Challenge {round.round} · {t(CATEGORIES[game.kind]?.label)} · {t('alle spielen')}</div>
         <h2 style={{ fontSize: big ? 34 : 24 }}>{t(game.name)}</h2>

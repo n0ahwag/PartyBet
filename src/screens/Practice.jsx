@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { GameArt } from '../components/GameArt.jsx';
 import { GAMES, CATEGORIES, requirementsOf } from '../game/gameLibrary.js';
 import { EQUIPMENT } from '../game/constants.js';
 import { MINIGAMES } from '../minigames/index.js';
@@ -84,7 +85,7 @@ export function Practice({ gameId }) {
           <span className="pill">{CATEGORIES[game.kind]?.icon} {t(CATEGORIES[game.kind]?.label)}</span>
         </div>
         <div className="game-title">
-          <div className="icon">{game.icon}</div>
+          <GameArt game={game} size={88} />
           <h2 style={{ fontSize: 28 }}>{t(game.name)}</h2>
         </div>
         <Rules game={game} />
@@ -117,7 +118,7 @@ export function Practice({ gameId }) {
   const header = (
     <div className="row between">
       <button className="btn ghost sm" onClick={() => setDuel(null)}>✕</button>
-      <b>{game.icon} {t(game.name)}</b>
+      <b className="row" style={{ gap: 8 }}><GameArt game={game} size={26} /> {t(game.name)}</b>
       <span className="pill">{t('Übung')}</span>
     </div>
   );

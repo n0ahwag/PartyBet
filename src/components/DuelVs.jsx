@@ -1,4 +1,5 @@
 import { Avatar, Sips } from './ui.jsx';
+import { GameArt } from './GameArt.jsx';
 import { GAMES, CATEGORIES } from '../game/gameLibrary.js';
 import { minStakeFor } from '../game/economy.js';
 import { PHASES } from '../game/constants.js';
@@ -29,7 +30,7 @@ export function DuelVs({ duel, byId, compact = false }) {
     <div className="stack">
       {game && (
         <div className="game-title">
-          <div className="icon" style={compact ? { width: 44, height: 44, fontSize: 26 } : undefined}>{game.icon}</div>
+          <GameArt game={game} size={compact ? 44 : 64} />
           <div>
             <div className="kicker">{t('Duell')} {duel.round} · {t(CATEGORIES[game.kind]?.label)}</div>
             <h2 style={{ fontSize: compact ? 22 : 30 }}>{t(game.name)}</h2>
