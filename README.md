@@ -7,7 +7,11 @@ alle anderen wetten Schlücke. **Vite + React + Firebase (Firestore, Anonymous A
 
 - **Zwei Host-Modi:** 📺 Hauptbildschirm (Laptop/TV) + Handys als Controller, oder 📱 nur Handys per Raumcode (Host spielt mit)
 - **Lobby:** feste Spieleranzahl, Utensilien-Filter (Kartendeck, Münzen, Würfel, Becher, nichts), QR-Code zum Beitreten
-- **Wirtschaft:** 20 Schlücke Start, automatischer Pflicht-Einsatz für Duellanten, Zuschauerwetten mit Quote ×2 (Favorit) / ×3 (Außenseiter)
+- **Wirtschaft:** 20 Schlücke Start, automatischer Pflicht-Einsatz für Duellanten, Zuschauerwetten
+  - **Verlierer** trinken ihren Einsatz
+  - **Gewinner** bekommen ihren Einsatz zurück und **verteilen** in echt genauso viele Schlücke (beim Außenseiter-Tipp doppelt so viele)
+  - **Finale:** Wer am Ende die meisten Schlücke hat, darf alle seine verbleibenden verteilen
+- **Live-Sync für Tablets:** Bildschirm bleibt an (Wake Lock), sofortiges Neuverbinden nach Standby/Hintergrund, Banner bei Verbindungsverlust
 - **Pleite-Regel:** Notfall-Aufgabe, peinliches Video, Kredit bei Mitspielern (+50 % Zinsen) oder Bank-Darlehen. Schulden werden automatisch aus Gewinnen getilgt
 - **5 Kern-Minispiele:** Farb-Sprint, Split-Screen Speed-Tap, Handy-Balance (Gyroskop), Memory-Code, Schätz-Duell, dazu 4 Utensilien-Spiele (Kartenduell, Münz-Orakel, Würfel-Showdown, Becher-Flip)
 - **Phasen:** Warm-up → Chaos-Runde (Alarm-Screen, Einsätze ×2) → Sudden Death (Doom-Screen, ×3, die zwei Führenden)

@@ -50,21 +50,32 @@ export function lockDuel(duel, balances) {
 
 /**
  * Auszahlung nach Duell-Ende.
+ *
+ * Gewinner bekommen ihren Einsatz zurück und dürfen ihren Gewinn
+ * (Einsatz × (Quote − 1), ggf. × Double-Down) in echt an andere VERTEILEN.
+ * Verlierer trinken ihren Einsatz. Offene Schulden werden zuerst aus dem
+ * Gewinn getilgt – getilgte Schlücke werden nicht verteilt, sondern gehen
+ * aufs Konto des Kreditgebers.
+ *
  * @param duel     gesperrtes Duell (stakes, bets, odds, activePowerups)
  * @param winnerId Gewinner-UID oder null (= Unentschieden: alles zurück)
  * @param balances Kontostände NACH Abbuchung der Einsätze
  * @param debts    { [uid]: [{ to, amount }] } offene Schulden
- * @returns { credits, net, repayments, outcome }
- *   credits:   Betrag, der dem Konto gutgeschrieben (negativ: zusätzlich abgezogen) wird
- *   net:       Gesamtergebnis des Duells pro Spieler (für "Trink X Schlücke")
- *   repayments [{ from, to, amount }]  automatisch getilgte Schulden
- *   outcome:   { [uid]: 'won'|'lost'|'shielded'|'void' }
+ * @returns { credits, net, profit, distribute, repayments, outcome }
+ *   credits:    Betrag, der dem Konto gutgeschrieben (negativ: zusätzlich abgezogen) wird
+ *   net:        Kontoveränderung durch das Duell (negativ = "Trink X Schlücke")
+ *   profit:     Gewinn vor Schuldentilgung (Statistik)
+ *   distribute: Schlücke, die der Spieler in echt verteilen darf
+ *   repayments: [{ from, to, amount }] automatisch getilgte Schulden
+ *   outcome:    { [uid]: 'won'|'lost'|'shielded'|'void' }
  */
 export function settleDuel(duel, winnerId, balances, debts = {}) {
   const powerups = duel.activePowerups || {};
   const has = (uid, type) => powerups[uid]?.type === type;
   const credits = {};
   const net = {};
+  const profit = {};
+  const distribute = {};
   const outcome = {};
 
   const settleStake = (uid, stake, won, odds) => {
@@ -76,9 +87,10 @@ export function settleDuel(duel, winnerId, balances, debts = {}) {
     }
     const dd = has(uid, 'doubleDown') ? 2 : 1;
     if (won) {
-      const profit = stake * (odds - 1) * dd;
-      credits[uid] = stake + profit;
-      net[uid] = profit;
+      credits[uid] = stake;
+      net[uid] = 0;
+      profit[uid] = stake * (odds - 1) * dd;
+      distribute[uid] = profit[uid];
       outcome[uid] = 'won';
     } else if (has(uid, 'shield')) {
       credits[uid] = stake;
@@ -99,22 +111,28 @@ export function settleDuel(duel, winnerId, balances, debts = {}) {
     settleStake(uid, bet.amount, bet.on === winnerId, duel.odds?.[bet.on] ?? ODDS_FAVORITE);
   }
 
-  // Schulden automatisch aus Gewinnen tilgen
+  // Schulden zuerst aus dem Gewinn tilgen
   const repayments = [];
   for (const [uid, list] of Object.entries(debts)) {
-    let available = Math.max(0, net[uid] ?? 0);
     for (const d of list || []) {
+      const available = distribute[uid] ?? 0;
       if (available <= 0) break;
       const pay = Math.min(available, d.amount);
       if (pay <= 0) continue;
       repayments.push({ from: uid, to: d.to, amount: pay });
-      credits[uid] = (credits[uid] ?? 0) - pay;
-      available -= pay;
+      distribute[uid] -= pay;
       if (d.to !== 'bank') credits[d.to] = (credits[d.to] ?? 0) + pay;
     }
   }
 
-  return { credits, net, repayments, outcome };
+  return { credits, net, profit, distribute, repayments, outcome };
+}
+
+/** Wer am Ende die meisten Schlücke hat, darf alle eigenen verbleibenden verteilen (bei Gleichstand alle Führenden). */
+export function finalDistributors(players) {
+  const max = Math.max(0, ...players.map((p) => p.balance));
+  if (max <= 0) return [];
+  return players.filter((p) => p.balance === max);
 }
 
 /** Reduziert Schuldenliste um getätigte Rückzahlungen. */

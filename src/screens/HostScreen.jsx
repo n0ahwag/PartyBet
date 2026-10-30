@@ -6,13 +6,13 @@ import { HostControls } from '../components/HostControls.jsx';
 import { RescueAdmin } from '../components/Rescue.jsx';
 import { Scoreboard } from '../components/Scoreboard.jsx';
 import { PhaseOverlay, PhaseBadge } from '../components/PhaseOverlay.jsx';
-import { Loading, useToast, useAction } from '../components/ui.jsx';
+import { OfflineBanner, Loading, useToast, useAction } from '../components/ui.jsx';
 import { Wrapped } from './Wrapped.jsx';
 import { navigate } from '../lib/router.js';
 
 /** Hauptbildschirm (Laptop/TV). Der Host bedient ihn per Maus/Touch. */
 export function HostScreen({ uid, code }) {
-  const { room, players, byId, duel, rescues, loading } = useRoom(code);
+  const { room, players, byId, duel, rescues, online, loading } = useRoom(code);
   const overlay = usePhaseFx(room, duel);
   const [toast, toastNode] = useToast();
   const [run, busy] = useAction(toast);
@@ -25,6 +25,7 @@ export function HostScreen({ uid, code }) {
   return (
     <div className="page wide">
       <PhaseOverlay phase={overlay} />
+      <OfflineBanner online={online} />
       <header className="row between">
         <h1 className="logo" style={{ fontSize: 36 }}>FaceOff <span>Party</span></h1>
         <div className="row">

@@ -26,7 +26,7 @@ const eventsCol = (code) => collection(db, 'rooms', code, 'events');
 
 export const EMPTY_STATS = {
   duelsWon: 0, duelsLost: 0, betsWon: 0, betsLost: 0, betProfit: 0,
-  sipsDrunk: 0, sipsWon: 0, sabotages: 0, sabotaged: 0, bankruptcies: 0,
+  sipsDrunk: 0, sipsDistributed: 0, sabotages: 0, sabotaged: 0, bankruptcies: 0,
   biggestBet: 0, powerupsUsed: 0, shieldSaves: 0, rescues: 0, loansGiven: 0,
 };
 
@@ -305,13 +305,14 @@ export async function settle(code, duelId) {
       const out = result.outcome[uid];
       if (out === 'won') {
         patch[isDuelist ? 'stats.duelsWon' : 'stats.betsWon'] = increment(1);
-        patch['stats.sipsWon'] = increment(net);
+        patch['stats.sipsDistributed'] = increment(result.distribute[uid] ?? 0);
+        if (!isDuelist) patch['stats.betProfit'] = increment(result.profit[uid] ?? 0);
       } else if (out === 'lost' || out === 'shielded') {
         patch[isDuelist ? 'stats.duelsLost' : 'stats.betsLost'] = increment(1);
         if (out === 'shielded') patch['stats.shieldSaves'] = increment(1);
         patch['stats.sipsDrunk'] = increment(-net);
+        if (!isDuelist) patch['stats.betProfit'] = increment(net);
       }
-      if (!isDuelist && out && out !== 'void') patch['stats.betProfit'] = increment(net);
       if (uid === duel.winnerId && reward) patch[`inventory.${reward}`] = increment(1);
       if (result.repayments.some((r) => r.from === uid)) {
         patch.debts = applyRepayments(p.debts, result.repayments, uid);
@@ -339,6 +340,7 @@ export async function settle(code, duelId) {
       playerB: duel.playerB,
       winnerId: duel.winnerId,
       net: result.net,
+      distribute: result.distribute,
       sabotage: duel.sabotage || null,
       at: serverTimestamp(),
     });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { lockDuel, settleDuel, applyRepayments, minStakeFor } from '../src/game/economy.js';
+import { lockDuel, settleDuel, applyRepayments, minStakeFor, finalDistributors } from '../src/game/economy.js';
 import { phaseForRound } from '../src/game/constants.js';
 
 const base = { playerA: 'a', playerB: 'b', phase: 'warmup' };
@@ -39,10 +39,11 @@ describe('settleDuel', () => {
   };
   const balances = { a: 18, b: 18, c: 16, d: 18 };
 
-  it('zahlt Gewinner doppelt bzw. dreifach aus', () => {
+  it('Gewinner bekommen den Einsatz zurück und verteilen den Gewinn', () => {
     const r = settleDuel(locked, 'b', balances);
-    expect(r.net).toEqual({ a: -2, b: 2, c: -4, d: 4 });
-    expect(r.credits).toEqual({ a: 0, b: 4, c: 0, d: 6 });
+    expect(r.credits).toEqual({ a: 0, b: 2, c: 0, d: 2 });
+    expect(r.net).toEqual({ a: -2, b: 0, c: -4, d: 0 });
+    expect(r.distribute).toEqual({ b: 2, d: 4 }); // d tippte auf den Außenseiter (Quote 3)
   });
 
   it('Schild erstattet den Einsatz', () => {
@@ -51,24 +52,34 @@ describe('settleDuel', () => {
     expect(r.outcome.a).toBe('shielded');
   });
 
-  it('Double-Down verdoppelt Gewinn und Verlust', () => {
+  it('Double-Down verdoppelt Verteilen und Verlust', () => {
     const r = settleDuel({ ...locked, activePowerups: { b: { type: 'doubleDown' }, c: { type: 'doubleDown' } } }, 'b', balances);
-    expect(r.net.b).toBe(4);
+    expect(r.distribute.b).toBe(4);
     expect(r.net.c).toBe(-8);
   });
 
   it('Unentschieden gibt alle Einsätze zurück', () => {
     const r = settleDuel(locked, null, balances);
     expect(Object.values(r.net).every((n) => n === 0)).toBe(true);
+    expect(r.distribute).toEqual({});
     expect(r.credits.c).toBe(4);
   });
 
-  it('tilgt Schulden automatisch aus Gewinnen', () => {
+  it('tilgt Schulden aus dem Gewinn statt zu verteilen', () => {
     const r = settleDuel(locked, 'b', balances, { d: [{ to: 'c', amount: 3 }] });
     expect(r.repayments).toEqual([{ from: 'd', to: 'c', amount: 3 }]);
-    expect(r.credits.d).toBe(3);
+    expect(r.distribute.d).toBe(1);
+    expect(r.credits.d).toBe(2); // Einsatz zurück bleibt unangetastet
     expect(r.credits.c).toBe(3);
     expect(applyRepayments([{ to: 'c', amount: 3 }], r.repayments, 'd')).toEqual([]);
+  });
+});
+
+describe('finalDistributors', () => {
+  it('der mit den meisten Schlücken verteilt am Ende alles, bei Gleichstand alle Führenden', () => {
+    expect(finalDistributors([{ id: 'a', balance: 9 }, { id: 'b', balance: 4 }]).map((p) => p.id)).toEqual(['a']);
+    expect(finalDistributors([{ id: 'a', balance: 9 }, { id: 'b', balance: 9 }]).map((p) => p.id)).toEqual(['a', 'b']);
+    expect(finalDistributors([{ id: 'a', balance: 0 }])).toEqual([]);
   });
 });
 

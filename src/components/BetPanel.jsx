@@ -43,7 +43,7 @@ export function BetPanel({ code, duel, me, byId, run }) {
         <button onClick={() => setAmount((a) => Math.min(maxBase, a + 1))}>+</button>
       </div>
       {mult > 1 && <p className="center small muted" style={{ margin: 0 }}>Chaos-Faktor ×{mult}: Einsatz zählt als {amount * mult} 🍺</p>}
-      <p className="center small faint" style={{ margin: 0 }}>Gewinn: das Doppelte – auf den Außenseiter das Dreifache.</p>
+      <p className="center small faint" style={{ margin: 0 }}>Richtig getippt: Einsatz zurück + du verteilst genauso viele Schlücke – beim Außenseiter doppelt so viele.</p>
       <div className="row">
         {current && <button className="btn ghost" onClick={() => run(() => cancelBet(code, duel.id, me.id))}>Zurückziehen</button>}
         <button className="btn primary grow" disabled={!on} onClick={submit}>

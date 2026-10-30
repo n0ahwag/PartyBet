@@ -7,14 +7,14 @@ import { HostControls } from '../components/HostControls.jsx';
 import { BankruptPanel, LoanInbox, RescueAdmin } from '../components/Rescue.jsx';
 import { Scoreboard } from '../components/Scoreboard.jsx';
 import { PhaseOverlay, PhaseBadge } from '../components/PhaseOverlay.jsx';
-import { Avatar, Inventory, Loading, Sips, useToast, useAction } from '../components/ui.jsx';
+import { Avatar, Inventory, OfflineBanner, Loading, Sips, useToast, useAction } from '../components/ui.jsx';
 import { Wrapped } from './Wrapped.jsx';
 import { navigate } from '../lib/router.js';
 import { isMuted, setMuted } from '../lib/sound.js';
 
 /** Handy-Controller. Im Modus "Nur Handys" enthält das Host-Handy zusätzlich die Host-Steuerung. */
 export function PlayerController({ uid, code }) {
-  const { room, players, byId, duel, rescues, loading } = useRoom(code);
+  const { room, players, byId, duel, rescues, online, loading } = useRoom(code);
   const overlay = usePhaseFx(room, duel);
   const [toast, toastNode] = useToast();
   const [run, busy] = useAction(toast);
@@ -40,6 +40,7 @@ export function PlayerController({ uid, code }) {
   return (
     <div className="page">
       <PhaseOverlay phase={overlay} />
+      <OfflineBanner online={online} />
       <header className="row">
         <Avatar player={me} />
         <div className="grow">
