@@ -42,40 +42,36 @@ alle anderen wetten Schlücke. **Vite + React + Firebase (Firestore, Anonymous A
 
 ## Setup
 
+Die App läuft auf **GitHub Pages** (Frontend) und nutzt **Firebase** nur als Datenbank und Anmeldung.
+Live-URL: **https://n0ahwag.github.io/PartyBet/**
+
+### 1. Firebase vorbereiten (einmalig, alles in der [Firebase-Konsole](https://console.firebase.google.com/))
+
+1. Projekt `partybe-d44b7` öffnen
+2. **Build → Firestore Database → Datenbank erstellen** (Standort z. B. `europe-west1`, Produktionsmodus)
+3. **Firestore → Regeln**: Inhalt von [`firestore.rules`](firestore.rules) einfügen und **Veröffentlichen**
+4. **Build → Authentication → Anmeldemethode → Anonym** aktivieren
+5. **Authentication → Einstellungen → Autorisierte Domains**: `n0ahwag.github.io` hinzufügen
+
+### 2. GitHub Pages aktivieren (einmalig)
+
+Im Repo: **Settings → Pages → Build and deployment → Source: „GitHub Actions“**.
+
+Ab dann baut und veröffentlicht der Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
+die App bei jedem Push auf `main` automatisch (inkl. Tests). Manuell starten:
+**Actions → Deploy to GitHub Pages → Run workflow**.
+
+Ohne `.env` nutzt die App das Firebase-Projekt `partybe-d44b7`. Die Web-Config ist nicht geheim, geschützt wird über die Firestore-Regeln.
+
+### Lokal entwickeln (optional)
+
 ```bash
 npm install
 ```
 
-In der [Firebase-Konsole](https://console.firebase.google.com/) für das Projekt:
-
-1. **Firestore Database** anlegen (Region z. B. `europe-west3`)
-2. **Authentication → Anmeldemethode → Anonym** aktivieren
-
-Ohne `.env` nutzt die App das Projekt `partybe-d44b7`. Für ein anderes Projekt `.env.example` nach `.env` kopieren.
-
-### Lokal entwickeln
-
 ```bash
 npm run dev
 ```
-
-Die App läuft auf `http://<deine-IP>:5173`, damit Handys im selben WLAN beitreten können.
-
-### Komplett offline mit Emulatoren (braucht Java)
-
-```bash
-npm i -g firebase-tools
-```
-
-```bash
-npm run emulators
-```
-
-```bash
-VITE_USE_EMULATOR=true VITE_FIREBASE_PROJECT_ID=demo-faceoff npm run dev
-```
-
-(Den Emulator dann mit `--project demo-faceoff` starten, damit die Projekt-IDs übereinstimmen.)
 
 ### Tests
 
@@ -83,17 +79,13 @@ VITE_USE_EMULATOR=true VITE_FIREBASE_PROJECT_ID=demo-faceoff npm run dev
 npm test
 ```
 
-### Deploy
-
-```bash
-firebase login
-```
+### Alternative: Firebase Hosting
 
 ```bash
 npm run deploy
 ```
 
-Baut nach `dist/` und deployt Hosting + Firestore-Rules.
+Baut nach `dist/` und deployt Hosting und Firestore-Regeln (braucht `firebase login`).
 
 ## Spielablauf
 
