@@ -5,6 +5,7 @@ import { MINIGAMES } from '../../minigames/index.js';
 import { GROUP_GAMES } from '../../minigames/Group.jsx';
 import { FORMAT_RESULT, revealOf } from '../../minigames/format.js';
 import { Rules, Waiting } from '../../minigames/shared.jsx';
+import { t } from '../../i18n/index.js';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
 
@@ -25,7 +26,7 @@ function PointsList({ round, byId, meId }) {
             <div className="avatar">{byId[id]?.avatar}</div>
             <div className="grow">
               <b>{byId[id]?.name}</b>
-              {fmt && game.judge === 'auto' && !game.groupOnly && <div className="small muted">{res ? fmt(res, round, id) : 'kein Ergebnis'}</div>}
+              {fmt && game.judge === 'auto' && !game.groupOnly && <div className="small muted">{res ? fmt(res, round, id) : t('kein Ergebnis')}</div>}
             </div>
             <span className={`pill ${round.points?.[id] ? 'good' : ''}`}>+{round.points?.[id] ?? 0}</span>
           </div>
@@ -49,8 +50,8 @@ export function GroupRound({ code, round, byId, me, big = false, run, isHost = f
     <div className="game-title">
       <div className="icon">{game.icon}</div>
       <div>
-        <div className="kicker">Runde {round.round} · {CATEGORIES[game.kind]?.label} · alle gleichzeitig{final ? ` · Punkte ×${FINAL_MULTIPLIER}` : ''}</div>
-        <h2 style={{ fontSize: big ? 34 : 24 }}>{game.name}</h2>
+        <div className="kicker">{t('Runde')} {round.round} · {t(CATEGORIES[game.kind]?.label)} · {t('alle gleichzeitig')}{final ? ` · ${t('Punkte')} ×${FINAL_MULTIPLIER}` : ''}</div>
+        <h2 style={{ fontSize: big ? 34 : 24 }}>{t(game.name)}</h2>
       </div>
     </div>
   );
@@ -60,8 +61,8 @@ export function GroupRound({ code, round, byId, me, big = false, run, isHost = f
     body = (
       <>
         <Rules game={shownGame} />
-        {!social && <div className="card small">🥇 +{RANK_POINTS[0]} · 🥈 +{RANK_POINTS[1]} · 🥉 +{RANK_POINTS[2]} Punkte{final ? ` (im Finale ×${FINAL_MULTIPLIER})` : ''}</div>}
-        {!big && <Waiting text="Gleich geht's los…" />}
+        {!social && <div className="card small">🥇 +{RANK_POINTS[0]} · 🥈 +{RANK_POINTS[1]} · 🥉 +{RANK_POINTS[2]} {t('Punkte')}{final ? ` ${t('(im Finale ×{n})', { n: FINAL_MULTIPLIER })}` : ''}</div>}
+        {!big && <Waiting text={t("Gleich geht's los…")} />}
       </>
     );
   } else if (round.stage === 'playing') {
@@ -79,13 +80,13 @@ export function GroupRound({ code, round, byId, me, big = false, run, isHost = f
       if (me && game.judge === 'auto' && round.participants.includes(me.id)) {
         const Play = mg.GroupPlay ?? mg.Play;
         body = done(me.id)
-          ? <><Waiting text="✓ Abgegeben – warte auf die anderen…" />{progress}</>
+          ? <><Waiting text={`✓ ${t('Abgegeben – warte auf die anderen…')}`} />{progress}</>
           : <Play duel={round} me={me} byId={byId} submit={(k, data) => run(() => submitGroupResult(code, round.id, k ?? me.id, data))} />;
       } else {
         body = (
           <>
             {mg.GroupStage ? <mg.GroupStage duel={round} byId={byId} big={big} /> : <Rules game={shownGame} />}
-            {game.judge === 'auto' ? progress : <p className="center muted" style={{ fontWeight: 700, margin: 0 }}>Der Host trägt die Platzierung ein.</p>}
+            {game.judge === 'auto' ? progress : <p className="center muted" style={{ fontWeight: 700, margin: 0 }}>{t('Der Host trägt die Platzierung ein.')}</p>}
           </>
         );
       }
@@ -96,7 +97,7 @@ export function GroupRound({ code, round, byId, me, big = false, run, isHost = f
       <>
         {social?.Result && <social.Result round={round} byId={byId} isHost={isHost} />}
         {reveal && <div className="card tinted center"><b>{reveal}</b></div>}
-        <h3>Punkte dieser Runde{round.multiplier > 1 ? ` (×${round.multiplier})` : ''}</h3>
+        <h3>{t('Punkte dieser Runde')}{round.multiplier > 1 ? ` (×${round.multiplier})` : ''}</h3>
         <PointsList round={round} byId={byId} meId={me?.id} />
       </>
     );

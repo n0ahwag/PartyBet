@@ -1,6 +1,7 @@
 import { PHASES } from '../game/constants.js';
 import { BOARD_PHASES } from '../game/board.js';
 import { GROUP_PHASES } from '../game/group.js';
+import { t } from '../i18n/index.js';
 
 export function PhaseOverlay({ phase, mode = 'party' }) {
   if (!phase) return null;
@@ -12,8 +13,8 @@ export function PhaseOverlay({ phase, mode = 'party' }) {
       <div className="overlay phase-alarm">
         <div className="stack center">
           <div style={{ fontSize: 72 }}>🚨</div>
-          <div className="title">{board ? p.title : 'CHAOS!'}</div>
-          <div className="sub">{p.tagline}</div>
+          <div className="title">{board ? t(p.title) : t('CHAOS!')}</div>
+          <div className="sub">{t(p.tagline)}</div>
         </div>
       </div>
     );
@@ -22,8 +23,8 @@ export function PhaseOverlay({ phase, mode = 'party' }) {
     <div className="overlay phase-doom">
       <div className="stack center">
         <div style={{ fontSize: 72 }}>💀</div>
-        <div className="title">{board ? p.title : 'SUDDEN DEATH'}</div>
-        <div className="sub">{p.tagline}</div>
+        <div className="title">{board ? t(p.title) : 'SUDDEN DEATH'}</div>
+        <div className="sub">{t(p.tagline)}</div>
       </div>
     </div>
   );
@@ -36,16 +37,16 @@ export function PhaseBadge({ room }) {
     const texts = room.gameMode === 'board' ? BOARD_PHASES : GROUP_PHASES;
     return (
       <div className="row" style={{ gap: 8 }}>
-        <span className="pill accent" style={{ background: p.accent }}>{texts[room.phase].label}</span>
-        <span className="pill">Runde {room.round}{room.gameMode === 'group' ? `/${room.totalRounds}` : ''}</span>
+        <span className="pill accent" style={{ background: p.accent }}>{t(texts[room.phase].label)}</span>
+        <span className="pill">{t('Runde')} {room.round}{room.gameMode === 'group' ? `/${room.totalRounds}` : ''}</span>
       </div>
     );
   }
   return (
     <div className="row" style={{ gap: 8 }}>
-      <span className="pill accent" style={{ background: p.accent }}>{p.label}</span>
-      <span className="pill">Runde {room.round}/{room.totalRounds}</span>
-      {p.multiplier > 1 && <span className="pill">×{p.multiplier} Einsätze</span>}
+      <span className="pill accent" style={{ background: p.accent }}>{t(p.label)}</span>
+      <span className="pill">{t('Runde')} {room.round}/{room.totalRounds}</span>
+      {p.multiplier > 1 && <span className="pill">×{p.multiplier} {t('Einsätze')}</span>}
     </div>
   );
 }

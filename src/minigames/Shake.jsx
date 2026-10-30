@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
 import { requestMotionPermission } from '../lib/device.js';
 import { sfx, vibrate } from '../lib/sound.js';
+import { t } from '../i18n/index.js';
 
 const HIGH = 22; // m/s² – deutlich über der Erdbeschleunigung
 const LOW = 13;
@@ -55,22 +56,22 @@ function Play({ duel, submit }) {
   if (step === 'perm') {
     return (
       <div className="stack">
-        <Waiting text="Handy fest in die Hand – gleich 5 Sekunden lang schütteln, was das Zeug hält!" />
-        <button className="btn primary lg" onClick={async () => { await requestMotionPermission(); setStep('count'); }}>Bereit</button>
+        <Waiting text={t('Handy fest in die Hand – gleich 5 Sekunden lang schütteln, was das Zeug hält!')} />
+        <button className="btn primary lg" onClick={async () => { await requestMotionPermission(); setStep('count'); }}>{t('Bereit')}</button>
       </div>
     );
   }
   if (step === 'count') return <CountdownView n={n} />;
-  if (step === 'done') return <Waiting text={`${count} Schüttler! Warte auf dein Gegenüber…`} />;
+  if (step === 'done') return <Waiting text={t('{n} Schüttler! Warte auf dein Gegenüber…', { n: count })} />;
   return (
     <div className="stack center">
       <div className="countdown-big pop" key={count}>{count}</div>
       <div className="big-number" style={{ fontSize: 32 }}>{(left / 1000).toFixed(1)}s</div>
       {noSensor ? (
         <button className="btn soft lg block" onPointerDown={() => { st.current.n += 1; setCount(st.current.n); }}>
-          Kein Sensor – hier tippen
+          {t('Kein Sensor – hier tippen')}
         </button>
-      ) : <p className="muted" style={{ fontWeight: 700 }}>SCHÜTTELN! 🫨</p>}
+      ) : <p className="muted" style={{ fontWeight: 700 }}>{t('SCHÜTTELN!')} 🫨</p>}
     </div>
   );
 }
@@ -78,14 +79,14 @@ function Play({ duel, submit }) {
 function Review({ duel, byId }) {
   return (
     <div className="card stack">
-      <h3>Schüttler in 5 Sekunden</h3>
+      <h3>{t('Schüttler in 5 Sekunden')}</h3>
       {[duel.playerA, duel.playerB].map((id) => (
         <div key={id} className="row between">
           <b>{byId[id]?.avatar} {byId[id]?.name}</b>
-          <span className="balance">{duel.results?.[id] ? duel.results[id].shakes : 'schüttelt…'}</span>
+          <span className="balance">{duel.results?.[id] ? duel.results[id].shakes : t('schüttelt…')}</span>
         </div>
       ))}
-      {duel.sabotage && <p className="small muted" style={{ margin: 0 }}>🧪 Sabotage: {byId[duel.sabotage.target]?.name} zählt nur 85 %.</p>}
+      {duel.sabotage && <p className="small muted" style={{ margin: 0 }}>🧪 {t('Sabotage: {name} zählt nur 85 %.', { name: byId[duel.sabotage.target]?.name })}</p>}
     </div>
   );
 }

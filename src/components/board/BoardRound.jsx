@@ -4,6 +4,7 @@ import { submitRoundResult } from '../../game/boardEngine.js';
 import { MINIGAMES } from '../../minigames/index.js';
 import { FORMAT_RESULT, revealOf } from '../../minigames/format.js';
 import { Rules, Waiting } from '../../minigames/shared.jsx';
+import { t } from '../../i18n/index.js';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
 
@@ -11,11 +12,11 @@ function MoveTable({ count }) {
   const ranks = Array.from({ length: Math.min(count, 4) }, (_, i) => i + 1);
   return (
     <div className="card stack" style={{ gap: 6 }}>
-      <h3>Platzierung → Zug</h3>
+      <h3>{t('Platzierung → Zug')}</h3>
       {ranks.map((r) => (
         <div key={r} className="row between">
-          <b>{MEDAL[r - 1] ?? `${r}.`} {r === 4 ? 'ab Platz 4' : `${r}. Platz`}</b>
-          <span>{moveRule(r, count).label}</span>
+          <b>{MEDAL[r - 1] ?? `${r}.`} {r === 4 ? t('ab Platz 4') : t('{n}. Platz', { n: r })}</b>
+          <span>{t(moveRule(r, count).label)}</span>
         </div>
       ))}
     </div>
@@ -24,17 +25,17 @@ function MoveTable({ count }) {
 
 function moveText(m, byId) {
   if (!m) return '';
-  if (m.skipped) return '⏸️ setzt aus';
+  if (m.skipped) return `⏸️ ${t('setzt aus')}`;
   const parts = [];
   if (m.roll != null) parts.push(`🎲 ${m.roll}${m.steps > m.roll ? ` +${m.steps - m.roll}` : ''}`);
   else if (m.steps) parts.push(`+${m.steps}`);
   parts.push(`→ ${m.landed ?? m.to}`);
   const e = m.effect;
   if (e?.type === 'rocket') parts.push(`🚀 +${e.delta} → ${m.to}`);
-  if (e?.type === 'portal') parts.push(e.with ? `🌀 Tausch mit ${byId[e.with]?.name} → ${m.to}` : '🌀 (schon vorne)');
-  if (e?.type === 'stumble') parts.push(e.kind === 'back' ? `🪨 −1 → ${m.to}` : '🪨 nächste Runde aussetzen');
+  if (e?.type === 'portal') parts.push(e.with ? `🌀 ${t('Tausch mit {name}', { name: byId[e.with]?.name })} → ${m.to}` : `🌀 ${t('(schon vorne)')}`);
+  if (e?.type === 'stumble') parts.push(e.kind === 'back' ? `🪨 −1 → ${m.to}` : `🪨 ${t('nächste Runde aussetzen')}`);
   if (e?.type === 'chaos') parts.push('💥 Chaos!');
-  if (!m.steps && !e) return 'bleibt stehen';
+  if (!m.steps && !e) return t('bleibt stehen');
   return parts.join(' ');
 }
 
@@ -57,19 +58,19 @@ function RankingList({ round, byId, meId }) {
             <div className="avatar">{byId[id]?.avatar}</div>
             <div className="grow">
               <b>{byId[id]?.name}</b>
-              {game.judge === 'auto' && <div className="small muted">{res ? fmt?.(res, round, id) : 'kein Ergebnis'}</div>}
+              {game.judge === 'auto' && <div className="small muted">{res ? fmt?.(res, round, id) : t('kein Ergebnis')}</div>}
             </div>
             <span className="small" style={{ fontWeight: 800, textAlign: 'right' }}>
-              {round.stage === 'resolved' ? moveText(m, byId) : moveRule(rank, round.participants.length).label}
+              {round.stage === 'resolved' ? moveText(m, byId) : t(moveRule(rank, round.participants.length).label)}
             </span>
           </div>
         );
       })}
       {round.stage === 'resolved' && round.winnerId && (
-        <div className="card accent center pop"><h2>🏆 {byId[round.winnerId]?.name} erreicht das Ziel!</h2></div>
+        <div className="card accent center pop"><h2>🏆 {t('{name} erreicht das Ziel!', { name: byId[round.winnerId]?.name })}</h2></div>
       )}
       {round.stage === 'resolved' && round.chaos && !round.chaosDone && (
-        <div className="card center" style={{ borderColor: FIELD_TYPES.chaos.color }}>💥 Jemand ist auf einem Chaos-Feld gelandet – gleich gibt's eine Challenge für alle!</div>
+        <div className="card center" style={{ borderColor: FIELD_TYPES.chaos.color }}>💥 {t("Jemand ist auf einem Chaos-Feld gelandet – gleich gibt's eine Challenge für alle!")}</div>
       )}
     </div>
   );
@@ -90,8 +91,8 @@ export function BoardRound({ code, round, byId, me, big = false, run }) {
     <div className="game-title">
       <div className="icon">{game.icon}</div>
       <div>
-        <div className="kicker">Challenge {round.round} · {CATEGORIES[game.kind]?.label} · alle spielen</div>
-        <h2 style={{ fontSize: big ? 34 : 24 }}>{game.name}</h2>
+        <div className="kicker">Challenge {round.round} · {t(CATEGORIES[game.kind]?.label)} · {t('alle spielen')}</div>
+        <h2 style={{ fontSize: big ? 34 : 24 }}>{t(game.name)}</h2>
       </div>
     </div>
   );
@@ -102,7 +103,7 @@ export function BoardRound({ code, round, byId, me, big = false, run }) {
       <>
         <Rules game={shownGame} />
         <MoveTable count={round.participants.length} />
-        {!big && <Waiting text="Gleich geht's los…" />}
+        {!big && <Waiting text={t("Gleich geht's los…")} />}
       </>
     );
   } else if (round.stage === 'playing') {
@@ -118,13 +119,13 @@ export function BoardRound({ code, round, byId, me, big = false, run }) {
     );
     if (me && isAuto && round.participants.includes(me.id)) {
       body = mine
-        ? <><Waiting text={`✓ Abgegeben – ${submitted.length}/${round.participants.length} fertig`} />{progress}</>
+        ? <><Waiting text={`✓ ${t('Abgegeben – {a}/{b} fertig', { a: submitted.length, b: round.participants.length })}`} />{progress}</>
         : <Play duel={round} me={me} byId={byId} submit={(k, data) => run(() => submitRoundResult(code, round.id, k ?? me.id, data))} />;
     } else {
       body = (
         <>
           {mg.GroupStage ? <mg.GroupStage duel={round} byId={byId} big={big} /> : <Rules game={shownGame} />}
-          {isAuto ? progress : <p className="center muted" style={{ fontWeight: 700, margin: 0 }}>Der Host trägt die Platzierung ein.</p>}
+          {isAuto ? progress : <p className="center muted" style={{ fontWeight: 700, margin: 0 }}>{t('Der Host trägt die Platzierung ein.')}</p>}
         </>
       );
     }

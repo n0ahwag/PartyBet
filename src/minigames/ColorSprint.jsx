@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { COLORS } from '../game/gameLibrary.js';
 import { useGo, CountdownView } from './shared.jsx';
 import { sfx } from '../lib/sound.js';
+import { t } from '../i18n/index.js';
 
 /** Spiel 1 – Farb-Sprint (Real-Life, Host entscheidet). Läuft auf allen Bildschirmen gleich. */
 function ColorReveal({ duel, big }) {
@@ -11,7 +12,7 @@ function ColorReveal({ duel, big }) {
   if (duel.stage === 'playing' && !shown && n > 0) return <CountdownView n={n} />;
   return (
     <div className="color-flash pop" style={{ background: color.hex, color: color.id === 'white' ? '#1f1b16' : '#fff', minHeight: big ? 420 : 260 }}>
-      {color.label}
+      {t(color.label)}
     </div>
   );
 }
@@ -22,7 +23,7 @@ export const ColorSprint = {
   Play: ({ duel }) => (
     <div className="stack">
       <ColorReveal duel={duel} />
-      <p className="center muted" style={{ margin: 0, fontWeight: 700 }}>Schnapp dir etwas in dieser Farbe und halt es hoch!</p>
+      <p className="center muted" style={{ margin: 0, fontWeight: 700 }}>{t('Schnapp dir etwas in dieser Farbe und halt es hoch!')}</p>
     </div>
   ),
 };

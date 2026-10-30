@@ -5,6 +5,7 @@ import { COLORS } from '../game/gameLibrary.js';
 import { LIVE_EVENTS, LIVE_EVENT_SIPS, REACTION_MS, STATUE_MS, statueLoser } from '../game/liveEvents.js';
 import { reactLiveEvent, resolveLiveEvent, closeLiveEvent } from '../game/engine.js';
 import { sfx, vibrate } from '../lib/sound.js';
+import { t } from '../i18n/index.js';
 
 const MOVE_THRESHOLD = 2.5; // m/s² Sprung zwischen zwei Messungen
 const SETTLE_MS = 400;
@@ -110,39 +111,44 @@ export function LiveEventOverlay({ code, room, players, byId, me, isHost, run })
   const loser = byId[ev.loserId];
   const board = room.gameMode === 'board';
   const group = room.gameMode === 'group';
-  const penaltyText = group ? '1 Punkt! ➖' : board
-    ? `${ev.penalty ?? 1} ${(ev.penalty ?? 1) === 1 ? 'Feld' : 'Felder'} zurück! ⬅️`
-    : `${LIVE_EVENT_SIPS} Schlücke! 🍺`;
+  const isMe = ev.loserId === me?.id;
+  const n = board ? (ev.penalty ?? 1) : LIVE_EVENT_SIPS;
+  const vars = { name: byId[ev.loserId]?.name, n };
+  const loserText = group
+    ? (isMe ? t('Du verlierst 1 Punkt! ➖') : t('{name} verliert 1 Punkt! ➖', vars))
+    : board
+      ? (isMe ? t(n === 1 ? 'Du gehst 1 Feld zurück! ⬅️' : 'Du gehst {n} Felder zurück! ⬅️', vars) : t(n === 1 ? '{name} geht 1 Feld zurück! ⬅️' : '{name} geht {n} Felder zurück! ⬅️', vars))
+      : (isMe ? t('Du trinkst {n} Schlücke! 🍺', vars) : t('{name} trinkt {n} Schlücke! 🍺', vars));
   const bg = color && !done ? color.hex : `linear-gradient(160deg, ${def.colors[0]}, ${def.colors[1]})`;
   const ink = color?.id === 'yellow' ? '#1f1b16' : '#fff';
 
   return (
     <div className={`overlay live-event ${phase === 'go' && !done ? 'live-flash' : ''}`} style={{ background: bg, color: ink, zIndex: 55 }}>
       <div className="stack center" style={{ maxWidth: 720, width: '100%', gap: 14 }}>
-        <div className="kicker" style={{ color: ink, opacity: 0.85 }}>{ev.source === 'chaos' ? '💥 Chaos-Feld' : '⚡ Live-Event'}</div>
+        <div className="kicker" style={{ color: ink, opacity: 0.85 }}>{ev.source === 'chaos' ? `💥 ${t('Chaos-Feld')}` : '⚡ Live-Event'}</div>
         <div className="pop" style={{ fontSize: 'clamp(64px, 18vw, 140px)', lineHeight: 1 }}>{def.icon}</div>
-        <div className="live-title">{def.title}</div>
+        <div className="live-title">{t(def.title)}</div>
 
         {!done && phase === 'go' && (
           <>
-            {color && <div className="live-color">{color.label}</div>}
-            <div className="live-text">{def.text}</div>
+            {color && <div className="live-color">{t(color.label)}</div>}
+            <div className="live-text">{t(def.text)}</div>
             <div className="live-bar"><div style={{ width: `${(left / REACTION_MS) * 100}%` }} /></div>
           </>
         )}
 
         {!done && phase === 'freeze' && (
           <>
-            <div className="live-text">{moved ? '😬 Du hast dich bewegt!' : 'NICHT BEWEGEN!'}</div>
+            <div className="live-text">{moved ? `😬 ${t('Du hast dich bewegt!')}` : t('NICHT BEWEGEN!')}</div>
             <div className="live-text" style={{ fontSize: 40 }}>{Math.ceil(left / 1000)}s</div>
-            {isHost && Object.keys(reactions).length === 0 && <div className="small" style={{ opacity: 0.8 }}>Die Handys messen mit…</div>}
+            {isHost && Object.keys(reactions).length === 0 && <div className="small" style={{ opacity: 0.8 }}>{t('Die Handys messen mit…')}</div>}
           </>
         )}
 
         {!done && phase === 'judge' && (
           isHost ? (
             <div className="stack" style={{ width: '100%', gap: 8 }}>
-              <div className="live-text">Wer war am langsamsten?</div>
+              <div className="live-text">{t('Wer war am langsamsten?')}</div>
               <div className="live-grid">
                 {players.map((p) => (
                   <button key={p.id} className="btn" style={{ background: 'rgba(255,255,255,0.92)', color: '#1f1b16' }}
@@ -150,9 +156,9 @@ export function LiveEventOverlay({ code, room, players, byId, me, isHost, run })
                 ))}
               </div>
               <button className="btn ghost sm" style={{ color: ink, borderColor: 'rgba(255,255,255,0.5)' }}
-                onClick={() => run(() => resolveLiveEvent(code, ev.id, null))}>Alle gleich schnell – {group ? 'keiner verliert' : board ? 'keiner muss zurück' : 'keiner trinkt'}</button>
+                onClick={() => run(() => resolveLiveEvent(code, ev.id, null))}>{group ? t('Alle gleich schnell – keiner verliert') : board ? t('Alle gleich schnell – keiner muss zurück') : t('Alle gleich schnell – keiner trinkt')}</button>
             </div>
-          ) : <div className="live-text">⏱ Zeit um! Der Host bestimmt den Langsamsten…</div>
+          ) : <div className="live-text">⏱ {t('Zeit um! Der Host bestimmt den Langsamsten…')}</div>
         )}
 
         {done && (
@@ -160,20 +166,14 @@ export function LiveEventOverlay({ code, room, players, byId, me, isHost, run })
             {loser ? (
               <div className="live-result pop">
                 <div style={{ fontSize: 56 }}>{loser.avatar}</div>
-                <div>
-                  {group
-                    ? `${ev.loserId === me?.id ? 'Du verlierst' : `${loser.name} verliert`} ${penaltyText}`
-                    : board
-                    ? `${ev.loserId === me?.id ? 'Du gehst' : `${loser.name} geht`} ${penaltyText}`
-                    : `${ev.loserId === me?.id ? 'Du trinkst' : `${loser.name} trinkt`} ${penaltyText}`}
-                </div>
+                <div>{loserText}</div>
               </div>
-            ) : <div className="live-result pop">Glück gehabt – {group ? 'niemand verliert Punkte' : board ? 'niemand muss zurück' : 'niemand trinkt'}! 🍀</div>}
+            ) : <div className="live-result pop">{group ? t('Glück gehabt – niemand verliert Punkte! 🍀') : board ? t('Glück gehabt – niemand muss zurück! 🍀') : t('Glück gehabt – niemand trinkt! 🍀')}</div>}
             {isHost
               ? <button className="btn lg" style={{ background: '#fff', color: '#1f1b16' }} onClick={() => run(() => closeLiveEvent(code))}>
-                  {ev.thenDraw ? (board ? '▶️ Weiter zur Challenge' : group ? '▶️ Weiter zur Runde' : '⚔️ Weiter zum Duell') : 'Weiter'}
+                  {ev.thenDraw ? (board ? `▶️ ${t('Weiter zur Challenge')}` : group ? `▶️ ${t('Weiter zur Runde')}` : `⚔️ ${t('Weiter zum Duell')}`) : t('Weiter')}
                 </button>
-              : <div className="small" style={{ opacity: 0.8 }}>Gleich geht's weiter…</div>}
+              : <div className="small" style={{ opacity: 0.8 }}>{t("Gleich geht's weiter…")}</div>}
           </>
         )}
       </div>

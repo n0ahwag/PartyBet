@@ -27,6 +27,16 @@ Im Spielfeld-Modus läuft jedes Minispiel als **Gruppen-Challenge**:
 - **Wahrheit oder Bluff:** Ein Erzähler gegen alle.
 - **Real-Life- und Utensil-Spiele:** Der Host tippt die Reihenfolge an.
 
+## Sprachen
+
+**Deutsch** und **Englisch**, umschaltbar auf der Startseite und über den 🌐-Knopf auf jedem Bildschirm. Die Sprache gilt **pro Gerät**: In einer Party kann jeder Spieler seine eigene Sprache nutzen, Spielinhalte wie Fragen und Rätsel erscheinen auf jedem Handy in dessen Sprache. Beim ersten Start wird die Browser-Sprache übernommen.
+
+- `src/i18n/index.js`: `t('Deutscher Text', { platzhalter })`. Der deutsche Text ist der Schlüssel
+- `src/i18n/en.js`: englische Übersetzungen
+- `tests/i18n.test.js`: prüft, dass jeder Text im Code und jeder Spielinhalt eine englische Fassung hat und die Platzhalter übereinstimmen
+
+Weitere Sprache hinzufügen: in `LANGS` eintragen, ein Wörterbuch wie `en.js` anlegen und in `t()` auswählen.
+
 ## Features
 
 - **Zwei Host-Modi:** 📺 Hauptbildschirm (Laptop/TV) + Handys als Controller, oder 📱 nur Handys per Raumcode (Host spielt mit)
@@ -83,6 +93,7 @@ Im Spielfeld-Modus läuft jedes Minispiel als **Gruppen-Challenge**:
     │   └── group/             GroupRound, PointsBoard, GroupHostControls
     ├── minigames/             Ein Modul pro Spiel: { Play, Stage, Review, GroupPlay?, GroupStage? } + format.js
     ├── screens/               Home, CreateRoom, JoinRoom, HostScreen, PlayerController, Wrapped, Library, Practice
+    ├── i18n/                  Übersetzungen (Deutsch/Englisch), t(), Sprachwahl
     ├── lib/                   Sound, Seed-RNG, Router, Geräte-Fähigkeiten
     └── styles/global.css      Design-Tokens: Off-White, dynamische --accent-Farbe
 ```

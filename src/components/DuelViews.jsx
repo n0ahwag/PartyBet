@@ -8,13 +8,14 @@ import { DuelVs } from './DuelVs.jsx';
 import { BetPanel } from './BetPanel.jsx';
 import { PowerupPanel } from './PowerupPanel.jsx';
 import { Settlement } from './Settlement.jsx';
+import { t } from '../i18n/index.js';
 
 function WinnerBanner({ duel, byId }) {
   const w = byId[duel.winnerId];
   return (
     <div className="card accent center pop">
-      <h2 style={{ fontSize: 28 }}>{w ? `${w.avatar} ${w.name} gewinnt!` : 'Unentschieden!'}</h2>
-      <div className="small" style={{ opacity: 0.85 }}>Gleich wird ausgezahlt…</div>
+      <h2 style={{ fontSize: 28 }}>{w ? t('{avatar} {name} gewinnt!', { avatar: w.avatar, name: w.name }) : t('Unentschieden!')}</h2>
+      <div className="small" style={{ opacity: 0.85 }}>{t('Gleich wird ausgezahlt…')}</div>
     </div>
   );
 }
@@ -33,9 +34,9 @@ export function DuelStage({ duel, byId, big = true }) {
         <div className="stage">
           <DuelVs duel={duel} byId={byId} compact={!big} />
           <div className="card tinted center">
-            <div className="kicker">Wetten offen</div>
+            <div className="kicker">{t('Wetten offen')}</div>
             <div className="big-number">{left}s</div>
-            <div className="muted">Setzt eure Schlücke auf einen Kontrahenten!</div>
+            <div className="muted">{t('Setzt eure Schlücke auf einen Kontrahenten!')}</div>
           </div>
           <Rules game={game} />
         </div>
@@ -84,13 +85,13 @@ export function PlayerDuelView({ code, room, duel, me, byId, players, run }) {
       const submit = (k, data) => run(() => submitResult(code, duel.id, k ?? key, data));
       return (
         <div className="stack">
-          {duel.sabotage?.target === me.id && <div className="card center" style={{ background: '#fee2e2' }}>🧪 Sabotiert! Du {duel.sabotage.rule}.</div>}
+          {duel.sabotage?.target === me.id && <div className="card center" style={{ background: '#fee2e2' }}>🧪 {t('Sabotiert! Du')} {t(duel.sabotage.rule)}.</div>}
           <mg.Play duel={duel} me={me} byId={byId} submit={submit} />
         </div>
       );
     }
     return onScreen
-      ? <div className="stack"><DuelVs duel={duel} byId={byId} compact /><Waiting text="📺 Schau auf den Hauptbildschirm!" /></div>
+      ? <div className="stack"><DuelVs duel={duel} byId={byId} compact /><Waiting text={`📺 ${t('Schau auf den Hauptbildschirm!')}`} /></div>
       : <DuelStage duel={duel} byId={byId} big={false} />;
   }
 
@@ -101,13 +102,13 @@ export function PlayerDuelView({ code, room, duel, me, byId, players, run }) {
       <Rules game={GAMES[duel.gameId]} />
       {isDuelist ? (
         <div className="card accent center stack" style={{ gap: 4 }}>
-          <h2>Du bist im Duell! ⚔️</h2>
-          <div>Pflicht-Einsatz: {Math.min(me.balance, minStakeFor(duel.phase))} 🍺 auf dich selbst</div>
+          <h2>{t('Du bist im Duell! ⚔️')}</h2>
+          <div>{t('Pflicht-Einsatz: {n} 🍺 auf dich selbst', { n: Math.min(me.balance, minStakeFor(duel.phase)) })}</div>
         </div>
       ) : duel.stage === 'betting' ? (
         me.balance > 0 && <BetPanel code={code} duel={duel} me={me} byId={byId} run={run} />
       ) : (
-        <Waiting text="Gleich öffnen die Wetten…" />
+        <Waiting text={t('Gleich öffnen die Wetten…')} />
       )}
       <PowerupPanel code={code} duel={duel} me={me} players={players} run={run} />
     </div>

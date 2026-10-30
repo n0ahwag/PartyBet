@@ -11,10 +11,12 @@ import { HostScreen } from './screens/HostScreen.jsx';
 import { PlayerController } from './screens/PlayerController.jsx';
 import { Library } from './screens/Library.jsx';
 import { Practice } from './screens/Practice.jsx';
+import { t, useLang } from './i18n/index.js';
 
 export function App() {
   const { name, params } = useRoute();
   const { uid, error } = useUid();
+  useLang(); // ganze App neu rendern, wenn die Sprache wechselt
 
   useEffect(() => startLiveSync(), []);
 
@@ -30,13 +32,13 @@ export function App() {
   if (error) {
     return (
       <div className="page center">
-        <h2>Verbindung fehlgeschlagen</h2>
+        <h2>{t('Verbindung fehlgeschlagen')}</h2>
         <p className="muted">{error}</p>
-        <p className="small muted">Ist „Anonyme Anmeldung“ in Firebase Authentication aktiviert?</p>
+        <p className="small muted">{t('Ist „Anonyme Anmeldung“ in Firebase Authentication aktiviert?')}</p>
       </div>
     );
   }
-  if (!uid) return <Loading text="Verbinde…" />;
+  if (!uid) return <Loading text={t('Verbinde…')} />;
 
   const code = params[0]?.toUpperCase();
   switch (name) {

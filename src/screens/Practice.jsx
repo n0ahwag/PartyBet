@@ -6,6 +6,8 @@ import { Rules } from '../minigames/shared.jsx';
 import { makeRng } from '../lib/random.js';
 import { navigate } from '../lib/router.js';
 import { sfx } from '../lib/sound.js';
+import { t, useLang } from '../i18n/index.js';
+import { LangSwitch } from '../components/ui.jsx';
 
 /*
  * Übungsmodus: ein einzelnes Duell lokal auf diesem Gerät – ohne Raum, ohne Firebase.
@@ -32,7 +34,7 @@ function newDuel(game) {
 
 export function Practice({ gameId }) {
   const game = GAMES[gameId];
-  const [names, setNames] = useState(() => [localStorage.getItem('fo_name') || 'Spieler 1', 'Spieler 2']);
+  const [names, setNames] = useState(() => [localStorage.getItem('fo_name') || t('Spieler 1'), t('Spieler 2')]);
   const [duel, setDuelState] = useState(null);
   const duelRef = useRef(null);
   const setDuel = (d) => { duelRef.current = d; setDuelState(d); };
@@ -44,11 +46,11 @@ export function Practice({ gameId }) {
   }, [game]);
 
   const byId = useMemo(() => ({
-    [A]: { id: A, name: names[0] || 'Spieler 1', avatar: '🔵', color: '#3B82F6' },
-    [B]: { id: B, name: names[1] || 'Spieler 2', avatar: '🔴', color: '#EF4444' },
+    [A]: { id: A, name: names[0] || t('Spieler 1'), avatar: '🔵', color: '#3B82F6' },
+    [B]: { id: B, name: names[1] || t('Spieler 2'), avatar: '🔴', color: '#EF4444' },
   }), [names]);
 
-  if (!game) return <div className="page center"><h2>Spiel nicht gefunden</h2><button className="btn" onClick={() => navigate('/library')}>Bibliothek</button></div>;
+  if (!game) return <div className="page center"><h2>{t('Spiel nicht gefunden')}</h2><button className="btn" onClick={() => navigate('/library')}>{t('Bibliothek')}</button></div>;
   const mg = MINIGAMES[game.id];
 
   const start = () => {
@@ -79,24 +81,24 @@ export function Practice({ gameId }) {
       <div className="page">
         <div className="row between">
           <button className="btn ghost sm" onClick={() => navigate('/library')}>←</button>
-          <span className="pill">{CATEGORIES[game.kind]?.icon} {CATEGORIES[game.kind]?.label}</span>
+          <span className="pill">{CATEGORIES[game.kind]?.icon} {t(CATEGORIES[game.kind]?.label)}</span>
         </div>
         <div className="game-title">
           <div className="icon">{game.icon}</div>
-          <h2 style={{ fontSize: 28 }}>{game.name}</h2>
+          <h2 style={{ fontSize: 28 }}>{t(game.name)}</h2>
         </div>
         <Rules game={game} />
         <div className="row wrap" style={{ gap: 6 }}>
           {requirementsOf(game).map((r) => <span key={r} className="pill">{r}</span>)}
-          {equipment.map((e) => <span key={e.id} className="pill">{e.icon} {e.label}</span>)}
-          <span className="pill">{game.judge === 'auto' ? '🤖 App wertet aus' : '👀 Ihr entscheidet'}</span>
+          {equipment.map((e) => <span key={e.id} className="pill">{e.icon} {t(e.label)}</span>)}
+          <span className="pill">{game.judge === 'auto' ? `🤖 ${t('App wertet aus')}` : `👀 ${t('Ihr entscheidet')}`}</span>
         </div>
         <div className="card stack">
-          <h3>{game.groupOnly ? 'Gruppen-Spiel' : 'Übungsmodus'}</h3>
+          <h3>{game.groupOnly ? t('Gruppen-Spiel') : t('Übungsmodus')}</h3>
           {!game.groupOnly && <p className="small muted" style={{ margin: 0 }}>
             {game.devices === 'own'
-              ? 'Ihr spielt nacheinander auf diesem Gerät und gebt es dazwischen weiter.'
-              : game.devices === 'shared' ? 'Ihr spielt gleichzeitig auf diesem Gerät.' : 'Spielt in echt – die App zeigt die Aufgabe, ihr tragt den Gewinner ein.'}
+              ? t('Ihr spielt nacheinander auf diesem Gerät und gebt es dazwischen weiter.')
+              : game.devices === 'shared' ? t('Ihr spielt gleichzeitig auf diesem Gerät.') : t('Spielt in echt – die App zeigt die Aufgabe, ihr tragt den Gewinner ein.')}
           </p>}
           {!game.groupOnly && <div className="grid-2">
             {[0, 1].map((i) => (
@@ -105,8 +107,8 @@ export function Practice({ gameId }) {
             ))}
           </div>}
           {game.groupOnly
-            ? <p className="muted" style={{ margin: 0, fontWeight: 700 }}>👥 Dieses Spiel lebt von der ganzen Gruppe – du spielst es im <b>Gruppen-Modus</b> (Party erstellen → Gruppen-Modus).</p>
-            : <button className="btn primary lg block" onClick={start}>▶️ Spielen</button>}
+            ? <p className="muted" style={{ margin: 0, fontWeight: 700 }}>👥 {t('Dieses Spiel lebt von der ganzen Gruppe – du spielst es im Gruppen-Modus (Party erstellen → Gruppen-Modus).')}</p>
+            : <button className="btn primary lg block" onClick={start}>▶️ {t('Spielen')}</button>}
         </div>
       </div>
     );
@@ -115,8 +117,8 @@ export function Practice({ gameId }) {
   const header = (
     <div className="row between">
       <button className="btn ghost sm" onClick={() => setDuel(null)}>✕</button>
-      <b>{game.icon} {game.name}</b>
-      <span className="pill">Übung</span>
+      <b>{game.icon} {t(game.name)}</b>
+      <span className="pill">{t('Übung')}</span>
     </div>
   );
 
@@ -126,10 +128,10 @@ export function Practice({ gameId }) {
     return (
       <div className="page">
         {header}
-        <div className="card accent center pop"><h2 style={{ fontSize: 28 }}>{w ? `${w.avatar} ${w.name} gewinnt!` : 'Unentschieden!'}</h2></div>
+        <div className="card accent center pop"><h2 style={{ fontSize: 28 }}>{w ? t('{avatar} {name} gewinnt!', { avatar: w.avatar, name: w.name }) : t('Unentschieden!')}</h2></div>
         {mg.Review && <mg.Review duel={duel} byId={byId} big={false} />}
-        <button className="btn primary lg block" onClick={start}>🔁 Nochmal</button>
-        <button className="btn ghost block" onClick={() => navigate('/library')}>Zur Bibliothek</button>
+        <button className="btn primary lg block" onClick={start}>🔁 {t('Nochmal')}</button>
+        <button className="btn ghost block" onClick={() => navigate('/library')}>{t('Zur Bibliothek')}</button>
       </div>
     );
   }
@@ -142,10 +144,10 @@ export function Practice({ gameId }) {
         {header}
         <div className="card center stack pop">
           <div style={{ fontSize: 64 }}>{p.avatar}</div>
-          <h2>{turn === 'readyB' ? `Gib das Gerät an ${p.name}` : `${p.name} ist dran`}</h2>
-          <p className="muted" style={{ margin: 0 }}>Nur {p.name} schaut jetzt hin! 🙈</p>
+          <h2>{turn === 'readyB' ? t('Gib das Gerät an {name}', { name: p.name }) : t('{name} ist dran', { name: p.name })}</h2>
+          <p className="muted" style={{ margin: 0 }}>{t('Nur {name} schaut jetzt hin! 🙈', { name: p.name })}</p>
         </div>
-        <button className="btn primary lg block" onClick={() => setTurn(turn === 'readyA' ? A : B)}>Los geht's</button>
+        <button className="btn primary lg block" onClick={() => setTurn(turn === 'readyA' ? A : B)}>{t("Los geht's")}</button>
       </div>
     );
   }
@@ -161,11 +163,11 @@ export function Practice({ gameId }) {
       <mg.Play key={turn} duel={visibleDuel} me={me} byId={byId} submit={(k, data) => submit(k ?? me.id, data)} />
       {game.judge === 'host' && (
         <div className="card stack">
-          <h3>Wer hat gewonnen?</h3>
+          <h3>{t('Wer hat gewonnen?')}</h3>
           <div className="grid-2">
             {[A, B].map((id) => <button key={id} className="btn primary" onClick={() => finish(duel, id)}>{byId[id].avatar} {byId[id].name}</button>)}
           </div>
-          <button className="btn ghost sm" onClick={() => finish(duel, null)}>Unentschieden</button>
+          <button className="btn ghost sm" onClick={() => finish(duel, null)}>{t('Unentschieden')}</button>
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 import { useLocalCountdown } from '../hooks/useCountdown.js';
 import { sfx } from '../lib/sound.js';
+import { t } from '../i18n/index.js';
 
 /** Großer 3-2-1-Countdown mit Sounds. */
 export function useGo(active, onDone) {
@@ -17,8 +18,8 @@ export function Waiting({ text }) {
 export function Rules({ game }) {
   return (
     <div className="card tinted stack" style={{ gap: 6 }}>
-      <h3>Regeln</h3>
-      <p style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>{game.rules}</p>
+      <h3>{t('Regeln')}</h3>
+      <p style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>{t(game.rules)}</p>
     </div>
   );
 }

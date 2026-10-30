@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
 import { requestOrientationPermission } from '../lib/device.js';
 import { sfx, vibrate } from '../lib/sound.js';
+import { t } from '../i18n/index.js';
 
 const TOLERANCE = 12;
 const angleDiff = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
@@ -65,19 +66,19 @@ function Play({ duel, submit }) {
   if (step === 'perm') {
     return (
       <div className="stack">
-        <Waiting text="Halte das Handy flach vor dich. Gleich erscheint eine Himmelsrichtung – dreh dich dorthin!" />
-        <button className="btn primary lg" onClick={async () => { await requestOrientationPermission(); setStep('count'); }}>Kompass freigeben & starten</button>
+        <Waiting text={t('Halte das Handy flach vor dich. Gleich erscheint eine Himmelsrichtung – dreh dich dorthin!')} />
+        <button className="btn primary lg" onClick={async () => { await requestOrientationPermission(); setStep('count'); }}>{t('Kompass freigeben & starten')}</button>
       </div>
     );
   }
   if (step === 'count') return <CountdownView n={n} />;
-  if (step === 'done') return <Waiting text="Erledigt! Warte auf dein Gegenüber…" />;
+  if (step === 'done') return <Waiting text={t('Erledigt! Warte auf dein Gegenüber…')} />;
 
   const rel = heading == null ? 0 : target.deg - heading;
   return (
     <div className="stack center">
-      <div className="kicker">Richte dich aus nach</div>
-      <div className="big-number">{target.label}</div>
+      <div className="kicker">{t('Richte dich aus nach')}</div>
+      <div className="big-number">{t(target.label)}</div>
       <div style={{ width: 220, height: 220, borderRadius: '50%', border: '6px solid var(--line)', position: 'relative', margin: '0 auto', background: 'var(--card)' }}>
         <div style={{ position: 'absolute', inset: 0, transform: `rotate(${rel}deg)`, transition: 'transform 0.1s linear' }}>
           <div style={{ position: 'absolute', left: '50%', top: 8, transform: 'translateX(-50%)', fontSize: 44 }}>🪓</div>
@@ -87,8 +88,8 @@ function Play({ duel, submit }) {
         </div>
       </div>
       <div className="bar" style={{ width: '100%' }}><div style={{ width: `${holding * 100}%` }} /></div>
-      <p className="muted small" style={{ margin: 0 }}>Axt nach oben zeigen lassen und still halten.</p>
-      {noSensor && <button className="btn ghost sm" onClick={() => { st.current.done = true; submit({ ms: null }); setStep('done'); }}>Kein Kompass – aufgeben</button>}
+      <p className="muted small" style={{ margin: 0 }}>{t('Axt nach oben zeigen lassen und still halten.')}</p>
+      {noSensor && <button className="btn ghost sm" onClick={() => { st.current.done = true; submit({ ms: null }); setStep('done'); }}>{t('Kein Kompass – aufgeben')}</button>}
     </div>
   );
 }
@@ -96,13 +97,13 @@ function Play({ duel, submit }) {
 function Review({ duel, byId }) {
   return (
     <div className="card stack">
-      <h3>Ziel: {duel.game.target.label}</h3>
+      <h3>{t('Ziel')}: {t(duel.game.target.label)}</h3>
       {[duel.playerA, duel.playerB].map((id) => {
         const r = duel.results?.[id];
         return (
           <div key={id} className="row between">
             <b>{byId[id]?.avatar} {byId[id]?.name}</b>
-            <span className="balance">{!r ? 'sucht…' : r.ms == null ? '❌ nicht geschafft' : `${(r.ms / 1000).toFixed(2)}s`}</span>
+            <span className="balance">{!r ? t('sucht…') : r.ms == null ? `❌ ${t('nicht geschafft')}` : `${(r.ms / 1000).toFixed(2)}s`}</span>
           </div>
         );
       })}

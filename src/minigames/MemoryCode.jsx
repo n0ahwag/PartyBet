@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
 import { sfx, vibrate } from '../lib/sound.js';
+import { t } from '../i18n/index.js';
 
 const SABOTAGED_SHOW_MS = 800;
 
@@ -35,14 +36,14 @@ function Play({ duel, me, submit }) {
   if (step === 'ready') {
     return (
       <div className="stack">
-        <Waiting text={`Merk dir den ${code.length}-stelligen Code. Er ist nur ganz kurz sichtbar!`} />
-        <button className="btn primary lg" onClick={() => setStep('count')}>Bereit</button>
+        <Waiting text={t('Merk dir den {n}-stelligen Code. Er ist nur ganz kurz sichtbar!', { n: code.length })} />
+        <button className="btn primary lg" onClick={() => setStep('count')}>{t('Bereit')}</button>
       </div>
     );
   }
   if (step === 'count') return <CountdownView n={n} />;
   if (step === 'show') return <div className="card"><div className="code-display pop">{code}</div></div>;
-  if (step === 'done') return <Waiting text={input === code ? '✅ Richtig! Warte auf dein Gegenüber…' : `❌ Falsch (richtig: ${code})`} />;
+  if (step === 'done') return <Waiting text={input === code ? `✅ ${t('Richtig! Warte auf dein Gegenüber…')}` : `❌ ${t('Falsch (richtig: {code})', { code })}`} />;
 
   return (
     <div className="stack">
@@ -68,9 +69,9 @@ function Review({ duel, byId }) {
           <div key={id} className="row between">
             <b>{byId[id]?.avatar} {byId[id]?.name}</b>
             <span>
-              {!res ? 'tippt…' : done
+              {!res ? t('tippt…') : done
                 ? <>{res.input === duel.game.code ? '✅' : '❌'} {res.input} · {(res.ms / 1000).toFixed(2)}s</>
-                : 'fertig ✓'}
+                : `${t('fertig')} ✓`}
             </span>
           </div>
         );

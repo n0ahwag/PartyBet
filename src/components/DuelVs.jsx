@@ -2,6 +2,7 @@ import { Avatar, Sips } from './ui.jsx';
 import { GAMES, CATEGORIES } from '../game/gameLibrary.js';
 import { minStakeFor } from '../game/economy.js';
 import { PHASES } from '../game/constants.js';
+import { t } from '../i18n/index.js';
 
 /** VS-Anzeige mit Spiel, Einsätzen, Quoten und Wett-Pool. */
 export function DuelVs({ duel, byId, compact = false }) {
@@ -19,8 +20,8 @@ export function DuelVs({ duel, byId, compact = false }) {
       <Avatar player={p} size={compact ? '' : 'lg'} />
       <div className="name">{p?.name ?? '…'}</div>
       {p && <Sips n={p.balance} className="muted" />}
-      {duel.odds && <span className="pill accent">Quote ×{duel.odds[id]}</span>}
-      {duel.sabotage?.target === id && <span className="pill bad">🧪 sabotiert</span>}
+      {duel.odds && <span className="pill accent">{t('Quote')} ×{duel.odds[id]}</span>}
+      {duel.sabotage?.target === id && <span className="pill bad">🧪 {t('sabotiert')}</span>}
     </div>
   );
 
@@ -30,8 +31,8 @@ export function DuelVs({ duel, byId, compact = false }) {
         <div className="game-title">
           <div className="icon" style={compact ? { width: 44, height: 44, fontSize: 26 } : undefined}>{game.icon}</div>
           <div>
-            <div className="kicker">Duell {duel.round} · {CATEGORIES[game.kind]?.label}</div>
-            <h2 style={{ fontSize: compact ? 22 : 30 }}>{game.name}</h2>
+            <div className="kicker">{t('Duell')} {duel.round} · {t(CATEGORIES[game.kind]?.label)}</div>
+            <h2 style={{ fontSize: compact ? 22 : 30 }}>{t(game.name)}</h2>
           </div>
         </div>
       )}
@@ -44,15 +45,15 @@ export function DuelVs({ duel, byId, compact = false }) {
         <div className="stack" style={{ gap: 6 }}>
           <div className="bar"><div style={{ width: `${(pool[duel.playerA] / total) * 100}%` }} /></div>
           <div className="row between small muted">
-            <span>{pool[duel.playerA]} 🍺 Wetten</span>
-            <span>{pool[duel.playerB]} 🍺 Wetten</span>
+            <span>{pool[duel.playerA]} 🍺 {t('Wetten')}</span>
+            <span>{pool[duel.playerB]} 🍺 {t('Wetten')}</span>
           </div>
         </div>
       )}
       <div className="row wrap center small muted" style={{ gap: 8 }}>
-        <span className="pill">Pflicht-Einsatz: {minStakeFor(duel.phase)} 🍺</span>
-        {duel.jokerSwap && <span className="pill">🃏 {byId[duel.jokerSwap.from]?.name} hat getauscht</span>}
-        {duel.sabotage && <span className="pill bad">🧪 {byId[duel.sabotage.target]?.name} {duel.sabotage.rule}</span>}
+        <span className="pill">{t('Pflicht-Einsatz')}: {minStakeFor(duel.phase)} 🍺</span>
+        {duel.jokerSwap && <span className="pill">🃏 {t('{name} hat getauscht', { name: byId[duel.jokerSwap.from]?.name })}</span>}
+        {duel.sabotage && <span className="pill bad">🧪 {byId[duel.sabotage.target]?.name} {t(duel.sabotage.rule)}</span>}
       </div>
     </div>
   );

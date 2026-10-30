@@ -3,17 +3,19 @@ import { useEvents } from '../hooks/useRoom.js';
 import { buildWrapped, buildBoardWrapped, buildGroupWrapped } from '../game/wrapped.js';
 import { sfx } from '../lib/sound.js';
 import { navigate } from '../lib/router.js';
+import { t, useLang } from '../i18n/index.js';
 
 const SLIDE_MS = 6500;
 
 /** Spotify-Style Party-Wrapped: Story-Karten, Tippen = weiter. */
 export function Wrapped({ code, players, room }) {
   const events = useEvents(code, true);
+  const lang = useLang();
   const cards = useMemo(
     () => (room?.gameMode === 'board' ? buildBoardWrapped(players, events, room)
       : room?.gameMode === 'group' ? buildGroupWrapped(players, events)
         : buildWrapped(players, events)),
-    [players, events, room],
+    [players, events, room, lang], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const [i, setI] = useState(0);
   const card = cards[Math.min(i, cards.length - 1)];
@@ -50,12 +52,12 @@ export function Wrapped({ code, players, room }) {
             ))}
             <button className="btn" style={{ background: '#fff', color: '#141E30', marginTop: 16 }}
               onClick={(e) => { e.stopPropagation(); localStorage.removeItem('fo_last'); navigate('/'); }}>
-              Neue Party
+              {t('Neue Party')}
             </button>
           </div>
         )}
       </div>
-      <div className="small center" style={{ opacity: 0.7 }}>Tippen für weiter · FaceOff {room?.gameMode === 'board' ? 'Spielfeld' : room?.gameMode === 'group' ? 'Gruppen' : 'Party'} Wrapped</div>
+      <div className="small center" style={{ opacity: 0.7 }}>{t('Tippen für weiter')} · FaceOff {room?.gameMode === 'board' ? t('Spielfeld') : room?.gameMode === 'group' ? t('Gruppen') : 'Party'} Wrapped</div>
     </div>
   );
 }

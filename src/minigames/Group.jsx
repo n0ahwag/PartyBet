@@ -7,6 +7,7 @@ import {
 } from '../game/groupEngine.js';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
 import { sfx, vibrate } from '../lib/sound.js';
+import { t, speechLang } from '../i18n/index.js';
 
 /*
  * Die 5 sozialen Gruppen-Spiele. Jedes exportiert:
@@ -18,13 +19,13 @@ const Name = ({ p }) => <>{p?.avatar} {p?.name}</>;
 
 // ------------------------------------------------------------------ 1 Wer am ehesten …
 function Question({ round, big }) {
-  return <div className="card tinted center"><h2 style={{ fontSize: big ? 46 : 26, lineHeight: 1.15 }}>{round.game.question}</h2></div>;
+  return <div className="card tinted center"><h2 style={{ fontSize: big ? 46 : 26, lineHeight: 1.15 }}>{t(round.game.question)}</h2></div>;
 }
 
 const WhoMost = {
   Play({ code, round, me, byId, run }) {
     const mine = round.results?.[me.id]?.vote;
-    if (mine) return <><Question round={round} /><Waiting text={`🗳️ Du hast für ${byId[mine]?.name} gestimmt – geheim!`} /></>;
+    if (mine) return <><Question round={round} /><Waiting text={`🗳️ ${t('Du hast für {name} gestimmt – geheim!', { name: byId[mine]?.name })}`} /></>;
     return (
       <div className="stack">
         <Question round={round} />
@@ -40,7 +41,7 @@ const WhoMost = {
   },
   Stage({ round, big }) {
     const n = Object.values(round.results || {}).filter((r) => r?.vote).length;
-    return <div className="stack"><Question round={round} big={big} /><p className="center muted" style={{ fontWeight: 700, margin: 0 }}>🗳️ {n}/{round.participants.length} haben abgestimmt</p></div>;
+    return <div className="stack"><Question round={round} big={big} /><p className="center muted" style={{ fontWeight: 700, margin: 0 }}>🗳️ {t('{a}/{b} haben abgestimmt', { a: n, b: round.participants.length })}</p></div>;
   },
   Result({ round, byId }) {
     const { counts, top } = tallyVotes(round);
@@ -58,7 +59,7 @@ const WhoMost = {
             </div>
           ))}
         </div>
-        <p className="small muted center" style={{ margin: 0 }}>Wer mit der Mehrheit gestimmt hat, bekommt 1 Punkt.</p>
+        <p className="small muted center" style={{ margin: 0 }}>{t('Wer mit der Mehrheit gestimmt hat, bekommt 1 Punkt.')}</p>
       </div>
     );
   },
@@ -69,14 +70,14 @@ const SyncTest = {
   Play({ code, round, me, run }) {
     const mine = round.results?.[me.id];
     const n = useGo(true);
-    if (mine) return <Waiting text="✓ Getippt – wartet auf die anderen…" />;
-    if (n > 0) return <div className="stack center"><p className="muted" style={{ fontWeight: 800, margin: 0 }}>Schaut euch an …</p><CountdownView n={n} /></div>;
+    if (mine) return <Waiting text={`✓ ${t('Getippt – wartet auf die anderen…')}`} />;
+    if (n > 0) return <div className="stack center"><p className="muted" style={{ fontWeight: 800, margin: 0 }}>{t('Schaut euch an …')}</p><CountdownView n={n} /></div>;
     return (
       <div className="stack center">
-        <p style={{ fontWeight: 800, margin: 0 }}>Zählt gemeinsam an und tippt ALLE im selben Moment!</p>
+        <p style={{ fontWeight: 800, margin: 0 }}>{t('Zählt gemeinsam an und tippt ALLE im selben Moment!')}</p>
         <button className="btn primary lg block" style={{ minHeight: 240, fontSize: 34 }}
           onPointerDown={() => { vibrate(40); sfx.tap(); run(() => submitSyncTap(code, round.id, me.id)); }}>
-          🤝 JETZT
+          🤝 {t('JETZT')}
         </button>
       </div>
     );
@@ -85,8 +86,8 @@ const SyncTest = {
     return (
       <div className="stack center">
         <div style={{ fontSize: big ? 96 : 56 }}>🤝</div>
-        <h2 style={{ fontSize: big ? 40 : 24 }}>Alle gleichzeitig tippen!</h2>
-        <p className="muted" style={{ margin: 0 }}>Zeitfenster: {syncWindow(round.participants.length)} ms</p>
+        <h2 style={{ fontSize: big ? 40 : 24 }}>{t('Alle gleichzeitig tippen!')}</h2>
+        <p className="muted" style={{ margin: 0 }}>{t('Zeitfenster')}: {syncWindow(round.participants.length)} ms</p>
         <div className="row wrap center" style={{ gap: 6 }}>
           {round.participants.map((id) => <span key={id} className={`pill ${round.results?.[id] ? 'good' : ''}`}><Name p={byId[id]} /> {round.results?.[id] ? '✓' : '…'}</span>)}
         </div>
@@ -98,8 +99,8 @@ const SyncTest = {
     return (
       <div className={`card center stack pop ${r.success ? 'accent' : ''}`}>
         <div style={{ fontSize: 56 }}>{r.success ? '🎉' : '😬'}</div>
-        <h2>{r.success ? 'Synchron! Alle gewinnen.' : 'Leider nicht synchron.'}</h2>
-        <div>Abweichung: <b>{r.spread ?? '–'} ms</b> (Ziel: ≤ {r.window} ms)</div>
+        <h2>{r.success ? t('Synchron! Alle gewinnen.') : t('Leider nicht synchron.')}</h2>
+        <div>{t('Abweichung')}: <b>{r.spread ?? '–'} ms</b> ({t('Ziel')}: ≤ {r.window} ms)</div>
       </div>
     );
   },
@@ -111,10 +112,10 @@ function HivemindCall({ round, big }) {
   const n = useGo(round.stage === 'playing', () => { setGo(true); sfx.gong(); });
   return (
     <div className="stack center">
-      <div className="card tinted center"><h2 style={{ fontSize: big ? 52 : 28 }}>{round.game.category}</h2></div>
+      <div className="card tinted center"><h2 style={{ fontSize: big ? 52 : 28 }}>{t(round.game.category)}</h2></div>
       {round.stage === 'playing' && !go && n > 0 && <CountdownView n={n} />}
-      {go && <div className="countdown-big pop">RUFT!</div>}
-      {go && <p className="muted" style={{ margin: 0, fontWeight: 700 }}>Alle gleichzeitig laut! Der Host trägt ein, wer das häufigste Wort hatte.</p>}
+      {go && <div className="countdown-big pop">{t('RUFT!')}</div>}
+      {go && <p className="muted" style={{ margin: 0, fontWeight: 700 }}>{t('Alle gleichzeitig laut! Der Host trägt ein, wer das häufigste Wort hatte.')}</p>}
     </div>
   );
 }
@@ -124,9 +125,9 @@ const Hivemind = {
   Result({ round, byId }) {
     return (
       <div className="card center stack pop">
-        <div className="kicker">{round.game.category}</div>
+        <div className="kicker">{t(round.game.category)}</div>
         {round.word && <h2 style={{ fontSize: 34 }}>„{round.word}“</h2>}
-        <div>{(round.majority || []).length ? `Mehrheit: ${round.majority.map((id) => byId[id]?.name).join(', ')}` : 'Keine Mehrheit gefunden'}</div>
+        <div>{(round.majority || []).length ? `${t('Mehrheit')}: ${round.majority.map((id) => byId[id]?.name).join(', ')}` : t('Keine Mehrheit gefunden')}</div>
       </div>
     );
   },
@@ -138,9 +139,9 @@ function FactCard({ round, byId, big }) {
   const fact = round.results?.[owner]?.fact;
   return (
     <div className="card tinted center stack">
-      <div className="kicker">Geheimnis {round.quizIndex + 1}/{round.order.length}</div>
+      <div className="kicker">{t('Geheimnis')} {round.quizIndex + 1}/{round.order.length}</div>
       <h2 style={{ fontSize: big ? 44 : 24, lineHeight: 1.2 }}>„{fact}“</h2>
-      {round.revealed && <div className="pop" style={{ fontSize: big ? 32 : 20, fontWeight: 900 }}>Das war: <Name p={byId[owner]} /></div>}
+      {round.revealed && <div className="pop" style={{ fontSize: big ? 32 : 20, fontWeight: 900 }}>{t('Das war')}: <Name p={byId[owner]} /></div>}
     </div>
   );
 }
@@ -149,12 +150,12 @@ const Confession = {
     const [fact, setFact] = useState('');
     const mine = round.results?.[me.id];
     if (round.step === 'collect') {
-      if (mine?.fact) return <Waiting text="🤫 Gespeichert. Warte, bis alle ihr Geheimnis eingetippt haben…" />;
+      if (mine?.fact) return <Waiting text={`🤫 ${t('Gespeichert. Warte, bis alle ihr Geheimnis eingetippt haben…')}`} />;
       return (
         <div className="stack">
-          <div className="card tinted"><b>Dein Geheimnis</b> – etwas Überraschendes oder Witziges über dich. Niemand sieht, dass es von dir ist.</div>
-          <textarea className="input" rows={3} maxLength={140} placeholder="z. B. „Ich kann mit den Ohren wackeln.“" value={fact} onChange={(e) => setFact(e.target.value)} />
-          <button className="btn primary lg" disabled={fact.trim().length < 4} onClick={() => run(() => submitConfessionFact(code, round.id, me.id, fact.trim()))}>Geheim abschicken</button>
+          <div className="card tinted"><b>{t('Dein Geheimnis')}</b> – {t('etwas Überraschendes oder Witziges über dich. Niemand sieht, dass es von dir ist.')}</div>
+          <textarea className="input" rows={3} maxLength={140} placeholder={t('z. B. „Ich kann mit den Ohren wackeln.“')} value={fact} onChange={(e) => setFact(e.target.value)} />
+          <button className="btn primary lg" disabled={fact.trim().length < 4} onClick={() => run(() => submitConfessionFact(code, round.id, me.id, fact.trim()))}>{t('Geheim abschicken')}</button>
         </div>
       );
     }
@@ -165,22 +166,22 @@ const Confession = {
     return (
       <div className="stack">
         <FactCard round={round} byId={byId} />
-        {isMine && !round.revealed && <div className="card center small">🤫 Das ist <b>dein</b> Geheimnis – stimm zum Schein ab, damit es keiner merkt.</div>}
-        {!round.revealed && (myGuess ? <Waiting text={`Getippt: ${byId[myGuess]?.name}`} /> : (
+        {isMine && !round.revealed && <div className="card center small">🤫 {t('Das ist dein Geheimnis – stimm zum Schein ab, damit es keiner merkt.')}</div>}
+        {!round.revealed && (myGuess ? <Waiting text={`${t('Getippt')}: ${byId[myGuess]?.name}`} /> : (
           <div className="grid-2">
             {round.participants.filter((id) => id !== me.id).map((id) => (
               <button key={id} className="btn soft" onClick={() => run(() => submitConfessionGuess(code, round.id, me.id, idx, id))}><Name p={byId[id]} /></button>
             ))}
           </div>
         ))}
-        {round.revealed && !isMine && <div className="card center pop">{myGuess === owner ? '✅ Richtig geraten! +1' : '❌ Daneben'}</div>}
+        {round.revealed && !isMine && <div className="card center pop">{myGuess === owner ? `✅ ${t('Richtig geraten! +1')}` : `❌ ${t('Daneben')}`}</div>}
       </div>
     );
   },
   Stage({ round, byId, big }) {
     if (round.step === 'collect') {
       const n = round.participants.filter((id) => round.results?.[id]?.fact).length;
-      return <div className="stack center"><div style={{ fontSize: big ? 96 : 56 }}>🤫</div><h2>Alle tippen ein Geheimnis ein …</h2><p className="muted" style={{ margin: 0 }}>{n}/{round.participants.length} fertig</p></div>;
+      return <div className="stack center"><div style={{ fontSize: big ? 96 : 56 }}>🤫</div><h2>{t('Alle tippen ein Geheimnis ein …')}</h2><p className="muted" style={{ margin: 0 }}>{n}/{round.participants.length} {t('fertig')}</p></div>;
     }
     const idx = round.quizIndex;
     const owner = round.order[idx];
@@ -189,7 +190,7 @@ const Confession = {
     return (
       <div className="stack">
         <FactCard round={round} byId={byId} big={big} />
-        {!round.revealed && <p className="center muted" style={{ fontWeight: 700, margin: 0 }}>Wer war's? {n}/{guessers.length} haben getippt</p>}
+        {!round.revealed && <p className="center muted" style={{ fontWeight: 700, margin: 0 }}>{t("Wer war's?")} {t('{a}/{b} haben getippt', { a: n, b: guessers.length })}</p>}
         {round.revealed && (
           <div className="row wrap center" style={{ gap: 6 }}>
             {guessers.map((id) => {
@@ -220,7 +221,7 @@ const Confession = {
 export function speak(text) {
   try {
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'de-DE';
+    u.lang = speechLang();
     u.rate = 0.95;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
@@ -248,13 +249,13 @@ const ChainStory = {
     return (
       <div className="stack">
         <StoryText round={round} />
-        <div className="small muted center">Wort {Math.min(st.count + 1, st.total)}/{st.total}</div>
+        <div className="small muted center">{t('Wort')} {Math.min(st.count + 1, st.total)}/{st.total}</div>
         {myTurn ? (
           <form className="row" onSubmit={(e) => { e.preventDefault(); send(); }}>
-            <input className="input" autoFocus autoComplete="off" placeholder="Ein einziges Wort" value={word} onChange={(e) => setWord(e.target.value.replace(/\s/g, ''))} />
+            <input className="input" autoFocus autoComplete="off" placeholder={t('Ein einziges Wort')} value={word} onChange={(e) => setWord(e.target.value.replace(/\s/g, ''))} />
             <button className="btn primary" disabled={!word.trim()}>➕</button>
           </form>
-        ) : <Waiting text={st.done ? 'Fertig! Gleich wird vorgelesen…' : `✍️ ${byId[st.turn]?.name} ist dran…`} />}
+        ) : <Waiting text={st.done ? t('Fertig! Gleich wird vorgelesen…') : `✍️ ${t('{name} ist dran…', { name: byId[st.turn]?.name })}`} />}
       </div>
     );
   },
@@ -263,7 +264,7 @@ const ChainStory = {
     return (
       <div className="stack">
         <StoryText round={round} big={big} />
-        <p className="center muted" style={{ fontWeight: 700, margin: 0 }}>{st.done ? 'Fertig!' : `✍️ ${byId[st.turn]?.name} ist dran (Wort ${st.count + 1}/${st.total})`}</p>
+        <p className="center muted" style={{ fontWeight: 700, margin: 0 }}>{st.done ? t('Fertig!') : `✍️ ${t('{name} ist dran (Wort {a}/{b})', { name: byId[st.turn]?.name, a: st.count + 1, b: st.total })}`}</p>
       </div>
     );
   },
@@ -276,7 +277,7 @@ const ChainStory = {
     return (
       <div className="stack">
         <div className="card accent"><p style={{ margin: 0, fontSize: 24, fontWeight: 800, lineHeight: 1.35 }}>{text}</p></div>
-        <button className="btn soft" onClick={() => speak(text)}>🔊 Vorlesen</button>
+        <button className="btn soft" onClick={() => speak(text)}>🔊 {t('Vorlesen')}</button>
       </div>
     );
   },

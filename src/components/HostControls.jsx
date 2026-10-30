@@ -5,6 +5,7 @@ import {
 } from '../game/engine.js';
 import { sfx } from '../lib/sound.js';
 import { useSecondsLeft } from '../hooks/useCountdown.js';
+import { t } from '../i18n/index.js';
 
 /**
  * Automatik auf dem Host-Gerät: Wetten schließen bei Ablauf, digitale Spiele
@@ -54,40 +55,40 @@ export function HostControls({ code, room, duel, byId, run, busy }) {
         <button className="btn primary" disabled={busy} onClick={() => run(() => declareWinner(code, duel.id, duel.playerA))}>{a?.avatar} {a?.name}</button>
         <button className="btn primary" disabled={busy} onClick={() => run(() => declareWinner(code, duel.id, duel.playerB))}>{b?.avatar} {b?.name}</button>
       </div>
-      <button className="btn ghost sm" disabled={busy} onClick={() => run(() => declareWinner(code, duel.id, null))}>Unentschieden (Einsätze zurück)</button>
+      <button className="btn ghost sm" disabled={busy} onClick={() => run(() => declareWinner(code, duel.id, null))}>{t('Unentschieden (Einsätze zurück)')}</button>
     </div>
   );
 
   let main;
   if (!duel || duel.stage === 'resolved') {
     main = isLast
-      ? <button className="btn primary lg block" disabled={busy} onClick={() => run(() => finishGame(code))}>🎉 Party-Wrapped zeigen</button>
+      ? <button className="btn primary lg block" disabled={busy} onClick={() => run(() => finishGame(code))}>🎉 {t('Party-Wrapped zeigen')}</button>
       : (
         <>
-          <button className="btn primary lg block" disabled={busy || !!room.liveEvent} onClick={() => run(() => nextStep(code))}>⚔️ Nächstes Duell auslosen</button>
+          <button className="btn primary lg block" disabled={busy || !!room.liveEvent} onClick={() => run(() => nextStep(code))}>⚔️ {t('Nächstes Duell auslosen')}</button>
           {room.liveEvents !== false && (
-            <button className="btn soft block" disabled={busy || !!room.liveEvent} onClick={() => run(() => triggerLiveEvent(code))}>⚡ Live-Event jetzt auslösen</button>
+            <button className="btn soft block" disabled={busy || !!room.liveEvent} onClick={() => run(() => triggerLiveEvent(code))}>⚡ {t('Live-Event jetzt auslösen')}</button>
           )}
         </>
       );
   } else if (duel.stage === 'intro') {
-    main = <button className="btn primary lg block" disabled={busy} onClick={() => run(() => openBetting(code, duel.id))}>💰 Wetten öffnen</button>;
+    main = <button className="btn primary lg block" disabled={busy} onClick={() => run(() => openBetting(code, duel.id))}>💰 {t('Wetten öffnen')}</button>;
   } else if (duel.stage === 'betting') {
-    main = <button className="btn primary lg block" disabled={busy} onClick={() => run(() => lockBetsAndPlay(code, duel.id))}>🔒 Wetten schließen & los!</button>;
+    main = <button className="btn primary lg block" disabled={busy} onClick={() => run(() => lockBetsAndPlay(code, duel.id))}>🔒 {t('Wetten schließen & los!')}</button>;
   } else if (duel.stage === 'playing') {
     main = game.judge === 'host' ? (
-      <><h3>Wer hat gewonnen?</h3>{winnerButtons}</>
+      <><h3>{t('Wer hat gewonnen?')}</h3>{winnerButtons}</>
     ) : (
       <>
-        <p className="muted small" style={{ margin: 0 }}>Die App wertet automatisch aus. Notfalls manuell:</p>
+        <p className="muted small" style={{ margin: 0 }}>{t('Die App wertet automatisch aus. Notfalls manuell:')}</p>
         {winnerButtons}
       </>
     );
   } else if (duel.stage === 'review') {
     main = (
       <>
-        <button className="btn primary lg block" disabled={busy} onClick={() => run(() => settle(code, duel.id))}>💸 Auszahlen</button>
-        <details><summary className="small muted">Ergebnis korrigieren</summary><div style={{ marginTop: 8 }}>{winnerButtons}</div></details>
+        <button className="btn primary lg block" disabled={busy} onClick={() => run(() => settle(code, duel.id))}>💸 {t('Auszahlen')}</button>
+        <details><summary className="small muted">{t('Ergebnis korrigieren')}</summary><div style={{ marginTop: 8 }}>{winnerButtons}</div></details>
       </>
     );
   }
@@ -95,13 +96,13 @@ export function HostControls({ code, room, duel, byId, run, busy }) {
   return (
     <div className="card stack">
       <div className="row between">
-        <h3>Host-Steuerung</h3>
-        <span className="pill">Runde {room.round}/{room.totalRounds}</span>
+        <h3>{t('Host-Steuerung')}</h3>
+        <span className="pill">{t('Runde')} {room.round}/{room.totalRounds}</span>
       </div>
       {main}
       {!isLast && room.round > 0 && (
-        <button className="btn ghost sm" disabled={busy} onClick={() => { if (confirm('Party jetzt beenden und Wrapped zeigen?')) run(() => finishGame(code)); }}>
-          Party vorzeitig beenden
+        <button className="btn ghost sm" disabled={busy} onClick={() => { if (confirm(t('Party jetzt beenden und Wrapped zeigen?'))) run(() => finishGame(code)); }}>
+          {t('Party vorzeitig beenden')}
         </button>
       )}
     </div>

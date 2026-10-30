@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { EMOJI_PUZZLES, emojiAnswerCorrect } from '../game/gameLibrary.js';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
 import { sfx, vibrate } from '../lib/sound.js';
+import { t } from '../i18n/index.js';
 
 /** Spiel 8 – Emoji-Hit-Raten: Emoji-Rätsel als Erster richtig eintippen. */
 function Play({ duel, submit }) {
@@ -27,24 +28,24 @@ function Play({ duel, submit }) {
   if (step === 'ready') {
     return (
       <div className="stack">
-        <Waiting text="Gleich erscheinen Emojis. Errate den Song, Film oder Begriff und tipp ihn ein!" />
-        <button className="btn primary lg" onClick={() => setStep('count')}>Bereit</button>
+        <Waiting text={t('Gleich erscheinen Emojis. Errate den Song, Film oder Begriff und tipp ihn ein!')} />
+        <button className="btn primary lg" onClick={() => setStep('count')}>{t('Bereit')}</button>
       </div>
     );
   }
   if (step === 'count') return <CountdownView n={n} />;
-  if (step === 'done') return <Waiting text="✅ Richtig! Warte auf dein Gegenüber…" />;
+  if (step === 'done') return <Waiting text={`✅ ${t('Richtig! Warte auf dein Gegenüber…')}`} />;
   return (
     <div className="stack">
       <div className="card center stack" style={{ gap: 4 }}>
         <div style={{ fontSize: 72 }}>{puzzle.emojis}</div>
-        <span className="pill">{puzzle.hint}</span>
+        <span className="pill">{t(puzzle.hint)}</span>
       </div>
-      <input className="input" autoFocus placeholder="Deine Antwort" value={val}
+      <input className="input" autoFocus placeholder={t('Deine Antwort')} value={val}
         onChange={(e) => setVal(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && check()} />
-      {wrong > 0 && <p className="center small" style={{ color: 'var(--bad)', margin: 0 }}>Leider nein ({wrong}×) – weiter probieren!</p>}
-      <button className="btn primary lg" disabled={!val.trim()} onClick={check}>Prüfen</button>
-      <button className="btn ghost sm" onClick={() => { submit({ correct: false, ms: null, input: val }); setStep('done'); }}>Aufgeben</button>
+      {wrong > 0 && <p className="center small" style={{ color: 'var(--bad)', margin: 0 }}>{t('Leider nein ({n}×) – weiter probieren!', { n: wrong })}</p>}
+      <button className="btn primary lg" disabled={!val.trim()} onClick={check}>{t('Prüfen')}</button>
+      <button className="btn ghost sm" onClick={() => { submit({ correct: false, ms: null, input: val }); setStep('done'); }}>{t('Aufgeben')}</button>
     </div>
   );
 }
@@ -55,13 +56,13 @@ function Review({ duel, byId }) {
   return (
     <div className="card stack">
       <div className="center" style={{ fontSize: 56 }}>{puzzle.emojis}</div>
-      {done && <div className="center"><span className="kicker">Lösung</span><h2>{puzzle.solution}</h2></div>}
+      {done && <div className="center"><span className="kicker">{t('Lösung')}</span><h2>{t(puzzle.solution)}</h2></div>}
       {[duel.playerA, duel.playerB].map((id) => {
         const r = duel.results?.[id];
         return (
           <div key={id} className="row between">
             <b>{byId[id]?.avatar} {byId[id]?.name}</b>
-            <span>{!r ? 'rät…' : r.correct ? `✅ ${(r.ms / 1000).toFixed(1)}s` : '🏳️ aufgegeben'}</span>
+            <span>{!r ? t('rät…') : r.correct ? `✅ ${(r.ms / 1000).toFixed(1)}s` : `🏳️ ${t('aufgegeben')}`}</span>
           </div>
         );
       })}

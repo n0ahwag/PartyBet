@@ -1,4 +1,10 @@
 import { finalDistributors } from './economy.js';
+import { t } from '../i18n/index.js';
+
+/*
+ * Wrapped-Karten. Texte werden beim Erzeugen übersetzt – Wrapped.jsx baut die
+ * Karten bei Sprachwechsel neu (useMemo mit lang).
+ */
 
 /** Berechnet die "Party-Wrapped"-Karten aus Spielerstatistiken und Duell-Events. */
 export function buildWrapped(players, events) {
@@ -20,14 +26,14 @@ export function buildWrapped(players, events) {
     {
       id: 'intro',
       gradient: ['#FF6B6B', '#FFD93D'],
-      kicker: 'Eure Party in Zahlen',
-      title: `${duels.length} Duelle`,
+      kicker: t('Eure Party in Zahlen'),
+      title: t('{n} Duelle', { n: duels.length }),
       lines: [
-        `${totalBets} Wetten platziert`,
-        `${totalDrunk} Schlücke verloren`,
-        `${totalGiven} Schlücke verteilt`,
-        `${Object.keys(gameCounts).length} verschiedene Spiele`,
-      ].filter(Boolean),
+        t('{n} Wetten platziert', { n: totalBets }),
+        t('{n} Schlücke verloren', { n: totalDrunk }),
+        t('{n} Schlücke verteilt', { n: totalGiven }),
+        t('{n} verschiedene Spiele', { n: Object.keys(gameCounts).length }),
+      ],
     },
   ];
 
@@ -35,35 +41,35 @@ export function buildWrapped(players, events) {
     if (player) cards.push({ id, gradient, kicker, title, player, lines: [line(player)] });
   };
 
-  award('betKing', top('betProfit'), ['#11998E', '#38EF7D'], 'Der Wett-König 💰', top('betProfit')?.name,
-    (p) => `+${p.stats.betProfit} Schlücke Wett-Bilanz aus ${p.stats.betsWon} richtigen Tipps.`);
+  award('betKing', top('betProfit'), ['#11998E', '#38EF7D'], t('Der Wett-König 💰'), top('betProfit')?.name,
+    (p) => t('+{n} Schlücke Wett-Bilanz aus {m} richtigen Tipps.', { n: p.stats.betProfit, m: p.stats.betsWon }));
 
-  award('generous', top('sipsDistributed'), ['#FC5C7D', '#6A82FB'], 'Der Spendable 🍻', top('sipsDistributed')?.name,
-    (p) => `Hat ${p.stats.sipsDistributed} Schlücke an andere verteilt.`);
+  award('generous', top('sipsDistributed'), ['#FC5C7D', '#6A82FB'], t('Der Spendable 🍻'), top('sipsDistributed')?.name,
+    (p) => t('Hat {n} Schlücke an andere verteilt.', { n: p.stats.sipsDistributed }));
 
-  award('unlucky', top('sipsDrunk'), ['#4568DC', '#B06AB3'], 'Der Pechvogel 🐦', top('sipsDrunk')?.name,
-    (p) => `${p.stats.sipsDrunk} Schlücke selbst getrunken. Prost!`);
+  award('unlucky', top('sipsDrunk'), ['#4568DC', '#B06AB3'], t('Der Pechvogel 🐦'), top('sipsDrunk')?.name,
+    (p) => t('{n} Schlücke selbst getrunken. Prost!', { n: p.stats.sipsDrunk }));
 
-  award('saboteur', top('sabotages'), ['#8E2DE2', '#4A00E0'], 'Der Saboteur 🧪', top('sabotages')?.name,
-    (p) => `${p.stats.sabotages}× Sabotage-Trank verteilt. Niemand traut dir mehr.`);
+  award('saboteur', top('sabotages'), ['#8E2DE2', '#4A00E0'], t('Der Saboteur 🧪'), top('sabotages')?.name,
+    (p) => t('{n}× Sabotage-Trank verteilt. Niemand traut dir mehr.', { n: p.stats.sabotages }));
 
-  award('duelist', top('duelsWon'), ['#EB3349', '#F45C43'], 'Duell-Monster ⚔️', top('duelsWon')?.name,
-    (p) => `${p.stats.duelsWon} Duelle gewonnen, ${p.stats.duelsLost} verloren.`);
+  award('duelist', top('duelsWon'), ['#EB3349', '#F45C43'], t('Duell-Monster ⚔️'), top('duelsWon')?.name,
+    (p) => t('{n} Duelle gewonnen, {m} verloren.', { n: p.stats.duelsWon, m: p.stats.duelsLost }));
 
-  award('highRoller', top('biggestBet'), ['#F857A6', '#FF5858'], 'High Roller 🎰', top('biggestBet')?.name,
-    (p) => `Größte Einzelwette: ${p.stats.biggestBet} Schlücke.`);
+  award('highRoller', top('biggestBet'), ['#F857A6', '#FF5858'], t('High Roller 🎰'), top('biggestBet')?.name,
+    (p) => t('Größte Einzelwette: {n} Schlücke.', { n: p.stats.biggestBet }));
 
-  award('broke', top('bankruptcies'), ['#434343', '#000000'], 'Pleitegeier 🦅', top('bankruptcies')?.name,
-    (p) => `${p.stats.bankruptcies}× pleite, ${p.stats.rescues ?? 0}× gerettet.`);
+  award('broke', top('bankruptcies'), ['#434343', '#000000'], t('Pleitegeier 🦅'), top('bankruptcies')?.name,
+    (p) => t('{n}× pleite, {m}× gerettet.', { n: p.stats.bankruptcies, m: p.stats.rescues ?? 0 }));
 
-  award('shield', top('shieldSaves'), ['#00B4DB', '#0083B0'], 'Unverwundbar 🛡️', top('shieldSaves')?.name,
-    (p) => `${p.stats.shieldSaves}× vom Schild gerettet.`);
+  award('shield', top('shieldSaves'), ['#00B4DB', '#0083B0'], t('Unverwundbar 🛡️'), top('shieldSaves')?.name,
+    (p) => t('{n}× vom Schild gerettet.', { n: p.stats.shieldSaves }));
 
-  award('slowpoke', top('eventLosses'), ['#F2994A', '#F2C94C'], 'Die Schnecke 🐌', top('eventLosses')?.name,
-    (p) => `${p.stats.eventLosses}× bei Live-Events der Langsamste.`);
+  award('slowpoke', top('eventLosses'), ['#F2994A', '#F2C94C'], t('Die Schnecke 🐌'), top('eventLosses')?.name,
+    (p) => t('{n}× bei Live-Events der Langsamste.', { n: p.stats.eventLosses }));
 
-  award('banker', top('loansGiven'), ['#56AB2F', '#A8E063'], 'Die Bank 🏦', top('loansGiven')?.name,
-    (p) => `Hat ${p.stats.loansGiven}× Kredit gegeben. Mit Zinsen.`);
+  award('banker', top('loansGiven'), ['#56AB2F', '#A8E063'], t('Die Bank 🏦'), top('loansGiven')?.name,
+    (p) => t('Hat {n}× Kredit gegeben. Mit Zinsen.', { n: p.stats.loansGiven }));
 
   const finalists = finalDistributors(list);
   if (finalists.length) {
@@ -71,13 +77,13 @@ export function buildWrapped(players, events) {
     cards.push({
       id: 'finale',
       gradient: ['#B8860B', '#FFD700'],
-      kicker: '👑 Das große Finale',
+      kicker: t('👑 Das große Finale'),
       title: finalists.map((p) => p.name).join(' & '),
       player: finalists[0],
       lines: [
         finalists.length > 1
-          ? `Gleichstand mit ${n} Schlücken – jeder von euch darf seine ${n} Schlücke verteilen!`
-          : `Hat am meisten Schlücke übrig und darf alle ${n} jetzt verteilen! 🍻`,
+          ? t('Gleichstand mit {n} Schlücken – jeder von euch darf seine {n} Schlücke verteilen!', { n })
+          : t('Hat am meisten Schlücke übrig und darf alle {n} jetzt verteilen! 🍻', { n }),
       ],
     });
   }
@@ -85,8 +91,8 @@ export function buildWrapped(players, events) {
   cards.push({
     id: 'outro',
     gradient: ['#141E30', '#243B55'],
-    kicker: 'Endstand',
-    title: 'Danke fürs Spielen!',
+    kicker: t('Endstand'),
+    title: t('Danke fürs Spielen!'),
     ranking: [...list].sort((a, b) => b.balance - a.balance),
   });
   return cards;
@@ -106,20 +112,20 @@ export function buildBoardWrapped(players, events, room) {
   const cards = [{
     id: 'intro',
     gradient: ['#36D1DC', '#5B86E5'],
-    kicker: 'Euer Spielfeld in Zahlen',
-    title: `${rounds} Challenges`,
+    kicker: t('Euer Spielfeld in Zahlen'),
+    title: t('{n} Challenges', { n: rounds }),
     lines: [
-      `${sum('fieldsMoved')} Felder gezogen`,
-      `${sum('rockets')}× Rakete gezündet 🚀`,
-      `${sum('portals')}× durchs Portal 🌀`,
+      t('{n} Felder gezogen', { n: sum('fieldsMoved') }),
+      t('{n}× Rakete gezündet 🚀', { n: sum('rockets') }),
+      t('{n}× durchs Portal 🌀', { n: sum('portals') }),
     ],
   }];
 
   const winner = list.find((p) => p.id === room.winnerId);
   if (winner) {
     cards.push({
-      id: 'king', gradient: ['#B8860B', '#FFD700'], kicker: 'Der Brettspiel-König 👑',
-      title: winner.name, player: winner, lines: ['Hat als Erster das Ziel erreicht! 🏆'],
+      id: 'king', gradient: ['#B8860B', '#FFD700'], kicker: t('Der Brettspiel-König 👑'),
+      title: winner.name, player: winner, lines: [t('Hat als Erster das Ziel erreicht! 🏆')],
     });
   }
 
@@ -127,22 +133,22 @@ export function buildBoardWrapped(players, events, room) {
     const p = top(key);
     if (p) cards.push({ id, gradient, kicker, title: p.name, player: p, lines: [line(p.stats[key], p)] });
   };
-  award('turbo', 'biggestMove', ['#F7971E', '#FF512F'], 'Der Turbo-Läufer ⚡', (n) => `Größter Einzelzug: ${n} Felder auf einmal.`);
-  award('champ', 'firstPlaces', ['#11998E', '#38EF7D'], 'Challenge-Champion 🥇', (n) => `${n}× Platz 1 in einer Challenge.`);
-  award('unlucky', 'fieldsLost', ['#4568DC', '#B06AB3'], 'Der Pechvogel 🐦', (n) => `${n} Felder durch Stolpersteine, Portale & Events verloren.`);
-  award('rocket', 'rockets', ['#00B09B', '#96C93D'], 'Raketen-Pilot 🚀', (n) => `${n}× auf einer Rakete gelandet.`);
-  award('portal', 'portals', ['#8E2DE2', '#4A00E0'], 'Der Portal-Dieb 🌀', (n) => `${n}× dem Führenden den Platz geklaut.`);
-  award('stumble', 'stumbles', ['#757F9A', '#D7DDE8'], 'Stolper-Profi 🪨', (n) => `${n}× über einen Stolperstein gefallen.`);
-  award('slowpoke', 'eventLosses', ['#F2994A', '#F2C94C'], 'Die Schnecke 🐌', (n) => `${n}× bei Live-Events der Langsamste.`);
+  award('turbo', 'biggestMove', ['#F7971E', '#FF512F'], t('Der Turbo-Läufer ⚡'), (n) => t('Größter Einzelzug: {n} Felder auf einmal.', { n }));
+  award('champ', 'firstPlaces', ['#11998E', '#38EF7D'], t('Challenge-Champion 🥇'), (n) => t('{n}× Platz 1 in einer Challenge.', { n }));
+  award('unlucky', 'fieldsLost', ['#4568DC', '#B06AB3'], t('Der Pechvogel 🐦'), (n) => t('{n} Felder durch Stolpersteine, Portale & Events verloren.', { n }));
+  award('rocket', 'rockets', ['#00B09B', '#96C93D'], t('Raketen-Pilot 🚀'), (n) => t('{n}× auf einer Rakete gelandet.', { n }));
+  award('portal', 'portals', ['#8E2DE2', '#4A00E0'], t('Der Portal-Dieb 🌀'), (n) => t('{n}× dem Führenden den Platz geklaut.', { n }));
+  award('stumble', 'stumbles', ['#757F9A', '#D7DDE8'], t('Stolper-Profi 🪨'), (n) => t('{n}× über einen Stolperstein gefallen.', { n }));
+  award('slowpoke', 'eventLosses', ['#F2994A', '#F2C94C'], t('Die Schnecke 🐌'), (n) => t('{n}× bei Live-Events der Langsamste.', { n }));
 
   cards.push({
     id: 'outro',
     gradient: ['#141E30', '#243B55'],
-    kicker: 'Endstand',
-    title: 'Danke fürs Spielen!',
+    kicker: t('Endstand'),
+    title: t('Danke fürs Spielen!'),
     ranking: [...list]
       .sort((a, b) => (b.id === room.winnerId) - (a.id === room.winnerId) || (b.position ?? 0) - (a.position ?? 0))
-      .map((p) => ({ ...p, value: `Feld ${p.position ?? 0}/${goal}` })),
+      .map((p) => ({ ...p, value: t('Feld {n}/{m}', { n: p.position ?? 0, m: goal }) })),
   });
   return cards;
 }
@@ -161,11 +167,11 @@ export function buildGroupWrapped(players, events) {
   const cards = [{
     id: 'intro',
     gradient: ['#A18CD1', '#FBC2EB'],
-    kicker: 'Eure Gruppe in Zahlen',
-    title: `${rounds.length} Runden`,
+    kicker: t('Eure Gruppe in Zahlen'),
+    title: t('{n} Runden', { n: rounds.length }),
     lines: [
-      `${list.reduce((s, p) => s + p.points, 0)} Punkte gesammelt`,
-      syncWins ? `${syncWins}× perfekt synchron 🤝` : null,
+      t('{n} Punkte gesammelt', { n: list.reduce((s, p) => s + p.points, 0) }),
+      syncWins ? t('{n}× perfekt synchron 🤝', { n: syncWins }) : null,
     ].filter(Boolean),
   }];
 
@@ -173,8 +179,8 @@ export function buildGroupWrapped(players, events) {
   const champs = list.filter((p) => p.points === maxPts && maxPts > 0);
   if (champs.length) {
     cards.push({
-      id: 'champion', gradient: ['#B8860B', '#FFD700'], kicker: 'Gruppen-Champion 👑',
-      title: champs.map((p) => p.name).join(' & '), player: champs[0], lines: [`${maxPts} Punkte`],
+      id: 'champion', gradient: ['#B8860B', '#FFD700'], kicker: t('Gruppen-Champion 👑'),
+      title: champs.map((p) => p.name).join(' & '), player: champs[0], lines: [t('{n} Punkte', { n: maxPts })],
     });
   }
 
@@ -182,23 +188,23 @@ export function buildGroupWrapped(players, events) {
     const p = top(key);
     if (p) cards.push({ id, gradient, kicker, title: p.name, player: p, lines: [line(p.stats[key])] });
   };
-  award('magnet', 'votesReceived', ['#F43F5E', '#FB923C'], 'Der Gruppen-Magnet 🧲', (n) => `${n} Stimmen bei „Wer am ehesten …“ kassiert.`);
-  award('psychic', 'confessCorrect', ['#8B5CF6', '#6366F1'], 'Der Hellseher 🔮', (n) => `${n} Geheimnisse richtig zugeordnet.`);
-  award('poker', 'confessFooled', ['#334155', '#64748B'], 'Das Pokerface 🎭', (n) => `${n}× mit dem eigenen Geheimnis alle getäuscht.`);
-  award('hive', 'hivemindHits', ['#EAB308', '#F59E0B'], 'Das Herdentier 🐑', (n) => `${n}× genau wie die Mehrheit gedacht.`);
-  award('champ', 'firstPlaces', ['#11998E', '#38EF7D'], 'Runden-Sieger 🥇', (n) => `${n}× Platz 1 geholt.`);
-  award('slowpoke', 'eventLosses', ['#F2994A', '#F2C94C'], 'Die Schnecke 🐌', (n) => `${n}× bei Live-Events der Langsamste.`);
+  award('magnet', 'votesReceived', ['#F43F5E', '#FB923C'], t('Der Gruppen-Magnet 🧲'), (n) => t('{n} Stimmen bei „Wer am ehesten …“ kassiert.', { n }));
+  award('psychic', 'confessCorrect', ['#8B5CF6', '#6366F1'], t('Der Hellseher 🔮'), (n) => t('{n} Geheimnisse richtig zugeordnet.', { n }));
+  award('poker', 'confessFooled', ['#334155', '#64748B'], t('Das Pokerface 🎭'), (n) => t('{n}× mit dem eigenen Geheimnis alle getäuscht.', { n }));
+  award('hive', 'hivemindHits', ['#EAB308', '#F59E0B'], t('Das Herdentier 🐑'), (n) => t('{n}× genau wie die Mehrheit gedacht.', { n }));
+  award('champ', 'firstPlaces', ['#11998E', '#38EF7D'], t('Runden-Sieger 🥇'), (n) => t('{n}× Platz 1 geholt.', { n }));
+  award('slowpoke', 'eventLosses', ['#F2994A', '#F2C94C'], t('Die Schnecke 🐌'), (n) => t('{n}× bei Live-Events der Langsamste.', { n }));
 
   if (stories.length) {
-    cards.push({ id: 'story', gradient: ['#0EA5E9', '#22D3EE'], kicker: 'Eure Ketten-Story 📜', title: 'Vorgelesen:', lines: [stories.at(-1)] });
+    cards.push({ id: 'story', gradient: ['#0EA5E9', '#22D3EE'], kicker: t('Eure Ketten-Story 📜'), title: t('Vorgelesen:'), lines: [stories.at(-1)] });
   }
 
   cards.push({
     id: 'outro',
     gradient: ['#141E30', '#243B55'],
-    kicker: 'Endstand',
-    title: 'Danke fürs Spielen!',
-    ranking: [...list].sort((a, b) => b.points - a.points).map((p) => ({ ...p, value: `${p.points} Punkte` })),
+    kicker: t('Endstand'),
+    title: t('Danke fürs Spielen!'),
+    ranking: [...list].sort((a, b) => b.points - a.points).map((p) => ({ ...p, value: t('{n} Punkte', { n: p.points }) })),
   });
   return cards;
 }

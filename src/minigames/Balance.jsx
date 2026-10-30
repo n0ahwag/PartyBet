@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
 import { requestMotionPermission } from '../lib/device.js';
 import { sfx, vibrate } from '../lib/sound.js';
+import { t } from '../i18n/index.js';
 
 /**
  * Spiel 3 – Handy-Balance. Misst die mittlere Änderung der Beschleunigung
@@ -52,18 +53,18 @@ function Measure({ duel, submit }) {
   if (step === 'perm') {
     return (
       <div className="stack">
-        <Waiting text="Handy flach auf die Handfläche legen. Sobald es losgeht: nicht wackeln!" />
+        <Waiting text={t('Handy flach auf die Handfläche legen. Sobald es losgeht: nicht wackeln!')} />
         {error && <p className="center" style={{ color: 'var(--bad)' }}>{error}</p>}
         <button className="btn primary lg" onClick={async () => {
           const ok = await requestMotionPermission();
-          if (!ok) setError('Bewegungssensor nicht freigegeben – der Host kann manuell entscheiden.');
+          if (!ok) setError(t('Bewegungssensor nicht freigegeben – der Host kann manuell entscheiden.'));
           else setStep('count');
-        }}>Sensor freigeben & starten</button>
+        }}>{t('Sensor freigeben & starten')}</button>
       </div>
     );
   }
   if (step === 'count') return <CountdownView n={n} />;
-  if (step === 'done') return <Waiting text="Gemessen! Warte auf dein Gegenüber…" />;
+  if (step === 'done') return <Waiting text={t('Gemessen! Warte auf dein Gegenüber…')} />;
 
   const clamp = (v) => Math.max(-9, Math.min(9, v));
   return (
@@ -72,7 +73,7 @@ function Measure({ duel, submit }) {
       <div className="wobble-meter" style={{ width: '100%' }}>
         <div className="wobble-dot" style={{ transform: `translate(calc(-50% + ${clamp(live.x) * -10}px), calc(-50% + ${clamp(live.y) * 10}px))` }} />
       </div>
-      <p className="muted" style={{ fontWeight: 700 }}>Wackel-Wert: {live.wobble.toFixed(3)}</p>
+      <p className="muted" style={{ fontWeight: 700 }}>{t('Wackel-Wert')}: {live.wobble.toFixed(3)}</p>
     </div>
   );
 }
@@ -81,17 +82,17 @@ function Review({ duel, byId }) {
   const ids = [duel.playerA, duel.playerB];
   return (
     <div className="card stack">
-      <h3>Wackel-Werte (kleiner = ruhiger)</h3>
+      <h3>{t('Wackel-Werte (kleiner = ruhiger)')}</h3>
       {ids.map((id) => {
         const res = duel.results?.[id];
         return (
           <div key={id} className="row between">
             <b>{byId[id]?.avatar} {byId[id]?.name}</b>
-            <span className="balance">{res ? res.wobble.toFixed(3) : 'misst…'}</span>
+            <span className="balance">{res ? res.wobble.toFixed(3) : t('misst…')}</span>
           </div>
         );
       })}
-      {duel.sabotage && <p className="small muted" style={{ margin: 0 }}>🧪 Sabotage: Wert von {byId[duel.sabotage.target]?.name} zählt +15 %.</p>}
+      {duel.sabotage && <p className="small muted" style={{ margin: 0 }}>🧪 {t('Sabotage: Wert von {name} zählt +15 %.', { name: byId[duel.sabotage.target]?.name })}</p>}
     </div>
   );
 }

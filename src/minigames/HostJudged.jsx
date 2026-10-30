@@ -1,5 +1,6 @@
 import { GAMES } from '../game/gameLibrary.js';
 import { Rules } from './shared.jsx';
+import { t } from '../i18n/index.js';
 
 /** Generische Ansicht für Utensilien-Spiele, die real gespielt und vom Host entschieden werden. */
 function View({ duel, big }) {
@@ -9,7 +10,7 @@ function View({ duel, big }) {
     <div className="stack">
       <div className="center" style={{ fontSize: big ? 140 : 72 }}>{game.icon}</div>
       <Rules game={shown} />
-      <p className="center muted" style={{ margin: 0, fontWeight: 700 }}>{duel.participants ? 'Der Host trägt die Platzierung ein.' : 'Der Host trägt den Gewinner ein.'}</p>
+      <p className="center muted" style={{ margin: 0, fontWeight: 700 }}>{duel.participants ? t('Der Host trägt die Platzierung ein.') : t('Der Host trägt den Gewinner ein.')}</p>
     </div>
   );
 }
