@@ -63,3 +63,38 @@ describe('Neue Spiele 6–13', () => {
     expect(ids).not.toContain('bluffCard');
   });
 });
+
+import { planDuel } from '../src/game/gameLibrary.js';
+
+describe('planDuel – jedes Spiel nur einmal pro Party', () => {
+  const p = (id, caps = {}) => ({ id, caps });
+
+  it('wählt nie ein schon gespieltes Spiel', () => {
+    const libraryIds = ['memoryCode', 'emojiQuiz', 'rhythm'];
+    const seen = new Set();
+    let played = [];
+    for (let i = 0; i < 3; i++) {
+      const plan = planDuel({ orderedPlayers: [p('a'), p('b')], libraryIds, playedIds: played, seed: `s${i}` });
+      expect(seen.has(plan.game.id)).toBe(false);
+      seen.add(plan.game.id);
+      played = [...played, plan.game.id];
+    }
+    expect(planDuel({ orderedPlayers: [p('a'), p('b')], libraryIds, playedIds: played, seed: 'x' })).toBeNull();
+  });
+
+  it('weicht auf ein anderes Paar aus, wenn nur noch Sensor-Spiele übrig sind', () => {
+    const plan = planDuel({
+      orderedPlayers: [p('a'), p('b', { motion: true }), p('c', { motion: true })],
+      libraryIds: ['memoryCode', 'shake'],
+      playedIds: ['memoryCode'],
+      seed: 'y',
+    });
+    expect(plan.game.id).toBe('shake');
+    expect(plan.duelists.map((d) => d.id)).toEqual(['b', 'c']);
+  });
+
+  it('bevorzugt die ersten Spieler der Wunschreihenfolge', () => {
+    const plan = planDuel({ orderedPlayers: [p('x'), p('y'), p('z')], libraryIds: ['memoryCode'], playedIds: [], seed: 'z' });
+    expect(plan.duelists.map((d) => d.id)).toEqual(['x', 'y']);
+  });
+});

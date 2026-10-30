@@ -470,3 +470,21 @@ export function pickGame(candidates, lastGameId, seed) {
   const fresh = candidates.filter((g) => g.id !== lastGameId);
   return rng.pick(fresh.length ? fresh : candidates);
 }
+
+/**
+ * Wählt Duell-Paar + Spiel. Jedes Spiel darf pro Party nur einmal vorkommen.
+ * Die Duellanten werden in Wunschreihenfolge geprüft (z. B. Ausgeruhte zuerst);
+ * genommen wird das erste Paar, für das noch ein ungespieltes, passendes Spiel existiert.
+ * @returns { duelists, game } oder null, wenn kein ungespieltes Spiel mehr passt
+ */
+export function planDuel({ orderedPlayers, libraryIds = [], playedIds = [], seed }) {
+  const unplayed = libraryIds.filter((id) => !playedIds.includes(id)).map((id) => GAMES[id]).filter(Boolean);
+  for (let i = 0; i < orderedPlayers.length; i++) {
+    for (let j = i + 1; j < orderedPlayers.length; j++) {
+      const duelists = [orderedPlayers[i], orderedPlayers[j]];
+      const game = pickGame(playableFor(unplayed, duelists), null, seed);
+      if (game) return { duelists, game };
+    }
+  }
+  return null;
+}

@@ -26,12 +26,12 @@ export function DuelVs({ duel, byId, compact = false }) {
 
   return (
     <div className="stack">
-      {!compact && game && (
+      {game && (
         <div className="game-title">
-          <div className="icon">{game.icon}</div>
+          <div className="icon" style={compact ? { width: 44, height: 44, fontSize: 26 } : undefined}>{game.icon}</div>
           <div>
             <div className="kicker">Duell {duel.round} · {CATEGORIES[game.kind]?.label}</div>
-            <h2 style={{ fontSize: compact ? 20 : 30 }}>{game.name}</h2>
+            <h2 style={{ fontSize: compact ? 22 : 30 }}>{game.name}</h2>
           </div>
         </div>
       )}

@@ -37,6 +37,7 @@ export function DuelStage({ duel, byId, big = true }) {
             <div className="big-number">{left}s</div>
             <div className="muted">Setzt eure Schlücke auf einen Kontrahenten!</div>
           </div>
+          <Rules game={game} />
         </div>
       );
     case 'playing':
@@ -93,10 +94,11 @@ export function PlayerDuelView({ code, room, duel, me, byId, players, run }) {
       : <DuelStage duel={duel} byId={byId} big={false} />;
   }
 
-  // intro & betting
+  // intro & betting: Spiel + Regeln stehen fest, BEVOR gewettet wird
   return (
     <div className="stack">
       <DuelVs duel={duel} byId={byId} compact />
+      <Rules game={GAMES[duel.gameId]} />
       {isDuelist ? (
         <div className="card accent center stack" style={{ gap: 4 }}>
           <h2>Du bist im Duell! ⚔️</h2>

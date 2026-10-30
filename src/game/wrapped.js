@@ -1,4 +1,3 @@
-import { GAMES } from './gameLibrary.js';
 import { finalDistributors } from './economy.js';
 
 /** Berechnet die "Party-Wrapped"-Karten aus Spielerstatistiken und Duell-Events. */
@@ -16,7 +15,6 @@ export function buildWrapped(players, events) {
   const totalBets = list.reduce((s, p) => s + (p.stats.betsWon ?? 0) + (p.stats.betsLost ?? 0), 0);
   const gameCounts = {};
   for (const d of duels) gameCounts[d.gameId] = (gameCounts[d.gameId] ?? 0) + 1;
-  const favGameId = Object.entries(gameCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
 
   const cards = [
     {
@@ -28,7 +26,7 @@ export function buildWrapped(players, events) {
         `${totalBets} Wetten platziert`,
         `${totalDrunk} Schlücke verloren`,
         `${totalGiven} Schlücke verteilt`,
-        favGameId ? `Meistgespielt: ${GAMES[favGameId]?.name}` : null,
+        `${Object.keys(gameCounts).length} verschiedene Spiele`,
       ].filter(Boolean),
     },
   ];

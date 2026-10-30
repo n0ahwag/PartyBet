@@ -24,6 +24,7 @@ alle anderen wetten Schlücke. **Vite + React + Firebase (Firestore, Anonymous A
   - Utensilien: Kartenduell, Bluff-Karten-Duell, Münz-Orakel, Münz-Sprint, Würfel-Showdown, Becher-Flip
 - **⚡ Spontane Live-Events:** Zwischen den Duellen (35 % Chance bei „Nächstes Duell“ oder per Knopf) erscheint auf allen Geräten gleichzeitig ein Vollbild-Alarm: „Der Boden ist Lava!“, „Statue!“, „An die Nase!“, „Handy-Tausch!“ oder „Farb-Ansturm!“. Nach 3 Sekunden tippt der Host den Langsamsten an. Bei „Statue!“ messen die Handys per Sensor, wer sich zuerst bewegt. Wer verliert, trinkt 5 Schlücke. Abschaltbar beim Erstellen
 - **📚 Bibliothek:** alle Spiele nach Kategorie oder Spieleranzahl, mit **Übungsmodus** ohne ganze Runde (Hot-Seat auf einem Gerät, läuft ohne Anmeldung)
+- **Jedes Spiel nur einmal pro Party:** Die Anzahl Duelle ist auf die verfügbaren Spiele begrenzt
 - **Phasen:** Warm-up → Chaos-Runde (Alarm-Screen, Einsätze ×2) → Sudden Death (Doom-Screen, ×3, die zwei Führenden)
 - **Power-ups:** 🛡️ Schild, ✌️ Double-Down, 🧪 Sabotage-Trank, 🔄 Joker-Tausch
 - **Party-Wrapped:** Story-Karten mit Wett-König, Pechvogel, Saboteur, High Roller, Pleitegeier, …
@@ -105,7 +106,7 @@ Baut nach `dist/` und deployt Hosting und Firestore-Regeln (braucht `firebase lo
 
 1. Host erstellt die Party (Modus, Spieleranzahl, Utensilien, Anzahl Duelle)
 2. Spieler treten per Code/QR bei. Start, sobald alle da sind
-3. Pro Duell: **Intro** (Joker-Tausch möglich) → **Wetten** (25 s, Power-ups) → **Spiel** → **Review** → **Auszahlung** („Trink X Schlücke!")
+3. Pro Duell: **Intro** – Spiel und Regeln stehen auf allen Geräten fest, bevor gewettet wird (Joker-Tausch möglich) → **Wetten** (25 s, Power-ups) → **Spiel** → **Review** → **Auszahlung** („Trink X Schlücke!")
 4. Bei Real-Life-Spielen tippt der Host den Gewinner an, digitale Spiele werden automatisch ausgewertet
 5. Nach dem Sudden-Death-Duell kommt das Party-Wrapped
 

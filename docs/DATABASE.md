@@ -29,7 +29,8 @@ rooms/{CODE}                         ← 4-stelliger Raumcode, z. B. "KXQP"
 | `phase` | `'warmup' \| 'chaos' \| 'suddenDeath'` | |
 | `phaseChangedAt` | number (ms) | Löst auf allen Geräten den Alarm-Screen aus |
 | `currentDuelId` | string \| null | Zeigt auf `duels/{id}` |
-| `lastGameId`, `lastDuelists` | | Damit nicht dasselbe Spiel bzw. Paar direkt wiederkommt |
+| `lastGameId`, `lastDuelists` | | Damit nicht dasselbe Paar direkt wiederkommt |
+| `playedGames` | string[] | Bereits gespielte Spiele – jedes Spiel nur einmal pro Party |
 | `liveEvents` | bool | Live-Events an/aus |
 | `liveEvent` | object \| null | Aktives Event: `{ id, type, color, status: 'active'\|'done', loserId, thenDraw, startedAt }` – alle Geräte zeigen daraus den Vollbild-Alarm |
 | `lastEventRound` | number | Verhindert zwei Events direkt hintereinander |
