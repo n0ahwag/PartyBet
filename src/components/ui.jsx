@@ -75,7 +75,9 @@ export function useAction(toast) {
       return await fn();
     } catch (e) {
       console.error(e);
-      toast?.(e.message || 'Fehler');
+      toast?.(e.code === 'permission-denied'
+        ? 'Keine Berechtigung – die Firestore-Regeln in der Firebase-Konsole sind vermutlich veraltet. Bitte firestore.rules aus dem Repo neu einfügen.'
+        : e.message || 'Fehler');
       return undefined;
     } finally {
       setBusy(false);
