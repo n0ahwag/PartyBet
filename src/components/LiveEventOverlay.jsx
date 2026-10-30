@@ -109,7 +109,8 @@ export function LiveEventOverlay({ code, room, players, byId, me, isHost, run })
   const done = ev.status === 'done';
   const loser = byId[ev.loserId];
   const board = room.gameMode === 'board';
-  const penaltyText = board
+  const group = room.gameMode === 'group';
+  const penaltyText = group ? '1 Punkt! ➖' : board
     ? `${ev.penalty ?? 1} ${(ev.penalty ?? 1) === 1 ? 'Feld' : 'Felder'} zurück! ⬅️`
     : `${LIVE_EVENT_SIPS} Schlücke! 🍺`;
   const bg = color && !done ? color.hex : `linear-gradient(160deg, ${def.colors[0]}, ${def.colors[1]})`;
@@ -149,7 +150,7 @@ export function LiveEventOverlay({ code, room, players, byId, me, isHost, run })
                 ))}
               </div>
               <button className="btn ghost sm" style={{ color: ink, borderColor: 'rgba(255,255,255,0.5)' }}
-                onClick={() => run(() => resolveLiveEvent(code, ev.id, null))}>Alle gleich schnell – {board ? 'keiner muss zurück' : 'keiner trinkt'}</button>
+                onClick={() => run(() => resolveLiveEvent(code, ev.id, null))}>Alle gleich schnell – {group ? 'keiner verliert' : board ? 'keiner muss zurück' : 'keiner trinkt'}</button>
             </div>
           ) : <div className="live-text">⏱ Zeit um! Der Host bestimmt den Langsamsten…</div>
         )}
@@ -160,15 +161,17 @@ export function LiveEventOverlay({ code, room, players, byId, me, isHost, run })
               <div className="live-result pop">
                 <div style={{ fontSize: 56 }}>{loser.avatar}</div>
                 <div>
-                  {board
+                  {group
+                    ? `${ev.loserId === me?.id ? 'Du verlierst' : `${loser.name} verliert`} ${penaltyText}`
+                    : board
                     ? `${ev.loserId === me?.id ? 'Du gehst' : `${loser.name} geht`} ${penaltyText}`
                     : `${ev.loserId === me?.id ? 'Du trinkst' : `${loser.name} trinkt`} ${penaltyText}`}
                 </div>
               </div>
-            ) : <div className="live-result pop">Glück gehabt – {board ? 'niemand muss zurück' : 'niemand trinkt'}! 🍀</div>}
+            ) : <div className="live-result pop">Glück gehabt – {group ? 'niemand verliert Punkte' : board ? 'niemand muss zurück' : 'niemand trinkt'}! 🍀</div>}
             {isHost
               ? <button className="btn lg" style={{ background: '#fff', color: '#1f1b16' }} onClick={() => run(() => closeLiveEvent(code))}>
-                  {ev.thenDraw ? (board ? '▶️ Weiter zur Challenge' : '⚔️ Weiter zum Duell') : 'Weiter'}
+                  {ev.thenDraw ? (board ? '▶️ Weiter zur Challenge' : group ? '▶️ Weiter zur Runde' : '⚔️ Weiter zum Duell') : 'Weiter'}
                 </button>
               : <div className="small" style={{ opacity: 0.8 }}>Gleich geht's weiter…</div>}
           </>

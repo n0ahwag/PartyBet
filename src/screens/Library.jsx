@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { GAMES, CATEGORIES, requirementsOf } from '../game/gameLibrary.js';
+import '../game/group.js';
 import { EQUIPMENT } from '../game/constants.js';
 import { navigate } from '../lib/router.js';
 
@@ -36,7 +37,7 @@ export function Library() {
       return PLAYER_GROUPS.map((g) => ({ id: g.id, title: g.label, games: games.filter(g.test) }));
     }
     // "Überall spielbar" zuerst – die Spiele ohne Utensilien
-    const order = ['anywhere', ...Object.keys(CATEGORIES).filter((k) => k !== 'anywhere')];
+    const order = ['group', 'anywhere', ...Object.keys(CATEGORIES).filter((k) => k !== 'anywhere' && k !== 'group')];
     return order.map((id) => [id, CATEGORIES[id]]).map(([id, c]) => ({
       id, title: `${c.icon} ${c.label}`, games: games.filter((g) => g.kind === id),
     }));
@@ -53,7 +54,7 @@ export function Library() {
         <button className={`chip ${groupBy === 'category' ? 'on' : ''}`} style={{ justifyContent: 'center' }} onClick={() => setGroupBy('category')}>Nach Kategorie</button>
         <button className={`chip ${groupBy === 'players' ? 'on' : ''}`} style={{ justifyContent: 'center' }} onClick={() => setGroupBy('players')}>Nach Spieleranzahl</button>
       </div>
-      <p className="small muted center" style={{ margin: 0 }}>Tippe auf ein Spiel, um es ohne ganze Runde zu üben.</p>
+      <p className="small muted center" style={{ margin: 0 }}>Tippe auf ein Spiel, um es ohne ganze Runde zu üben (Gruppen-Spiele laufen im Gruppen-Modus).</p>
       {sections.filter((s) => s.games.length).map((s) => (
         <div key={s.id} className="stack" style={{ gap: 8 }}>
           <h3>{s.title} <span className="faint">({s.games.length})</span></h3>

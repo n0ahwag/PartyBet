@@ -2,17 +2,24 @@
 
 Realtime-Party- und Gesellschaftsspiel als Mobile-First Web-App. **Vite + React + Firebase (Firestore, Anonymous Auth, Hosting).**
 
-## Zwei Spielmodi (beim Erstellen wählbar)
+## Drei Spielmodi (beim Erstellen wählbar)
 
-| | 🍻 Party-Modus | 🎲 Spielfeld-Modus (alkoholfrei) |
-|---|---|---|
-| Ablauf | Zwei werden zum 1-gegen-1 ausgelost, alle anderen wetten | **Alle** spielen jede Challenge gemeinsam |
-| Ziel | Am Ende die meisten Schlücke | Als Erster das Ziel-Feld erreichen |
+| | 🍻 Party-Modus | 🎲 Spielfeld-Modus (alkoholfrei) | 👥 Gruppen-Modus (ohne Utensilien) |
+|---|---|---|---|
+| Ablauf | Zwei werden zum 1-gegen-1 ausgelost, alle anderen wetten | **Alle** spielen jede Challenge gemeinsam | **Alle** spielen gleichzeitig, rundenweise |
+| Ziel | Am Ende die meisten Schlücke | Als Erster das Ziel-Feld erreichen | Die meisten Punkte (Finale ×2) |
 | Ergebnis | Verlierer trinkt, Gewinner verteilt | Platzierung bestimmt den Zug: 🥇 würfelt +2 · 🥈 würfelt · 🥉 +1 Feld · Rest bleibt stehen |
 | Extras | Wetten, Power-ups, Pleite-Regel | Sonderfelder: 🚀 Rakete (+3) · 🌀 Portal (Platz tauschen mit dem Führenden) · 💥 Chaos (Challenge für alle, der Letzte geht 2 zurück) · 🪨 Stolperstein (1 zurück oder aussetzen) |
 | Live-Events | Langsamster trinkt 5 Schlücke | Langsamster geht 1 Feld zurück |
 | Phasen | Warm-up → Chaos (×2) → Sudden Death (×3) | Aufwärmen → Halbzeit-Chaos (ab 40 %) → Endspurt (ab 75 % des Führenden) |
 | Wrapped | Wett-König, Pechvogel, Saboteur, … | Brettspiel-König, Turbo-Läufer, Pechvogel, Raketen-Pilot, Portal-Dieb, … |
+
+Der **Gruppen-Modus** bringt 5 eigene Gruppen-Spiele mit und mischt alle gruppenfähigen Spiele ohne Utensilien dazu (Platz 1/2/3 = 3/2/1 Punkte):
+- 🗳️ **Wer am ehesten …**: geheime Abstimmung. Wer mit der Mehrheit stimmt, bekommt +1
+- 🤝 **Gruppen-Synch-Test**: kooperativ. Alle tippen im selben Moment, gemessen über Firestore-Server-Zeitstempel (unabhängig von Geräte-Uhren). Klappt es im Zeitfenster, bekommen alle +2
+- 🐝 **Hivemind**: Kategorie erscheint, alle rufen gleichzeitig. Der Host markiert die Mehrheit (+2)
+- 🤫 **Beicht-Quiz**: Jeder tippt ein Geheimnis ein, dann wird nacheinander geraten. Richtig geraten +1, wer die Mehrheit täuscht +2
+- 📜 **Ketten-Story**: reihum je ein Wort. Am Ende liest die App die Geschichte per Sprachausgabe vor
 
 Im Spielfeld-Modus läuft jedes Minispiel als **Gruppen-Challenge**:
 - **Auto-Spiele:** Jedes Handy misst einen Wert, die App rankt automatisch (Gleichstand teilt den Platz, ohne Ergebnis bleibt man stehen).
@@ -67,10 +74,13 @@ Im Spielfeld-Modus läuft jedes Minispiel als **Gruppen-Challenge**:
     │   ├── board.js           Spielfeld-Modus: Feld erzeugen, Platzierung → Zug, Sonderfelder (pure)
     │   ├── boardEngine.js     Spielfeld-Modus: Gruppen-Challenges & Züge in Firestore
     │   ├── liveEvents.js      Live-Event-Katalog & Trigger-Regeln
+    │   ├── group.js           Gruppen-Modus: Gruppen-Spiele, Bibliothek je Modus, Punkte (pure)
+    │   ├── groupEngine.js     Gruppen-Modus: Runden & Punkte in Firestore
     │   └── wrapped.js         Statistik → Wrapped-Karten (Party & Spielfeld)
     ├── hooks/                 useRoom (Realtime-Abo), usePhaseFx, Countdown, Auth
     ├── components/            Lobby, DuelVs, BetPanel, PowerupPanel, HostControls, Rescue, LiveEventOverlay, …
-    │   └── board/             BoardView (animiertes Spielfeld), BoardRound, BoardHostControls
+    │   ├── board/             BoardView (animiertes Spielfeld), BoardRound, BoardHostControls
+    │   └── group/             GroupRound, PointsBoard, GroupHostControls
     ├── minigames/             Ein Modul pro Spiel: { Play, Stage, Review, GroupPlay?, GroupStage? } + format.js
     ├── screens/               Home, CreateRoom, JoinRoom, HostScreen, PlayerController, Wrapped, Library, Practice
     ├── lib/                   Sound, Seed-RNG, Router, Geräte-Fähigkeiten

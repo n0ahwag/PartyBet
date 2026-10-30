@@ -15,6 +15,8 @@ import { isMuted, setMuted } from '../lib/sound.js';
 import { BoardView, Standings, useAnimatedPositions } from '../components/board/BoardView.jsx';
 import { BoardRound } from '../components/board/BoardRound.jsx';
 import { BoardHostControls } from '../components/board/BoardHostControls.jsx';
+import { GroupRound, PointsBoard } from '../components/group/GroupRound.jsx';
+import { GroupHostControls } from '../components/group/GroupHostControls.jsx';
 
 /** Handy-Controller. Im Modus "Nur Handys" enthält das Host-Handy zusätzlich die Host-Steuerung. */
 export function PlayerController({ uid, code }) {
@@ -42,20 +44,21 @@ export function PlayerController({ uid, code }) {
 
   const isHost = room.hostId === uid;
   const board = room.gameMode === 'board';
+  const group = room.gameMode === 'group';
   const goal = board ? room.board.fields.length - 1 : 0;
 
   return (
     <div className="page">
-      <PhaseOverlay phase={overlay} board={room.gameMode === 'board'} />
+      <PhaseOverlay phase={overlay} mode={room.gameMode} />
       <OfflineBanner online={online} />
       <LiveEventOverlay code={code} room={room} players={players} byId={byId} me={me} isHost={isHost} run={run} />
       <header className="row">
         <Avatar player={me} />
         <div className="grow">
           <div style={{ fontWeight: 900, fontSize: 18 }}>{me.name}{isHost && <span className="pill" style={{ marginLeft: 6 }}>Host</span>}</div>
-          {board ? <span className="small muted">🎲 Spielfeld-Modus</span> : <Inventory inventory={me.inventory} />}
+          {board ? <span className="small muted">🎲 Spielfeld-Modus</span> : group ? <span className="small muted">👥 Gruppen-Modus</span> : <Inventory inventory={me.inventory} />}
         </div>
-        {board
+        {group ? <span className="balance">⭐ {me.points ?? 0} P</span> : board
           ? <span className="balance">📍 {me.position ?? 0}/{goal}{me.skipNext ? ' ⏸️' : ''}</span>
           : <Sips n={me.balance} className="big" />}
         <button className="btn ghost sm" onClick={() => { setMuted(!muted); setMutedState(!muted); }}>{muted ? '🔇' : '🔊'}</button>
@@ -63,6 +66,15 @@ export function PlayerController({ uid, code }) {
 
       {room.status === 'lobby' ? (
         <Lobby code={code} room={room} players={players} meId={uid} isHost={isHost} run={run} busy={busy} />
+      ) : group ? (
+        <>
+          <PhaseBadge room={room} />
+          <div className="phase-strip" />
+          {round ? <GroupRound code={code} round={round} byId={byId} me={me} run={run} isHost={isHost} /> : <div className="card center muted">Gleich geht's los…</div>}
+          {isHost && <GroupHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />}
+          <button className="btn ghost sm" onClick={() => setShowBoard((s) => !s)}>{showBoard ? 'Punktestand ausblenden' : '⭐ Punktestand'}</button>
+          {showBoard && <PointsBoard players={players} meId={uid} />}
+        </>
       ) : board ? (
         <>
           <PhaseBadge room={room} />

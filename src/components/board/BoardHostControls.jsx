@@ -9,7 +9,7 @@ import { sfx } from '../../lib/sound.js';
  * elimination = true (z. B. Wortkette): wer rausfliegt, wird nacheinander angetippt;
  * wer am Ende übrig bleibt, gewinnt.
  */
-function RankingInput({ round, byId, onConfirm, busy, elimination = false }) {
+export function RankingInput({ round, byId, onConfirm, busy, elimination = false }) {
   const [order, setOrder] = useState([]);
   const n = round.participants.length;
   const open = round.participants.filter((id) => !order.includes(id));
@@ -48,13 +48,16 @@ function RankingInput({ round, byId, onConfirm, busy, elimination = false }) {
 }
 
 /** Schere-Stein-Papier: Host bestätigt jedes Match des ausgelosten Turniers. */
-function BracketInput({ code, round, byId, run, busy }) {
+export function BracketInput({ code, round, byId, run, busy, onConfirm }) {
   const bracket = buildBracket(round.participants, round.id, round.bracketWinners || {});
   const open = bracket.rounds.flat().filter((m) => !m.winner);
   if (bracket.champion) {
     return (
       <button className="btn primary lg block" disabled={busy}
-        onClick={() => run(() => setRanks(code, round.id, ranksFromBracket(round.participants, bracket)))}>
+        onClick={() => {
+          const ranks = ranksFromBracket(round.participants, bracket);
+          return onConfirm ? onConfirm(ranks) : run(() => setRanks(code, round.id, ranks));
+        }}>
         🏆 {byId[bracket.champion]?.name} gewinnt – Platzierung übernehmen
       </button>
     );

@@ -12,6 +12,8 @@ import { lockDuel, settleDuel, applyRepayments } from './economy.js';
 import { createLiveEvent, shouldTriggerLiveEvent } from './liveEvents.js';
 import { generateBoard, stepBack, EVENT_PENALTY, BOARD_LENGTHS } from './board.js';
 import { startChallenge } from './boardEngine.js';
+import { startGroupRound } from './groupEngine.js';
+import { libraryFor } from './group.js';
 import { makeRng, makeRoomCode } from '../lib/random.js';
 
 /*
@@ -54,8 +56,8 @@ export async function createRoom({
         status: 'lobby', // lobby | playing | finished
         expectedPlayers,
         equipment,
-        library: filterLibrary({ playerCount: expectedPlayers, equipment }).map((g) => g.id),
-        totalRounds: Math.min(totalRounds, filterLibrary({ playerCount: expectedPlayers, equipment }).length),
+        library: libraryFor(gameMode, expectedPlayers, equipment).map((g) => g.id),
+        totalRounds: Math.min(totalRounds, libraryFor(gameMode, expectedPlayers, equipment).length),
         round: 0,
         phase: 'warmup',
         currentDuelId: null,
@@ -78,8 +80,8 @@ export async function createRoom({
   throw new Error('Konnte keinen freien Raumcode finden.');
 }
 
-export async function updateLobby(code, { expectedPlayers, equipment, totalRounds }) {
-  const library = filterLibrary({ playerCount: expectedPlayers, equipment }).map((g) => g.id);
+export async function updateLobby(code, { expectedPlayers, equipment, totalRounds, gameMode = 'party' }) {
+  const library = libraryFor(gameMode, expectedPlayers, equipment).map((g) => g.id);
   await updateDoc(roomRef(code), {
     expectedPlayers,
     equipment,
@@ -434,7 +436,9 @@ const liveEventRef = (code, id) => doc(db, 'rooms', code, 'liveEvents', id);
 export async function nextStep(code) {
   const room = (await getDoc(roomRef(code))).data();
   if (shouldTriggerLiveEvent(room)) return triggerLiveEvent(code, { thenDraw: true });
-  return room.gameMode === 'board' ? startChallenge(code) : drawDuel(code);
+  if (room.gameMode === 'board') return startChallenge(code);
+  if (room.gameMode === 'group') return startGroupRound(code);
+  return drawDuel(code);
 }
 
 /** Startet ein Live-Event für alle Geräte gleichzeitig (über das Raum-Dokument). */
@@ -466,6 +470,7 @@ export async function resolveLiveEvent(code, id, loserId) {
     tx.update(liveEventRef(code, id), { status: 'done', loserId });
     if (!loser) return;
     const patch = { 'stats.eventLosses': increment(1) };
+    if (room.gameMode === 'group') patch.points = Math.max(0, (loser.points ?? 0) - 1);
     if (room.gameMode === 'board') {
       const penalty = room.liveEvent?.penalty ?? EVENT_PENALTY;
       const to = stepBack(loser.position, penalty);
@@ -482,5 +487,6 @@ export async function closeLiveEvent(code) {
   await updateDoc(roomRef(code), { liveEvent: null });
   if (!room.liveEvent?.thenDraw) return;
   if (room.gameMode === 'board') await startChallenge(code);
+  else if (room.gameMode === 'group') await startGroupRound(code);
   else await drawDuel(code);
 }

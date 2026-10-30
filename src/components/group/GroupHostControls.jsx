@@ -1,0 +1,119 @@
+import { useEffect, useRef, useState } from 'react';
+import { GAMES, rankGroupRound, resultComplete } from '../../game/gameLibrary.js';
+import {
+  pointsForRanks, tallyVotes, syncResult, hivemindResult, confessionResult, storyState, storyResult,
+} from '../../game/group.js';
+import { beginGroupRound, finishGroupRound, setRoundState, startConfessionQuiz } from '../../game/groupEngine.js';
+import { nextStep, triggerLiveEvent, finishGame } from '../../game/engine.js';
+import { RankingInput, BracketInput } from '../board/BoardHostControls.jsx';
+import { sfx } from '../../lib/sound.js';
+
+/** Hivemind: Host markiert, wer das häufigste Wort gerufen hat. */
+function HivemindInput({ round, byId, onConfirm, busy }) {
+  const [sel, setSel] = useState([]);
+  const [word, setWord] = useState('');
+  const toggle = (id) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  return (
+    <div className="stack" style={{ gap: 8 }}>
+      <h3>Wer hat das häufigste Wort gerufen?</h3>
+      <input className="input" placeholder="Das Wort (optional)" value={word} onChange={(e) => setWord(e.target.value)} />
+      <div className="row wrap" style={{ gap: 6 }}>
+        {round.participants.map((id) => (
+          <button key={id} className={`chip ${sel.includes(id) ? 'on' : ''}`} onClick={() => toggle(id)}>{byId[id]?.avatar} {byId[id]?.name}</button>
+        ))}
+      </div>
+      <button className="btn primary" disabled={busy} onClick={() => onConfirm(sel, word.trim())}>
+        {sel.length ? `${sel.length} bekommen Punkte – bestätigen` : 'Keine Mehrheit – bestätigen'}
+      </button>
+    </div>
+  );
+}
+
+export function GroupHostControls({ code, room, round, byId, run, busy }) {
+  const fired = useRef({});
+  const game = round && GAMES[round.gameId];
+  const n = round?.participants.length ?? 0;
+  const finish = (payload) => run(() => finishGroupRound(code, round.id, payload));
+  const finishRanks = (ranks) => finish({ ranks, points: pointsForRanks(ranks, n) });
+  const once = (key, fn) => { if (!fired.current[key]) { fired.current[key] = true; fn(); } };
+
+  // Automatik: abschließen, sobald alle fertig sind
+  useEffect(() => {
+    if (round?.stage !== 'playing') return;
+    const all = (pred) => round.participants.every(pred);
+    const id = round.gameId;
+    if (id === 'whoMost' && all((u) => round.results?.[u]?.vote)) {
+      once(`${round.id}:vote`, () => { const t = tallyVotes(round); finish({ points: t.points, stats: t.stats, extra: { top: t.top } }); });
+    } else if (id === 'syncTest' && all((u) => round.results?.[u]?.at?.toMillis)) {
+      once(`${round.id}:sync`, () => { const r = syncResult(round); finish({ points: r.points, stats: r.stats, extra: { spread: r.spread, success: r.success } }); });
+    } else if (id === 'chainStory' && storyState(round).done) {
+      once(`${round.id}:story`, () => { const r = storyResult(round); finish({ ...r, extra: { story: storyState(round).text } }); });
+    } else if (id === 'confession' && round.step === 'collect' && all((u) => round.results?.[u]?.fact)) {
+      once(`${round.id}:quiz`, () => run(() => startConfessionQuiz(code, round)));
+    } else if (id === 'confession' && round.step === 'quiz' && !round.revealed) {
+      const owner = round.order[round.quizIndex];
+      if (round.participants.filter((u) => u !== owner).every((u) => round.results?.[u]?.guesses?.[round.quizIndex])) {
+        once(`${round.id}:reveal:${round.quizIndex}`, () => { sfx.tusch(); run(() => setRoundState(code, round.id, { revealed: true })); });
+      }
+    } else if (!game.groupOnly && game.judge === 'auto' && all((u) => resultComplete(id, round.results?.[u]))) {
+      once(`${round.id}:rank`, () => finishRanks(rankGroupRound(round, round.participants)));
+    }
+  }, [round]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (round?.stage === 'intro') sfx.gong();
+    if (round?.stage === 'resolved') sfx.coins();
+  }, [round?.stage, round?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  let main;
+  const isLast = room.round >= room.totalRounds;
+  if (!round || round.stage === 'resolved') {
+    main = isLast ? (
+      <button className="btn primary lg block" disabled={busy} onClick={() => run(() => finishGame(code))}>🏆 Siegerehrung & Wrapped</button>
+    ) : (
+      <>
+        <button className="btn primary lg block" disabled={busy || !!room.liveEvent} onClick={() => run(() => nextStep(code))}>▶️ Nächste Runde</button>
+        {room.liveEvents !== false && <button className="btn soft block" disabled={busy || !!room.liveEvent} onClick={() => run(() => triggerLiveEvent(code))}>⚡ Live-Event jetzt auslösen</button>}
+      </>
+    );
+  } else if (round.stage === 'intro') {
+    main = <button className="btn primary lg block" disabled={busy} onClick={() => run(() => beginGroupRound(code, round.id))}>🚦 Los geht's!</button>;
+  } else if (round.gameId === 'hivemind') {
+    main = <HivemindInput round={round} byId={byId} busy={busy} onConfirm={(sel, word) => finish({ ...hivemindResult(sel), extra: { majority: sel, word } })} />;
+  } else if (round.gameId === 'confession') {
+    if (round.step === 'collect') {
+      const k = round.participants.filter((u) => round.results?.[u]?.fact).length;
+      main = <button className="btn soft block" disabled={busy || k < 2} onClick={() => run(() => startConfessionQuiz(code, round))}>Quiz starten ({k}/{n} Geheimnisse)</button>;
+    } else if (!round.revealed) {
+      main = <button className="btn primary block" disabled={busy} onClick={() => run(() => setRoundState(code, round.id, { revealed: true }))}>🔍 Auflösen</button>;
+    } else if (round.quizIndex + 1 < round.order.length) {
+      main = <button className="btn primary block" disabled={busy} onClick={() => run(() => setRoundState(code, round.id, { quizIndex: round.quizIndex + 1, revealed: false }))}>➡️ Nächstes Geheimnis</button>;
+    } else {
+      main = <button className="btn primary block" disabled={busy} onClick={() => finish(confessionResult(round))}>🏁 Punkte vergeben</button>;
+    }
+  } else if (game.bracket) {
+    main = <BracketInput code={code} round={round} byId={byId} run={run} busy={busy} onConfirm={finishRanks} />;
+  } else if (game.judge === 'host') {
+    main = <RankingInput key={round.id} round={round} byId={byId} busy={busy} elimination={game.rankBy === 'elimination'} onConfirm={finishRanks} />;
+  } else {
+    const label = round.gameId === 'whoMost' ? 'Jetzt auszählen' : round.gameId === 'chainStory' ? 'Geschichte jetzt beenden' : 'Jetzt auswerten';
+    main = (
+      <button className="btn ghost sm" disabled={busy} onClick={() => {
+        if (round.gameId === 'whoMost') { const t = tallyVotes(round); return finish({ points: t.points, stats: t.stats, extra: { top: t.top } }); }
+        if (round.gameId === 'syncTest') { const r = syncResult(round); return finish({ points: r.points, stats: r.stats, extra: { spread: r.spread, success: r.success } }); }
+        if (round.gameId === 'chainStory') return finish({ ...storyResult(round), extra: { story: storyState(round).text } });
+        return finishRanks(rankGroupRound(round, round.participants));
+      }}>{label}</button>
+    );
+  }
+
+  return (
+    <div className="card stack">
+      <div className="row between">
+        <h3>Host-Steuerung</h3>
+        <span className="pill">Runde {room.round}/{room.totalRounds}</span>
+      </div>
+      {main}
+    </div>
+  );
+}

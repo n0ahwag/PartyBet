@@ -455,6 +455,7 @@ export function playableFor(library, duelists) {
 export function requirementsOf(game) {
   const r = [];
   r.push(game.minPlayers >= 3 ? `ab ${game.minPlayers} Spieler` : '2 Spieler');
+  if (game.groupOnly) r.push('ganze Gruppe gleichzeitig');
   if (game.devices === 'shared') r.push('1 geteiltes Gerät');
   if (game.devices === 'own') r.push('eigene Smartphones');
   if (game.needsMotion) r.push('Bewegungssensor');
