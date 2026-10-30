@@ -158,3 +158,88 @@ export const SpeedTap = {
   Stage: Review,
   Review,
 };
+
+/**
+ * Gruppen-Variante (Spielfeld-Modus): jeder auf seinem eigenen Handy.
+ * 5 Farbwechsel, gemessen wird die durchschnittliche Reaktionszeit.
+ */
+function SoloReaction({ duel, submit }) {
+  const rounds = duel.game.rounds;
+  const [phase, setPhase] = useState('ready');
+  const [idx, setIdx] = useState(0);
+  const [color, setColor] = useState(IDLE);
+  const [times, setTimes] = useState([]);
+  const st = useRef({ changedAt: 0, done: false, fouls: 0, times: [] });
+
+  useEffect(() => {
+    if (phase !== 'running') return undefined;
+    if (idx >= rounds.length) {
+      const valid = st.current.times;
+      const avgMs = Math.round(valid.reduce((s, t) => s + t, 0) / Math.max(1, valid.length));
+      submit({ avgMs, fouls: st.current.fouls, times: valid });
+      setPhase('done');
+      return undefined;
+    }
+    const s = st.current;
+    s.changedAt = 0;
+    s.done = false;
+    const t = setTimeout(() => {
+      s.changedAt = performance.now();
+      setColor(rounds[idx].color);
+      vibrate(30);
+    }, rounds[idx].delay);
+    // Wer gar nicht tippt, bekommt 1,5 s
+    const timeout = setTimeout(() => record(ROUND_TIMEOUT_MS), rounds[idx].delay + ROUND_TIMEOUT_MS);
+    return () => { clearTimeout(t); clearTimeout(timeout); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, idx]);
+
+  function record(ms) {
+    const s = st.current;
+    if (s.done) return;
+    s.done = true;
+    s.times = [...s.times, Math.round(ms)];
+    setTimes(s.times);
+    setColor(IDLE);
+    setTimeout(() => setIdx((i) => i + 1), 600);
+  }
+
+  const tap = (e) => {
+    e.preventDefault();
+    const s = st.current;
+    if (phase !== 'running' || s.done) return;
+    if (!s.changedAt) {
+      s.fouls += 1;
+      sfx.fail();
+      vibrate(150);
+      return;
+    }
+    sfx.tap();
+    record(performance.now() - s.changedAt);
+  };
+
+  if (phase === 'ready') {
+    return (
+      <div className="stack">
+        <Waiting text="Tippe auf den Kreis, sobald er die Farbe wechselt – 5 Mal. Zu früh tippen kostet 300 ms Strafe!" />
+        <button className="btn primary lg" onClick={() => setPhase('running')}>Start</button>
+      </div>
+    );
+  }
+  if (phase === 'done') {
+    const avg = Math.round(times.reduce((s, t) => s + t, 0) / Math.max(1, times.length));
+    return <Waiting text={`Ø ${avg} ms${st.current.fouls ? ` · ${st.current.fouls}× zu früh` : ''} – warte auf die anderen…`} />;
+  }
+  return (
+    <div className="stack center">
+      <div className="kicker">{Math.min(idx + 1, rounds.length)}/{rounds.length}</div>
+      <button onPointerDown={tap}
+        style={{ width: 'min(75vw, 300px)', aspectRatio: '1', borderRadius: '50%', border: 'none', margin: '0 auto', background: color, color: '#fff', fontSize: 28, fontWeight: 900 }}>
+        {color === IDLE ? 'Warte…' : 'TAP!'}
+      </button>
+      <div className="small muted">{times.map((t) => `${t} ms`).join(' · ')}</div>
+    </div>
+  );
+}
+
+SpeedTap.GroupPlay = SoloReaction;

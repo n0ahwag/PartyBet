@@ -91,3 +91,58 @@ export function buildWrapped(players, events) {
   });
   return cards;
 }
+
+/** Wrapped für den Spielfeld-Modus (alkoholfrei). */
+export function buildBoardWrapped(players, events, room) {
+  const list = players.map((p) => ({ ...p, stats: p.stats || {} }));
+  const top = (key) => {
+    const best = [...list].sort((a, b) => (b.stats[key] ?? 0) - (a.stats[key] ?? 0))[0];
+    return best && (best.stats[key] ?? 0) >= 1 ? best : null;
+  };
+  const sum = (key) => list.reduce((s, p) => s + (p.stats[key] ?? 0), 0);
+  const rounds = events.filter((e) => e.type === 'boardRound').length;
+  const goal = room.board.fields.length - 1;
+
+  const cards = [{
+    id: 'intro',
+    gradient: ['#36D1DC', '#5B86E5'],
+    kicker: 'Euer Spielfeld in Zahlen',
+    title: `${rounds} Challenges`,
+    lines: [
+      `${sum('fieldsMoved')} Felder gezogen`,
+      `${sum('rockets')}× Rakete gezündet 🚀`,
+      `${sum('portals')}× durchs Portal 🌀`,
+    ],
+  }];
+
+  const winner = list.find((p) => p.id === room.winnerId);
+  if (winner) {
+    cards.push({
+      id: 'king', gradient: ['#B8860B', '#FFD700'], kicker: 'Der Brettspiel-König 👑',
+      title: winner.name, player: winner, lines: ['Hat als Erster das Ziel erreicht! 🏆'],
+    });
+  }
+
+  const award = (id, key, gradient, kicker, line) => {
+    const p = top(key);
+    if (p) cards.push({ id, gradient, kicker, title: p.name, player: p, lines: [line(p.stats[key], p)] });
+  };
+  award('turbo', 'biggestMove', ['#F7971E', '#FF512F'], 'Der Turbo-Läufer ⚡', (n) => `Größter Einzelzug: ${n} Felder auf einmal.`);
+  award('champ', 'firstPlaces', ['#11998E', '#38EF7D'], 'Challenge-Champion 🥇', (n) => `${n}× Platz 1 in einer Challenge.`);
+  award('unlucky', 'fieldsLost', ['#4568DC', '#B06AB3'], 'Der Pechvogel 🐦', (n) => `${n} Felder durch Stolpersteine, Portale & Events verloren.`);
+  award('rocket', 'rockets', ['#00B09B', '#96C93D'], 'Raketen-Pilot 🚀', (n) => `${n}× auf einer Rakete gelandet.`);
+  award('portal', 'portals', ['#8E2DE2', '#4A00E0'], 'Der Portal-Dieb 🌀', (n) => `${n}× dem Führenden den Platz geklaut.`);
+  award('stumble', 'stumbles', ['#757F9A', '#D7DDE8'], 'Stolper-Profi 🪨', (n) => `${n}× über einen Stolperstein gefallen.`);
+  award('slowpoke', 'eventLosses', ['#F2994A', '#F2C94C'], 'Die Schnecke 🐌', (n) => `${n}× bei Live-Events der Langsamste.`);
+
+  cards.push({
+    id: 'outro',
+    gradient: ['#141E30', '#243B55'],
+    kicker: 'Endstand',
+    title: 'Danke fürs Spielen!',
+    ranking: [...list]
+      .sort((a, b) => (b.id === room.winnerId) - (a.id === room.winnerId) || (b.position ?? 0) - (a.position ?? 0))
+      .map((p) => ({ ...p, value: `Feld ${p.position ?? 0}/${goal}` })),
+  });
+  return cards;
+}

@@ -108,13 +108,17 @@ export function LiveEventOverlay({ code, room, players, byId, me, isHost, run })
   const color = ev.color && COLORS.find((c) => c.id === ev.color);
   const done = ev.status === 'done';
   const loser = byId[ev.loserId];
+  const board = room.gameMode === 'board';
+  const penaltyText = board
+    ? `${ev.penalty ?? 1} ${(ev.penalty ?? 1) === 1 ? 'Feld' : 'Felder'} zurück! ⬅️`
+    : `${LIVE_EVENT_SIPS} Schlücke! 🍺`;
   const bg = color && !done ? color.hex : `linear-gradient(160deg, ${def.colors[0]}, ${def.colors[1]})`;
   const ink = color?.id === 'yellow' ? '#1f1b16' : '#fff';
 
   return (
     <div className={`overlay live-event ${phase === 'go' && !done ? 'live-flash' : ''}`} style={{ background: bg, color: ink, zIndex: 55 }}>
       <div className="stack center" style={{ maxWidth: 720, width: '100%', gap: 14 }}>
-        <div className="kicker" style={{ color: ink, opacity: 0.85 }}>⚡ Live-Event</div>
+        <div className="kicker" style={{ color: ink, opacity: 0.85 }}>{ev.source === 'chaos' ? '💥 Chaos-Feld' : '⚡ Live-Event'}</div>
         <div className="pop" style={{ fontSize: 'clamp(64px, 18vw, 140px)', lineHeight: 1 }}>{def.icon}</div>
         <div className="live-title">{def.title}</div>
 
@@ -145,7 +149,7 @@ export function LiveEventOverlay({ code, room, players, byId, me, isHost, run })
                 ))}
               </div>
               <button className="btn ghost sm" style={{ color: ink, borderColor: 'rgba(255,255,255,0.5)' }}
-                onClick={() => run(() => resolveLiveEvent(code, ev.id, null))}>Alle gleich schnell – keiner trinkt</button>
+                onClick={() => run(() => resolveLiveEvent(code, ev.id, null))}>Alle gleich schnell – {board ? 'keiner muss zurück' : 'keiner trinkt'}</button>
             </div>
           ) : <div className="live-text">⏱ Zeit um! Der Host bestimmt den Langsamsten…</div>
         )}
@@ -155,12 +159,16 @@ export function LiveEventOverlay({ code, room, players, byId, me, isHost, run })
             {loser ? (
               <div className="live-result pop">
                 <div style={{ fontSize: 56 }}>{loser.avatar}</div>
-                <div>{ev.loserId === me?.id ? 'Du trinkst' : `${loser.name} trinkt`} {LIVE_EVENT_SIPS} Schlücke! 🍺</div>
+                <div>
+                  {board
+                    ? `${ev.loserId === me?.id ? 'Du gehst' : `${loser.name} geht`} ${penaltyText}`
+                    : `${ev.loserId === me?.id ? 'Du trinkst' : `${loser.name} trinkt`} ${penaltyText}`}
+                </div>
               </div>
-            ) : <div className="live-result pop">Glück gehabt – niemand trinkt! 🍀</div>}
+            ) : <div className="live-result pop">Glück gehabt – {board ? 'niemand muss zurück' : 'niemand trinkt'}! 🍀</div>}
             {isHost
               ? <button className="btn lg" style={{ background: '#fff', color: '#1f1b16' }} onClick={() => run(() => closeLiveEvent(code))}>
-                  {ev.thenDraw ? '⚔️ Weiter zum Duell' : 'Weiter'}
+                  {ev.thenDraw ? (board ? '▶️ Weiter zur Challenge' : '⚔️ Weiter zum Duell') : 'Weiter'}
                 </button>
               : <div className="small" style={{ opacity: 0.8 }}>Gleich geht's weiter…</div>}
           </>

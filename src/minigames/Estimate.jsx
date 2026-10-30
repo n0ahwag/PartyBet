@@ -56,6 +56,7 @@ function Stage({ duel, byId, big }) {
 
 export const Estimate = {
   Play: ({ duel, submit }) => <Play duel={duel} submit={(d) => submit(null, d)} />,
+  GroupStage: Question,
   Stage,
   Review: Stage,
 };

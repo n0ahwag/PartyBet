@@ -12,11 +12,15 @@ import { Avatar, Inventory, OfflineBanner, Loading, Sips, useToast, useAction } 
 import { Wrapped } from './Wrapped.jsx';
 import { navigate } from '../lib/router.js';
 import { isMuted, setMuted } from '../lib/sound.js';
+import { BoardView, Standings, useAnimatedPositions } from '../components/board/BoardView.jsx';
+import { BoardRound } from '../components/board/BoardRound.jsx';
+import { BoardHostControls } from '../components/board/BoardHostControls.jsx';
 
 /** Handy-Controller. Im Modus "Nur Handys" enthält das Host-Handy zusätzlich die Host-Steuerung. */
 export function PlayerController({ uid, code }) {
-  const { room, players, byId, duel, rescues, online, loading } = useRoom(code);
-  const overlay = usePhaseFx(room, duel);
+  const { room, players, byId, duel, round, rescues, online, loading } = useRoom(code);
+  const overlay = usePhaseFx(room, duel ?? round);
+  const positions = useAnimatedPositions(players, round);
   const [toast, toastNode] = useToast();
   const [run, busy] = useAction(toast);
   const [showBoard, setShowBoard] = useState(false);
@@ -34,27 +38,41 @@ export function PlayerController({ uid, code }) {
       </div>
     );
   }
-  if (room.status === 'finished') return <Wrapped code={code} players={players} />;
+  if (room.status === 'finished') return <Wrapped code={code} players={players} room={room} />;
 
   const isHost = room.hostId === uid;
+  const board = room.gameMode === 'board';
+  const goal = board ? room.board.fields.length - 1 : 0;
 
   return (
     <div className="page">
-      <PhaseOverlay phase={overlay} />
+      <PhaseOverlay phase={overlay} board={room.gameMode === 'board'} />
       <OfflineBanner online={online} />
       <LiveEventOverlay code={code} room={room} players={players} byId={byId} me={me} isHost={isHost} run={run} />
       <header className="row">
         <Avatar player={me} />
         <div className="grow">
           <div style={{ fontWeight: 900, fontSize: 18 }}>{me.name}{isHost && <span className="pill" style={{ marginLeft: 6 }}>Host</span>}</div>
-          <Inventory inventory={me.inventory} />
+          {board ? <span className="small muted">🎲 Spielfeld-Modus</span> : <Inventory inventory={me.inventory} />}
         </div>
-        <Sips n={me.balance} className="big" />
+        {board
+          ? <span className="balance">📍 {me.position ?? 0}/{goal}{me.skipNext ? ' ⏸️' : ''}</span>
+          : <Sips n={me.balance} className="big" />}
         <button className="btn ghost sm" onClick={() => { setMuted(!muted); setMutedState(!muted); }}>{muted ? '🔇' : '🔊'}</button>
       </header>
 
       {room.status === 'lobby' ? (
         <Lobby code={code} room={room} players={players} meId={uid} isHost={isHost} run={run} busy={busy} />
+      ) : board ? (
+        <>
+          <PhaseBadge room={room} />
+          <div className="phase-strip" />
+          <BoardView fields={room.board.fields} players={players} positions={positions} compact />
+          {round ? <BoardRound code={code} round={round} byId={byId} me={me} run={run} /> : <div className="card center muted">Gleich geht's los…</div>}
+          {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />}
+          <button className="btn ghost sm" onClick={() => setShowBoard((s) => !s)}>{showBoard ? 'Rangliste ausblenden' : '🏆 Wer führt?'}</button>
+          {showBoard && <Standings players={players} fields={room.board.fields} meId={uid} />}
+        </>
       ) : (
         <>
           <PhaseBadge room={room} />

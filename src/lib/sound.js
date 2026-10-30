@@ -72,6 +72,16 @@ export const sfx = {
     tone(55, { start: 0.3, dur: 2.2, type: 'square', gain: 0.15 });
   },
   tap: () => tone(1200, { dur: 0.04, type: 'square', gain: 0.08 }),
+  dice: () => {
+    for (let i = 0; i < 7; i++) tone(500 + Math.random() * 900, { start: i * 0.06, dur: 0.04, type: 'square', gain: 0.07 });
+    tone(220, { start: 0.45, dur: 0.12, type: 'triangle', gain: 0.2 });
+  },
+  step: () => tone(880, { dur: 0.05, type: 'triangle', gain: 0.1 }),
+  rocket: () => tone(200, { dur: 0.7, type: 'sawtooth', gain: 0.15, slideTo: 1600 }),
+  portal: () => {
+    tone(300, { dur: 0.8, type: 'sine', gain: 0.2, slideTo: 900 });
+    tone(900, { start: 0.1, dur: 0.7, type: 'sine', gain: 0.12, slideTo: 250 });
+  },
   beat: () => { tone(160, { dur: 0.12, type: 'sine', gain: 0.5, slideTo: 60 }); tone(2400, { dur: 0.03, type: 'square', gain: 0.05 }); },
 };
 

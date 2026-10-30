@@ -10,6 +10,8 @@ import {
 import { filterLibrary, planDuel } from './gameLibrary.js';
 import { lockDuel, settleDuel, applyRepayments } from './economy.js';
 import { createLiveEvent, shouldTriggerLiveEvent } from './liveEvents.js';
+import { generateBoard, stepBack, EVENT_PENALTY, BOARD_LENGTHS } from './board.js';
+import { startChallenge } from './boardEngine.js';
 import { makeRng, makeRoomCode } from '../lib/random.js';
 
 /*
@@ -36,7 +38,9 @@ const stripNulls = (obj = {}) => Object.fromEntries(Object.entries(obj).filter((
 
 // ------------------------------------------------------------------ Lobby
 
-export async function createRoom({ hostId, mode, expectedPlayers, equipment, totalRounds, liveEvents = true }) {
+export async function createRoom({
+  hostId, mode, expectedPlayers, equipment, totalRounds, liveEvents = true, gameMode = 'party', boardLength = 'normal',
+}) {
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = makeRoomCode();
     const ref = roomRef(code);
@@ -60,6 +64,10 @@ export async function createRoom({ hostId, mode, expectedPlayers, equipment, tot
         playedGames: [], // jedes Spiel nur einmal pro Party
         liveEvents,
         liveEvent: null,
+        gameMode, // 'party' (Schlücke & Wetten) | 'board' (alkoholfreies Spielfeld)
+        ...(gameMode === 'board'
+          ? { board: { length: boardLength, fields: generateBoard(BOARD_LENGTHS[boardLength].fields, code) }, winnerId: null }
+          : {}),
         lastEventRound: -1,
         createdAt: serverTimestamp(),
       });
@@ -426,18 +434,19 @@ const liveEventRef = (code, id) => doc(db, 'rooms', code, 'liveEvents', id);
 export async function nextStep(code) {
   const room = (await getDoc(roomRef(code))).data();
   if (shouldTriggerLiveEvent(room)) return triggerLiveEvent(code, { thenDraw: true });
-  return drawDuel(code);
+  return room.gameMode === 'board' ? startChallenge(code) : drawDuel(code);
 }
 
 /** Startet ein Live-Event für alle Geräte gleichzeitig (über das Raum-Dokument). */
-export async function triggerLiveEvent(code, { type, thenDraw = false } = {}) {
+export async function triggerLiveEvent(code, { type, thenDraw = false, penalty = EVENT_PENALTY, source = 'random' } = {}) {
   const room = (await getDoc(roomRef(code))).data();
   const id = `e${Date.now()}`;
   const ev = createLiveEvent(makeRng(`${code}:${id}`), type);
   const batch = writeBatch(db);
   batch.set(liveEventRef(code, id), { ...ev, status: 'active', reactions: {}, createdAt: serverTimestamp() });
   batch.update(roomRef(code), {
-    liveEvent: { id, ...ev, status: 'active', loserId: null, thenDraw, startedAt: Date.now() },
+    // penalty: Felder zurück im Spielfeld-Modus (im Party-Modus: 5 Schlücke trinken)
+    liveEvent: { id, ...ev, status: 'active', loserId: null, thenDraw, penalty, source, startedAt: Date.now() },
     lastEventRound: room.round,
   });
   await batch.commit();
@@ -448,18 +457,30 @@ export async function reactLiveEvent(code, id, uid, data) {
   await updateDoc(liveEventRef(code, id), { [`reactions.${uid}`]: data });
 }
 
-/** Host legt fest, wer trinkt (loserId null = niemand). */
+/** Host legt den Langsamsten fest (null = niemand). Party: trinkt; Spielfeld: geht zurück. */
 export async function resolveLiveEvent(code, id, loserId) {
-  const batch = writeBatch(db);
-  batch.update(roomRef(code), { 'liveEvent.status': 'done', 'liveEvent.loserId': loserId });
-  batch.update(liveEventRef(code, id), { status: 'done', loserId });
-  if (loserId) batch.update(playerRef(code, loserId), { 'stats.eventLosses': increment(1) });
-  await batch.commit();
+  return runTransaction(db, async (tx) => {
+    const room = (await tx.get(roomRef(code))).data();
+    const loser = loserId ? (await tx.get(playerRef(code, loserId))).data() : null;
+    tx.update(roomRef(code), { 'liveEvent.status': 'done', 'liveEvent.loserId': loserId });
+    tx.update(liveEventRef(code, id), { status: 'done', loserId });
+    if (!loser) return;
+    const patch = { 'stats.eventLosses': increment(1) };
+    if (room.gameMode === 'board') {
+      const penalty = room.liveEvent?.penalty ?? EVENT_PENALTY;
+      const to = stepBack(loser.position, penalty);
+      patch.position = to;
+      patch['stats.fieldsLost'] = increment((loser.position ?? 0) - to);
+    }
+    tx.update(playerRef(code, loserId), patch);
+  });
 }
 
 /** Event schließen und – falls es "Nächstes Duell" ersetzt hat – direkt auslosen. */
 export async function closeLiveEvent(code) {
   const room = (await getDoc(roomRef(code))).data();
   await updateDoc(roomRef(code), { liveEvent: null });
-  if (room.liveEvent?.thenDraw) await drawDuel(code);
+  if (!room.liveEvent?.thenDraw) return;
+  if (room.gameMode === 'board') await startChallenge(code);
+  else await drawDuel(code);
 }

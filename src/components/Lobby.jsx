@@ -1,17 +1,21 @@
 import { EQUIPMENT } from '../game/constants.js';
 import { GAMES } from '../game/gameLibrary.js';
 import { startGame, updateLobby, kickPlayer } from '../game/engine.js';
+import { startBoardGame } from '../game/boardEngine.js';
+import { BOARD_LENGTHS } from '../game/board.js';
 import { PlayerRow, QRCode } from './ui.jsx';
 
 /** Lobby-Ansicht. Mit isHost: Startknopf, Kick, "trotzdem starten". */
 export function Lobby({ code, room, players, meId, isHost, run, busy, big }) {
+  const board = room.gameMode === 'board';
+  const start = () => (board ? startBoardGame(code) : startGame(code));
   const joinUrl = `${window.location.origin}${window.location.pathname}#/join/${code}`;
   const full = players.length >= room.expectedPlayers;
   const equipment = EQUIPMENT.filter((e) => room.equipment.includes(e.id));
 
   const startAnyway = () => run(async () => {
     await updateLobby(code, { expectedPlayers: players.length, equipment: room.equipment, totalRounds: room.totalRounds });
-    await startGame(code);
+    await start();
   });
 
   return (
@@ -29,7 +33,8 @@ export function Lobby({ code, room, players, meId, isHost, run, busy, big }) {
             {room.library.map((id) => <span key={id} className="pill">{GAMES[id].icon} {GAMES[id].name}</span>)}
           </div>
           <p className="small muted" style={{ margin: 0 }}>
-            Utensilien: {equipment.length ? equipment.map((e) => `${e.icon} ${e.label}`).join(', ') : 'keine'} · {room.totalRounds} Duelle · Modus: {room.mode === 'screen' ? 'Hauptbildschirm' : 'Nur Handys'}
+            {board ? `🎲 Spielfeld-Modus (${BOARD_LENGTHS[room.board.length].fields} Felder, alkoholfrei)` : `🍻 Party-Modus · ${room.totalRounds} Duelle`}
+            {' · '}Utensilien: {equipment.length ? equipment.map((e) => `${e.icon} ${e.label}`).join(', ') : 'keine'} · {room.mode === 'screen' ? 'Hauptbildschirm' : 'Nur Handys'}
           </p>
         </div>
       </div>
@@ -43,13 +48,13 @@ export function Lobby({ code, room, players, meId, isHost, run, busy, big }) {
             <PlayerRow key={p.id} player={p} me={p.id === meId}
               right={isHost && p.id !== meId
                 ? <button className="btn ghost sm" onClick={() => run(() => kickPlayer(code, p.id))}>✕</button>
-                : <span className="balance sip">{p.balance}</span>} />
+                : board ? <span className="pill">bereit</span> : <span className="balance sip">{p.balance}</span>} />
           ))}
           {!players.length && <p className="faint center">Noch niemand da…</p>}
         </div>
         {isHost ? (
           <>
-            <button className="btn primary lg block" disabled={!full || busy} onClick={() => run(() => startGame(code))}>
+            <button className="btn primary lg block" disabled={!full || busy} onClick={() => run(start)}>
               {full ? '🚀 Party starten' : `Warte auf ${room.expectedPlayers - players.length} Spieler…`}
             </button>
             {!full && players.length >= 2 && (

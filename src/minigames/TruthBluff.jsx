@@ -10,7 +10,7 @@ function Play({ duel, me, byId, submit }) {
   const claimRes = duel.results?.[duel.playerA];
 
   if (me.id === duel.playerA) {
-    if (claimRes) return <Waiting text={`${byId[duel.playerB]?.name} rät gerade…`} />;
+    if (claimRes) return <Waiting text={`${byId[duel.playerB]?.name ?? 'Die anderen'} raten gerade…`} />;
     return (
       <div className="stack">
         <div className="card tinted"><b>Du behauptest!</b> Schreib etwas Verrücktes über dich – wahr oder gelogen.</div>
@@ -50,7 +50,7 @@ function Stage({ duel, byId, big }) {
       <div className="card tinted center stack">
         <div className="kicker">{a?.avatar} {a?.name} behauptet</div>
         <h2 style={{ fontSize: big ? 46 : 26, lineHeight: 1.15 }}>„{claimRes.claim}“</h2>
-        {!guess && <p className="muted" style={{ margin: 0, fontWeight: 700 }}>Alle raten laut mit: Wahr oder Lüge? {b?.name} entscheidet.</p>}
+        {!guess && <p className="muted" style={{ margin: 0, fontWeight: 700 }}>{b ? `Alle raten laut mit: Wahr oder Lüge? ${b.name} entscheidet.` : 'Alle tippen auf ihrem Handy: Wahr oder Lüge?'}</p>}
       </div>
       {guess && (
         <div className="card center stack pop">
@@ -62,4 +62,16 @@ function Stage({ duel, byId, big }) {
   );
 }
 
-export const TruthBluff = { Play, Stage, Review: Stage };
+/** Gruppen-Großbild: nur die Behauptung, Auflösung erst in der Platzierung. */
+function GroupStage({ duel, byId, big }) {
+  const a = byId[duel.playerA];
+  const claimRes = duel.results?.[duel.playerA];
+  return (
+    <div className="card tinted center stack">
+      <div className="kicker">{a?.avatar} {a?.name} erzählt</div>
+      <h2 style={{ fontSize: big ? 46 : 24, lineHeight: 1.15 }}>{claimRes ? `„${claimRes.claim}“` : '✍️ denkt sich etwas aus…'}</h2>
+    </div>
+  );
+}
+
+export const TruthBluff = { Play, Stage, Review: Stage, GroupStage };
