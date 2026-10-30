@@ -13,7 +13,7 @@ export function Wrapped({ code, players, room }) {
   const lang = useLang();
   const cards = useMemo(
     () => (room?.gameMode === 'board' ? buildBoardWrapped(players, events, room)
-      : room?.gameMode === 'group' ? buildGroupWrapped(players, events)
+      : room?.gameMode === 'group' || room?.gameMode === 'library' ? buildGroupWrapped(players, events)
         : buildWrapped(players, events)),
     [players, events, room, lang], // eslint-disable-line react-hooks/exhaustive-deps
   );

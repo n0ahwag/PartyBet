@@ -107,7 +107,7 @@ export function Practice({ gameId }) {
             ))}
           </div>}
           {game.groupOnly
-            ? <p className="muted" style={{ margin: 0, fontWeight: 700 }}>👥 {t('Dieses Spiel lebt von der ganzen Gruppe – du spielst es im Gruppen-Modus (Party erstellen → Gruppen-Modus).')}</p>
+            ? <p className="muted" style={{ margin: 0, fontWeight: 700 }}>👥 {t('Dieses Spiel lebt von der ganzen Gruppe – erstelle in der Bibliothek eine Lobby und wähle es dort aus.')}</p>
             : <button className="btn primary lg block" onClick={start}>▶️ {t('Spielen')}</button>}
         </div>
       </div>

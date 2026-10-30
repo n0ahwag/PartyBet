@@ -35,6 +35,9 @@ export const EMPTY_STATS = {
   biggestBet: 0, powerupsUsed: 0, shieldSaves: 0, rescues: 0, loansGiven: 0,
 };
 
+/** Obergrenze je Raum (auch die offene Bibliotheks-Lobby). */
+export const MAX_PLAYERS = 12;
+
 const randomPowerup = (rng) => rng.pick(POWERUP_IDS);
 const stripNulls = (obj = {}) => Object.fromEntries(Object.entries(obj).filter(([, v]) => v != null));
 
@@ -54,7 +57,7 @@ export async function createRoom({
         hostId,
         mode, // 'screen' | 'mobile'
         status: 'lobby', // lobby | playing | finished
-        expectedPlayers,
+        expectedPlayers: gameMode === 'library' ? MAX_PLAYERS : expectedPlayers,
         equipment,
         library: libraryFor(gameMode, expectedPlayers, equipment).map((g) => g.id),
         totalRounds: Math.min(totalRounds, libraryFor(gameMode, expectedPlayers, equipment).length),
@@ -64,9 +67,9 @@ export async function createRoom({
         lastGameId: null,
         lastDuelists: [],
         playedGames: [], // jedes Spiel nur einmal pro Party
-        liveEvents,
+        liveEvents: gameMode === 'library' ? false : liveEvents,
         liveEvent: null,
-        gameMode, // 'party' (Schlücke & Wetten) | 'board' (alkoholfreies Spielfeld)
+        gameMode, // 'party' (Schlücke & Wetten) | 'board' (Spielfeld) | 'group' | 'library' (Host wählt Spiele frei)
         ...(gameMode === 'board'
           ? { board: { length: boardLength, fields: generateBoard(BOARD_LENGTHS[boardLength].fields, code) }, winnerId: null }
           : {}),

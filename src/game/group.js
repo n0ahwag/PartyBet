@@ -85,6 +85,8 @@ export const GROUP_ONLY_IDS = ['whoMost', 'syncTest', 'hivemind', 'confession', 
 
 /** Bibliothek je Spielmodus (wird beim Erstellen im Raum gespeichert). */
 export function libraryFor(gameMode, playerCount, equipment = []) {
+  // Bibliotheks-Lobby: alle Spiele, die die ganze Gruppe spielen kann – der Host wählt passend zur Spielerzahl
+  if (gameMode === 'library') return Object.values(GAMES).filter((g) => g.group !== false);
   if (gameMode === 'group') {
     // ohne Utensilien: die Gruppen-Spiele + alle gruppenfähigen Spiele ohne Equipment
     return filterLibrary({ playerCount, equipment: [] }).filter((g) => g.groupOnly || g.group !== false);

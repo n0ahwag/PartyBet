@@ -10,6 +10,7 @@ import { PhaseOverlay, PhaseBadge } from '../components/PhaseOverlay.jsx';
 import { LiveEventOverlay } from '../components/LiveEventOverlay.jsx';
 import { Avatar, Inventory, OfflineBanner, Loading, Sips, useToast, useAction, LangSwitch } from '../components/ui.jsx';
 import { Wrapped } from './Wrapped.jsx';
+import { LibraryLobby } from '../components/library/LibraryLobby.jsx';
 import { navigate } from '../lib/router.js';
 import { t } from '../i18n/index.js';
 import { isMuted, setMuted } from '../lib/sound.js';
@@ -45,7 +46,8 @@ export function PlayerController({ uid, code }) {
 
   const isHost = room.hostId === uid;
   const board = room.gameMode === 'board';
-  const group = room.gameMode === 'group';
+  const library = room.gameMode === 'library';
+  const group = room.gameMode === 'group' || library;
   const goal = board ? room.board.fields.length - 1 : 0;
 
   return (
@@ -57,7 +59,7 @@ export function PlayerController({ uid, code }) {
         <Avatar player={me} />
         <div className="grow">
           <div style={{ fontWeight: 900, fontSize: 18 }}>{me.name}{isHost && <span className="pill" style={{ marginLeft: 6 }}>Host</span>}</div>
-          {board ? <span className="small muted">🎲 {t('Spielfeld-Modus')}</span> : group ? <span className="small muted">👥 {t('Gruppen-Modus')}</span> : <Inventory inventory={me.inventory} />}
+          {board ? <span className="small muted">🎲 {t('Spielfeld-Modus')}</span> : library ? <span className="small muted">📚 {t('Bibliotheks-Lobby')}</span> : group ? <span className="small muted">👥 {t('Gruppen-Modus')}</span> : <Inventory inventory={me.inventory} />}
         </div>
         {group ? <span className="balance">⭐ {me.points ?? 0} P</span> : board
           ? <span className="balance">📍 {me.position ?? 0}/{goal}{me.skipNext ? ' ⏸️' : ''}</span>
@@ -66,7 +68,9 @@ export function PlayerController({ uid, code }) {
         <LangSwitch />
       </header>
 
-      {room.status === 'lobby' ? (
+      {library ? (
+        <LibraryLobby code={code} room={room} players={players} byId={byId} round={round} me={me} isHost={isHost} run={run} busy={busy} />
+      ) : room.status === 'lobby' ? (
         <Lobby code={code} room={room} players={players} meId={uid} isHost={isHost} run={run} busy={busy} />
       ) : group ? (
         <>

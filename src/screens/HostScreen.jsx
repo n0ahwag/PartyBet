@@ -14,6 +14,7 @@ import { BoardRound } from '../components/board/BoardRound.jsx';
 import { BoardHostControls } from '../components/board/BoardHostControls.jsx';
 import { GroupRound, PointsBoard } from '../components/group/GroupRound.jsx';
 import { GroupHostControls } from '../components/group/GroupHostControls.jsx';
+import { LibraryLobby } from '../components/library/LibraryLobby.jsx';
 import { navigate } from '../lib/router.js';
 import { t } from '../i18n/index.js';
 
@@ -45,7 +46,9 @@ export function HostScreen({ uid, code }) {
       </header>
       {room.status === 'playing' && <div className="phase-strip" />}
 
-      {room.status === 'lobby' ? (
+      {room.gameMode === 'library' ? (
+        <LibraryLobby code={code} room={room} players={players} byId={byId} round={round} me={null} isHost run={run} busy={busy} big />
+      ) : room.status === 'lobby' ? (
         <Lobby code={code} room={room} players={players} isHost run={run} busy={busy} big />
       ) : room.gameMode === 'group' ? (
         <div className="host-grid">

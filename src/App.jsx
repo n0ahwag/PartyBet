@@ -26,8 +26,8 @@ export function App() {
     return () => window.removeEventListener('pointerdown', unlock);
   }, []);
 
-  // Bibliothek & Übungsmodus laufen ohne Raum (und ohne Anmeldung)
-  if (name === 'library') return params[0] ? <Practice key={params[0]} gameId={params[0]} /> : <Library />;
+  // Bibliothek & Übungsmodus laufen ohne Raum (die Anmeldung braucht nur „Lobby erstellen“)
+  if (name === 'library') return params[0] ? <Practice key={params[0]} gameId={params[0]} /> : <Library uid={uid} />;
 
   if (error) {
     return (

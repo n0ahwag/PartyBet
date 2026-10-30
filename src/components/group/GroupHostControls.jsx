@@ -66,6 +66,10 @@ export function GroupHostControls({ code, room, round, byId, run, busy }) {
     if (round?.stage === 'resolved') sfx.coins();
   }, [round?.stage, round?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const library = room.gameMode === 'library';
+  // Bibliotheks-Lobby: zwischen den Runden steuert LibraryLobby (Nochmal / anderes Spiel)
+  if (library && (!round || round.stage === 'resolved')) return null;
+
   let main;
   const isLast = room.round >= room.totalRounds;
   if (!round || round.stage === 'resolved') {
@@ -112,7 +116,7 @@ export function GroupHostControls({ code, room, round, byId, run, busy }) {
     <div className="card stack">
       <div className="row between">
         <h3>{t('Host-Steuerung')}</h3>
-        <span className="pill">{t('Runde')} {room.round}/{room.totalRounds}</span>
+        <span className="pill">{t('Runde')} {room.round}{library ? '' : `/${room.totalRounds}`}</span>
       </div>
       {main}
     </div>
