@@ -6,6 +6,7 @@ import { GROUP_GAMES } from '../../minigames/Group.jsx';
 import { FORMAT_RESULT, revealOf } from '../../minigames/format.js';
 import { Rules, Waiting } from '../../minigames/shared.jsx';
 import { t } from '../../i18n/index.js';
+import { useSecondsLeft } from '../../hooks/useCountdown.js';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
 
@@ -45,6 +46,7 @@ export function GroupRound({ code, round, byId, me, big = false, run, isHost = f
   const mg = MINIGAMES[round.gameId];
   const shownGame = { ...game, rules: game.groupRules ?? game.rules };
   const final = round.phase === 'suddenDeath';
+  const startsIn = useSecondsLeft(round.stage === 'intro' ? round.introEndsAt : null);
 
   const header = (
     <div className="game-title">
@@ -62,7 +64,9 @@ export function GroupRound({ code, round, byId, me, big = false, run, isHost = f
       <>
         <Rules game={shownGame} />
         {!social && <div className="card small">🥇 +{RANK_POINTS[0]} · 🥈 +{RANK_POINTS[1]} · 🥉 +{RANK_POINTS[2]} {t('Punkte')}{final ? ` ${t('(im Finale ×{n})', { n: FINAL_MULTIPLIER })}` : ''}</div>}
-        {!big && <Waiting text={t("Gleich geht's los…")} />}
+        {round.introEndsAt
+          ? <div className="card tinted center"><b style={{ fontSize: big ? 28 : 20 }}>⏳ {startsIn > 0 ? t('Start in {n} s', { n: startsIn }) : t("Los geht's!")}</b></div>
+          : !big && <Waiting text={t("Gleich geht's los…")} />}
       </>
     );
   } else if (round.stage === 'playing') {

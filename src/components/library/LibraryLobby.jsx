@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { GAMES, CATEGORIES, playableFor } from '../../game/gameLibrary.js';
 import { startLibraryRound, backToPicker } from '../../game/groupEngine.js';
 import { kickPlayer, finishGame } from '../../game/engine.js';
@@ -123,11 +123,14 @@ function AfterRound({ code, round, isHost, run, busy, players }) {
 export function LibraryLobby({ code, room, players, byId, round, me, isHost, run, busy, big = false }) {
   const meId = me?.id ?? null;
   const active = round && round.stage !== 'resolved';
-  const host = isHost && (
-    <>
-      {active && <GroupHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />}
-      {active && <button className="btn ghost sm" disabled={busy} onClick={() => run(() => backToPicker(code))}>✕ {t('Runde abbrechen')}</button>}
-    </>
+  // Neue Runde/Phase → nach oben, sonst bleibt man unten in der langen Spielauswahl hängen
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [round?.id, round?.stage]);
+
+  // Im Spiel sieht jeder dasselbe – Host-Extras nur eingeklappt bzw. wenn eine Eingabe nötig ist
+  const host = isHost && active && (
+    <GroupHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy}>
+      <button className="btn ghost sm" disabled={busy} onClick={() => run(() => backToPicker(code))}>✕ {t('Runde abbrechen')}</button>
+    </GroupHostControls>
   );
   const main = round ? (
     <>
@@ -135,7 +138,7 @@ export function LibraryLobby({ code, room, players, byId, round, me, isHost, run
       {round.stage === 'resolved' && <AfterRound code={code} round={round} isHost={isHost} run={run} busy={busy} players={players} />}
     </>
   ) : <GamePicker code={code} players={players} room={room} isHost={isHost} run={run} busy={busy} />;
-  const close = isHost && (
+  const close = isHost && !active && (
     <button className="btn ghost sm" disabled={busy} onClick={() => { if (window.confirm(t('Lobby schließen und Ergebnisse zeigen?'))) run(() => finishGame(code)); }}>
       🏁 {t('Lobby schließen')}
     </button>
@@ -158,7 +161,7 @@ export function LibraryLobby({ code, room, players, byId, round, me, isHost, run
       {!round && <LobbyInfo code={code} players={players} meId={meId} isHost={isHost} run={run} />}
       {main}
       {host}
-      {round && <LobbyInfo code={code} players={players} meId={meId} isHost={isHost} run={run} />}
+      {round && !active && <LobbyInfo code={code} players={players} meId={meId} isHost={isHost} run={run} />}
       {close}
     </div>
   );
