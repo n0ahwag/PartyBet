@@ -1,7 +1,24 @@
 # ⚔️🍺 FaceOff Party
 
-Realtime-Party-Spiel als Mobile-First Web-App: Zwei Spieler werden zum Duell ausgelost,
-alle anderen wetten Schlücke. **Vite + React + Firebase (Firestore, Anonymous Auth, Hosting).**
+Realtime-Party- und Gesellschaftsspiel als Mobile-First Web-App. **Vite + React + Firebase (Firestore, Anonymous Auth, Hosting).**
+
+## Zwei Spielmodi (beim Erstellen wählbar)
+
+| | 🍻 Party-Modus | 🎲 Spielfeld-Modus (alkoholfrei) |
+|---|---|---|
+| Ablauf | Zwei werden zum 1-gegen-1 ausgelost, alle anderen wetten | **Alle** spielen jede Challenge gemeinsam |
+| Ziel | Am Ende die meisten Schlücke | Als Erster das Ziel-Feld erreichen |
+| Ergebnis | Verlierer trinkt, Gewinner verteilt | Platzierung bestimmt den Zug: 🥇 würfelt +2 · 🥈 würfelt · 🥉 +1 Feld · Rest bleibt stehen |
+| Extras | Wetten, Power-ups, Pleite-Regel | Sonderfelder: 🚀 Rakete (+3) · 🌀 Portal (Platz tauschen mit dem Führenden) · 💥 Chaos (Challenge für alle, der Letzte geht 2 zurück) · 🪨 Stolperstein (1 zurück oder aussetzen) |
+| Live-Events | Langsamster trinkt 5 Schlücke | Langsamster geht 1 Feld zurück |
+| Phasen | Warm-up → Chaos (×2) → Sudden Death (×3) | Aufwärmen → Halbzeit-Chaos (ab 40 %) → Endspurt (ab 75 % des Führenden) |
+| Wrapped | Wett-König, Pechvogel, Saboteur, … | Brettspiel-König, Turbo-Läufer, Pechvogel, Raketen-Pilot, Portal-Dieb, … |
+
+Im Spielfeld-Modus läuft jedes Minispiel als **Gruppen-Challenge**:
+- **Auto-Spiele:** Jedes Handy misst einen Wert, die App rankt automatisch (Gleichstand teilt den Platz, ohne Ergebnis bleibt man stehen).
+- **Speed-Tap:** läuft hier als Reaktionstest auf dem eigenen Handy.
+- **Wahrheit oder Bluff:** Ein Erzähler gegen alle.
+- **Real-Life- und Utensil-Spiele:** Der Host tippt die Reihenfolge an.
 
 ## Features
 
@@ -37,7 +54,7 @@ alle anderen wetten Schlücke. **Vite + React + Firebase (Firestore, Anonymous A
 ├── firebase.json              Hosting (SPA-Rewrite) + Emulator-Config
 ├── firestore.rules            Security Rules (Host-Autorität, eigene Keys)
 ├── docs/DATABASE.md           Firestore-Datenmodell & Autoritäts-Modell
-├── tests/                     Vitest: Wirtschaft, Filter, Auswertung, Wrapped
+├── tests/                     Vitest: Wirtschaft, Spielfeld, Gruppen-Ranking, Live-Events, Auswertung, Wrapped
 └── src/
     ├── main.jsx · App.jsx     Hash-Routing: #/ · #/create · #/join/CODE · #/host/CODE · #/play/CODE
     ├── firebase.js            Init, anonyme Anmeldung, Emulator-Schalter
@@ -45,11 +62,15 @@ alle anderen wetten Schlücke. **Vite + React + Firebase (Firestore, Anonymous A
     │   ├── constants.js       Startguthaben, Phasen, Power-ups, Rettungen
     │   ├── gameLibrary.js     Spielebibliothek + Filter + Auto-Auswertung
     │   ├── economy.js         Einsätze sperren, Quoten, Auszahlung (pure Functions)
-    │   ├── engine.js          Alle Firestore-Schreibvorgänge / Transaktionen
-    │   └── wrapped.js         Statistik → Wrapped-Karten
+    │   ├── engine.js          Firestore-Transaktionen: Raum, Duelle, Rettungen, Live-Events
+    │   ├── board.js           Spielfeld-Modus: Feld erzeugen, Platzierung → Zug, Sonderfelder (pure)
+    │   ├── boardEngine.js     Spielfeld-Modus: Gruppen-Challenges & Züge in Firestore
+    │   ├── liveEvents.js      Live-Event-Katalog & Trigger-Regeln
+    │   └── wrapped.js         Statistik → Wrapped-Karten (Party & Spielfeld)
     ├── hooks/                 useRoom (Realtime-Abo), usePhaseFx, Countdown, Auth
-    ├── components/            Lobby, DuelVs, BetPanel, PowerupPanel, HostControls, Rescue, …
-    ├── minigames/             Ein Modul pro Spiel: { Play, Stage, Review }
+    ├── components/            Lobby, DuelVs, BetPanel, PowerupPanel, HostControls, Rescue, LiveEventOverlay, …
+    │   └── board/             BoardView (animiertes Spielfeld), BoardRound, BoardHostControls
+    ├── minigames/             Ein Modul pro Spiel: { Play, Stage, Review, GroupPlay?, GroupStage? } + format.js
     ├── screens/               Home, CreateRoom, JoinRoom, HostScreen, PlayerController, Wrapped, Library, Practice
     ├── lib/                   Sound, Seed-RNG, Router, Geräte-Fähigkeiten
     └── styles/global.css      Design-Tokens: Off-White, dynamische --accent-Farbe

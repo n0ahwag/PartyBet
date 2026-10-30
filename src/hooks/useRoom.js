@@ -11,6 +11,7 @@ export function useRoom(code) {
   const [room, setRoom] = useState(undefined);
   const [players, setPlayers] = useState([]);
   const [duel, setDuel] = useState(null);
+  const [round, setRound] = useState(null);
   const [rescues, setRescues] = useState([]);
   const [online, setOnline] = useState(true);
 
@@ -40,6 +41,17 @@ export function useRoom(code) {
       setDuel(s.exists() ? { id: s.id, ...s.data() } : null));
   }, [code, duelId]);
 
+  // Spielfeld-Modus: aktuelle Gruppen-Runde
+  const roundId = room?.currentRoundId;
+  useEffect(() => {
+    if (!code || !roundId) {
+      setRound(null);
+      return undefined;
+    }
+    return onSnapshot(doc(db, 'rooms', code, 'rounds', roundId), (s) =>
+      setRound(s.exists() ? { id: s.id, ...s.data() } : null));
+  }, [code, roundId]);
+
   // Bleibt die Verbindung weg, nach 4 s aktiv neu verbinden
   useEffect(() => {
     if (online) return undefined;
@@ -48,7 +60,7 @@ export function useRoom(code) {
   }, [online]);
 
   const byId = useMemo(() => Object.fromEntries(players.map((p) => [p.id, p])), [players]);
-  return { room, players, byId, duel, rescues, online, loading: room === undefined };
+  return { room, players, byId, duel, round, rescues, online, loading: room === undefined };
 }
 
 export function useEvents(code, enabled) {

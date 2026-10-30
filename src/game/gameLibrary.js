@@ -488,3 +488,87 @@ export function planDuel({ orderedPlayers, libraryIds = [], playedIds = [], seed
   }
   return null;
 }
+
+// ------------------------------------------------------------------ Gruppen-Challenges (Spielfeld-Modus)
+/*
+ * Im Spielfeld-Modus spielen ALLE gleichzeitig. Auto-Spiele bekommen dafür eine
+ * Punkte-Funktion (kleiner = besser), aus der die Platzierung entsteht.
+ * Host-Spiele (Real-Life/Utensilien) → der Host tippt die Reihenfolge ein.
+ */
+const GROUP_SCORES = {
+  speedTap: (r) => r.avgMs + (r.fouls ?? 0) * 300,
+  balance: (r) => r.wobble,
+  memoryCode: (r, uid, round) => (r.input === round.game.code ? r.ms : Infinity),
+  estimate: (r, uid, round) => Math.abs(r.guess - round.game.a),
+  shake: (r) => -r.shakes,
+  compass: (r) => (r.ms == null ? Infinity : r.ms),
+  emojiQuiz: (r) => (r.correct ? r.ms : Infinity),
+  stareDown: (r) => -r.survivedMs,
+  rhythm: (r) => r.errorMs,
+  truthBluff: (r, uid, round) => {
+    const claim = round.results?.[round.playerA];
+    if (!claim) return Infinity;
+    if (uid === round.playerA) {
+      // Erzähler ist vorne, wenn er mindestens die Hälfte reinlegt
+      const guesses = Object.entries(round.results).filter(([id]) => id !== round.playerA);
+      const fooled = guesses.filter(([, g]) => g.guess !== claim.truth).length;
+      return guesses.length && fooled * 2 >= guesses.length ? 0 : 1;
+    }
+    return r.guess === claim.truth ? 0 : 1;
+  },
+};
+
+const GROUP_RULES = {
+  colorSprint: 'Eine Farbe erscheint. Alle suchen gleichzeitig – der Host trägt ein, wer in welcher Reihenfolge einen passenden Gegenstand hochhält.',
+  speedTap: 'Jeder auf seinem Handy: Der Button wechselt 5-mal die Farbe. Tippe nach jedem Wechsel so schnell wie möglich. Bester Durchschnitt gewinnt, zu frühes Tippen kostet Strafzeit.',
+  balance: 'Alle legen gleichzeitig ihr Handy flach auf die Hand. Wer am ruhigsten bleibt, gewinnt.',
+  memoryCode: 'Alle sehen den gleichen Code kurz aufblitzen. Wer ihn am schnellsten korrekt eintippt, gewinnt.',
+  estimate: 'Alle tippen geheim ihre Schätzung. Wer am nächsten dran ist, gewinnt.',
+  highCard: 'Jeder zieht verdeckt eine Karte, alle decken gleichzeitig auf. Der Host trägt die Reihenfolge von der höchsten zur niedrigsten Karte ein.',
+  coinOracle: 'Jeder sagt 5 Münzwürfe an. Wer am öftesten richtig liegt, gewinnt – der Host trägt die Reihenfolge ein.',
+  diceDuel: 'Jeder hat 3 Würfe und darf jederzeit stoppen. Höchste Augensumme (max. 15) gewinnt – der Host trägt die Reihenfolge ein.',
+  cupFlip: 'Alle flippen gleichzeitig ihren Becher. Wer zuerst 3-mal schafft, gewinnt – der Host trägt die Reihenfolge ein.',
+  coinSprint: 'Reihum schnippt jeder seine Münze Richtung Markierung. Wer am nächsten dran ist, gewinnt – der Host trägt die Reihenfolge ein.',
+  shake: 'Alle schütteln gleichzeitig 5 Sekunden lang. Die meisten Schüttler gewinnen.',
+  compass: 'Alle richten ihr Handy gleichzeitig in die angezeigte Himmelsrichtung. Wer am schnellsten ist, gewinnt.',
+  emojiQuiz: 'Alle raten gleichzeitig dieselben Emojis. Wer zuerst richtig liegt, gewinnt.',
+  stareDown: 'Alle starren in ihre Frontkamera. Wer am längsten nicht blinzelt oder lacht, gewinnt.',
+  rhythm: 'Alle hören denselben Rhythmus und klopfen ihn nach. Wer am genauesten ist, gewinnt.',
+  truthBluff: 'Ein Erzähler tippt eine Behauptung ein, alle anderen raten: wahr oder Lüge? Richtig Ratende landen vorne. Legt der Erzähler mindestens die Hälfte rein, ist er auch vorne.',
+};
+
+for (const [id, fn] of Object.entries(GROUP_SCORES)) GAMES[id].groupScore = fn;
+for (const [id, text] of Object.entries(GROUP_RULES)) GAMES[id].groupRules = text;
+GAMES.bluffCard.group = false; // reines 1-gegen-1
+
+/** Spiele, die alle Teilnehmer gemeinsam spielen können. */
+export function groupPlayable(libraryIds, participants) {
+  const games = libraryIds.map((id) => GAMES[id]).filter((g) => g && g.group !== false);
+  return playableFor(games, participants);
+}
+
+/**
+ * Platzierungen aus Punkten (kleiner = besser). Gleichstand teilt sich den Platz (1, 1, 3 …).
+ * Ohne gültiges Ergebnis: Platz n+1 → man bleibt stehen (auch wenn es niemand geschafft hat).
+ */
+export function rankFromScores(participantIds, scoreOf) {
+  const scored = participantIds.map((id) => {
+    const s = scoreOf(id);
+    return { id, s: Number.isFinite(s) ? s : Infinity };
+  }).sort((a, b) => a.s - b.s);
+  const ranks = {};
+  scored.forEach((e, i) => {
+    if (e.s === Infinity) ranks[e.id] = participantIds.length + 1; // kein/ungültiges Ergebnis → zieht nicht
+    else ranks[e.id] = i > 0 && e.s === scored[i - 1].s ? ranks[scored[i - 1].id] : i + 1;
+  });
+  return ranks;
+}
+
+/** Platzierungen für eine Gruppen-Runde mit Auto-Auswertung. */
+export function rankGroupRound(round, participantIds) {
+  const game = GAMES[round.gameId];
+  return rankFromScores(participantIds, (id) => {
+    const r = round.results?.[id];
+    return r ? game.groupScore(r, id, round) : Infinity;
+  });
+}

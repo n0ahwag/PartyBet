@@ -18,6 +18,7 @@ function ColorReveal({ duel, big }) {
 
 export const ColorSprint = {
   Stage: ({ duel, big }) => <ColorReveal duel={duel} big={big} />,
+  GroupStage: ({ duel, big }) => <ColorReveal duel={duel} big={big} />,
   Play: ({ duel }) => (
     <div className="stack">
       <ColorReveal duel={duel} />

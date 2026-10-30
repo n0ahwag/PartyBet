@@ -68,6 +68,17 @@ service cloud.firestore {
         );
       }
 
+      // Spielfeld-Modus: Gruppen-Challenges – jeder Teilnehmer schreibt nur sein eigenes Ergebnis
+      match /rounds/{roundId} {
+        allow read: if signedIn();
+        allow create, delete: if isHost(code);
+        allow update: if isHost(code) || (
+          isPlayer(code) && resource.data.stage == 'playing'
+          && request.auth.uid in resource.data.participants
+          && onlyChanged(['results']) && onlyOwnKey('results')
+        );
+      }
+
       // Live-Events: Host startet/entscheidet, Spieler melden nur ihre eigene Sensor-Reaktion
       match /liveEvents/{id} {
         allow read: if signedIn();

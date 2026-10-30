@@ -10,6 +10,7 @@ rooms/{CODE}                         ← 4-stelliger Raumcode, z. B. "KXQP"
 ├── duels/{r01, r02, …}              ← ein Dokument pro Duell / Runde
 ├── rescues/{autoId}                 ← Pleite-Rettungen (Aufgabe, Video, Kredit, Bank)
 ├── liveEvents/{e<timestamp>}        ← Spontane Live-Events (Sensor-Reaktionen der Spieler)
+├── rounds/{r01, r02, …}             ← Spielfeld-Modus: Gruppen-Challenges (alle spielen)
 └── events/{autoId}                  ← Protokoll für das Party-Wrapped
 ```
 
@@ -31,6 +32,9 @@ rooms/{CODE}                         ← 4-stelliger Raumcode, z. B. "KXQP"
 | `currentDuelId` | string \| null | Zeigt auf `duels/{id}` |
 | `lastGameId`, `lastDuelists` | | Damit nicht dasselbe Paar direkt wiederkommt |
 | `playedGames` | string[] | Bereits gespielte Spiele – jedes Spiel nur einmal pro Party |
+| `gameMode` | `'party' \| 'board'` | Party-Modus oder alkoholfreier Spielfeld-Modus |
+| `board` | `{ length, fields[] }` | Nur Spielfeld: `fields[i]` = `start`, `normal`, `rocket`, `portal`, `chaos`, `stumble`, `goal` |
+| `currentRoundId`, `winnerId` | string | Nur Spielfeld: aktuelle Challenge, Sieger |
 | `liveEvents` | bool | Live-Events an/aus |
 | `liveEvent` | object \| null | Aktives Event: `{ id, type, color, status: 'active'\|'done', loserId, thenDraw, startedAt }` – alle Geräte zeigen daraus den Vollbild-Alarm |
 | `lastEventRound` | number | Verhindert zwei Events direkt hintereinander |
@@ -46,6 +50,7 @@ rooms/{CODE}                         ← 4-stelliger Raumcode, z. B. "KXQP"
 | `bankrupt` | bool | `balance == 0` |
 | `caps` | `{ touch, motion }` | Gerätefähigkeiten (Gyroskop → Handy-Balance) |
 | `isHost` | bool | |
+| `position`, `skipNext` | number, bool | Nur Spielfeld: Feld & Aussetzen in der nächsten Runde |
 | `stats` | object | `duelsWon/Lost`, `betsWon/Lost`, `betProfit`, `sipsDrunk`, `sipsWon`, `sabotages`, `sabotaged`, `bankruptcies`, `biggestBet`, `powerupsUsed`, `shieldSaves`, `rescues`, `loansGiven` |
 
 ## `rooms/{CODE}/duels/{id}`
@@ -75,11 +80,24 @@ rooms/{CODE}                         ← 4-stelliger Raumcode, z. B. "KXQP"
 | `lenderId`, `amount` | Bei Kredit |
 | `status` | `pending` → `approved/rejected`; Kredit: `asked` → `accepted/declined` (Kreditgeber) → `approved` (Host) |
 
+## `rooms/{CODE}/rounds/{id}` (Spielfeld-Modus)
+
+| Feld | Geschrieben von | Beschreibung |
+|---|---|---|
+| `gameId`, `game`, `participants` | Host | Challenge für **alle** Spieler |
+| `playerA` | Host | Nur bei „Wahrheit oder Bluff“: der Erzähler |
+| `stage` | Host | `intro → playing → review → resolved` |
+| `results.{uid}` | **Teilnehmer** (nur eigener Key, nur `playing`) | Messwert des Spiels |
+| `ranks` | Host (automatisch oder per Eingabe) | `{ uid: Platz }`, ohne Ergebnis: Platz n+1 (zieht nicht) |
+| `moves` | Host beim Ziehen | `{ uid: { rank, roll, steps, from, landed, to, field, effect, skipped } }` |
+| `chaos`, `chaosDone`, `winnerId` | Host | Chaos-Feld betreten? / Sieger |
+
 ## `rooms/{CODE}/liveEvents/{id}`
 
 | Feld | Geschrieben von | Beschreibung |
 |---|---|---|
 | `type`, `color`, `status`, `loserId` | Host | `lava`, `statue`, `nose`, `swap`, `color` |
+| (im Raum) `liveEvent.penalty`, `.source` | Host | Spielfeld: Felder zurück (1 Live-Event, 2 Chaos-Feld) |
 | `reactions.{uid}` | **Spieler** (nur eigener Key, nur solange `active`) | `{ movedAfterMs }` bei „Statue!“ |
 
 ## `rooms/{CODE}/events/{id}`

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { EQUIPMENT } from '../game/constants.js';
 import { filterLibrary } from '../game/gameLibrary.js';
+import { BOARD_LENGTHS } from '../game/board.js';
 import { createRoom, joinRoom } from '../game/engine.js';
 import { navigate } from '../lib/router.js';
 import { detectCaps } from '../lib/device.js';
@@ -8,6 +9,8 @@ import { AVATARS } from '../game/constants.js';
 import { useToast, useAction } from '../components/ui.jsx';
 
 export function CreateRoom({ uid }) {
+  const [gameMode, setGameMode] = useState('party');
+  const [boardLength, setBoardLength] = useState('normal');
   const [mode, setMode] = useState('screen');
   const [count, setCount] = useState(4);
   const [equipment, setEquipment] = useState([]);
@@ -17,14 +20,18 @@ export function CreateRoom({ uid }) {
   const [toast, toastNode] = useToast();
   const [run, busy] = useAction(toast);
 
-  const library = useMemo(() => filterLibrary({ playerCount: count, equipment }), [count, equipment]);
+  const board = gameMode === 'board';
+  const library = useMemo(
+    () => filterLibrary({ playerCount: count, equipment }).filter((g) => !board || g.group !== false),
+    [count, equipment, board],
+  );
   // Jedes Spiel nur einmal pro Party → höchstens so viele Duelle wie Spiele
   const maxRounds = Math.max(1, library.length);
   useEffect(() => setRounds((r) => Math.min(r, maxRounds)), [maxRounds]);
   const toggle = (id) => setEquipment((eq) => (eq.includes(id) ? eq.filter((e) => e !== id) : [...eq, id]));
 
   const create = () => run(async () => {
-    const code = await createRoom({ hostId: uid, mode, expectedPlayers: count, equipment, totalRounds: rounds, liveEvents });
+    const code = await createRoom({ hostId: uid, mode, expectedPlayers: count, equipment, totalRounds: rounds, liveEvents, gameMode, boardLength });
     if (mode === 'mobile') {
       localStorage.setItem('fo_name', name);
       await joinRoom(code, uid, { name, avatar: AVATARS[0], caps: detectCaps() });
@@ -42,6 +49,32 @@ export function CreateRoom({ uid }) {
         <button className="btn ghost sm" onClick={() => navigate('/')}>←</button>
         <h2>Party erstellen</h2>
         <span style={{ width: 40 }} />
+      </div>
+
+      <div className="card stack">
+        <h3>Spielmodus</h3>
+        <div className="grid-2">
+          <button className={`chip mode-card ${gameMode === 'party' ? 'on' : ''}`} onClick={() => setGameMode('party')}>
+            <span style={{ fontSize: 30 }}>🍻</span>Party-Modus
+            <span className="small muted" style={{ fontWeight: 500 }}>1-gegen-1-Duelle, Schlücke, Wetten & Pleite-Regel</span>
+          </button>
+          <button className={`chip mode-card ${gameMode === 'board' ? 'on' : ''}`} onClick={() => setGameMode('board')}>
+            <span style={{ fontSize: 30 }}>🎲</span>Spielfeld-Modus
+            <span className="small muted" style={{ fontWeight: 500 }}>Alkoholfrei: alle spielen jede Challenge, wer zuerst im Ziel ist, gewinnt</span>
+          </button>
+        </div>
+        {board && (
+          <div className="stack" style={{ gap: 6 }}>
+            <span className="small muted">Länge des Spielfelds</span>
+            <div className="row">
+              {Object.values(BOARD_LENGTHS).map((b) => (
+                <button key={b.id} className={`chip grow ${boardLength === b.id ? 'on' : ''}`} style={{ justifyContent: 'center' }} onClick={() => setBoardLength(b.id)}>
+                  {b.label} ({b.fields})
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="card stack">
@@ -77,7 +110,7 @@ export function CreateRoom({ uid }) {
           <button className={`chip ${equipment.length === 0 ? 'on' : ''}`} onClick={() => setEquipment([])}>🙅 Gar nichts</button>
         </div>
         <div className="card flat tinted stack" style={{ gap: 8, padding: 14 }}>
-          <b>{library.length} Spiele verfügbar</b>
+          <b>{library.length} Spiele verfügbar{board ? ' (als Gruppen-Challenge)' : ''}</b>
           <div className="row wrap" style={{ gap: 6 }}>
             {library.map((g) => <span key={g.id} className="pill" style={{ background: `color-mix(in srgb, ${g.accent} 16%, var(--card))` }}>{g.icon} {g.name}</span>)}
           </div>
@@ -85,7 +118,7 @@ export function CreateRoom({ uid }) {
         </div>
       </div>
 
-      <div className="card stack">
+      {!board && <div className="card stack">
         <h3>Anzahl Duelle</h3>
         <div className="stepper" style={{ justifyContent: 'center' }}>
           <button onClick={() => setRounds((r) => Math.max(Math.min(3, maxRounds), r - 1))}>−</button>
@@ -96,12 +129,16 @@ export function CreateRoom({ uid }) {
           Jedes Spiel nur einmal – max. {maxRounds} Duelle.<br />
           Warm-up: {Math.max(1, Math.ceil((rounds - 1) * 0.5))} · Chaos: {rounds - 1 - Math.max(1, Math.ceil((rounds - 1) * 0.5))} · Sudden Death: 1
         </p>
-      </div>
+      </div>}
 
       <div className="card row">
         <div className="grow">
           <b>⚡ Spontane Live-Events</b>
-          <div className="small muted">Zwischen den Duellen unerwartete Vollbild-Alarme – der Langsamste trinkt 5 Schlücke.</div>
+          <div className="small muted">
+            {board
+              ? 'Zwischendurch unerwartete Vollbild-Alarme – der Langsamste geht ein Feld zurück.'
+              : 'Zwischen den Duellen unerwartete Vollbild-Alarme – der Langsamste trinkt 5 Schlücke.'}
+          </div>
         </div>
         <button className={`chip ${liveEvents ? 'on' : ''}`} onClick={() => setLiveEvents((v) => !v)}>{liveEvents ? 'An' : 'Aus'}</button>
       </div>

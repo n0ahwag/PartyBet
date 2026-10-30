@@ -14,7 +14,7 @@ export const LIVE_EVENTS = {
   },
   statue: {
     id: 'statue', title: 'Statue!', icon: '🗿',
-    text: 'Erstarrt! Handy in der Hand ruhig halten – wer sich zuerst bewegt, trinkt.', colors: ['#64748B', '#1E293B'],
+    text: 'Erstarrt! Handy in der Hand ruhig halten – wer sich zuerst bewegt, verliert.', colors: ['#64748B', '#1E293B'],
     sensor: true,
   },
   nose: {
