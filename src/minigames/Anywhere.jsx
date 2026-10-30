@@ -329,6 +329,12 @@ function WordChainView({ duel, big }) {
   const game = GAMES.wordChain;
   return (
     <div className="stack center">
+      {duel.game.category && (
+        <div className="card tinted center" style={{ padding: '10px 18px' }}>
+          <div className="kicker">{t('Kategorie')}</div>
+          <b style={{ fontSize: big ? 40 : 28 }}>{t(duel.game.category)}</b>
+        </div>
+      )}
       <div className="kicker">{t('Startwort')}</div>
       <div className="big-number" style={{ fontSize: big ? 72 : 44 }}>{t(duel.game.startWord)}</div>
       <p className="muted" style={{ margin: 0, fontWeight: 700 }}>

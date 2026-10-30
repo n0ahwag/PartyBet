@@ -39,6 +39,7 @@ function dataKeys() {
   gl.ESTIMATE_QUESTIONS.forEach((x) => { add(x.q); add(x.unit); });
   gl.COMPASS_DIRECTIONS.forEach((x) => add(x.label));
   gl.EMOJI_PUZZLES.forEach((x) => { add(x.hint); add(x.solution); });
+  gl.CHAIN_CATEGORIES.forEach((x) => add(x.category));
   [gl.ASSOCIATION_WORDS, gl.SPRINT_CATEGORIES, gl.CHAIN_WORDS, c.SABOTAGE_RULES, c.EMERGENCY_TASKS, c.VIDEO_PROMPTS,
     g.WHO_MOST_QUESTIONS, g.HIVEMIND_CATEGORIES, g.STORY_STARTS].forEach((list) => list.forEach(add));
   Object.values(c.PHASES).forEach((x) => { add(x.label); add(x.tagline); });

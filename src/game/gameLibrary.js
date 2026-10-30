@@ -594,7 +594,19 @@ export const SPRINT_CATEGORIES = [
 ];
 const SPRINT_LETTERS = 'ABDEFGHKLMNPRSTW';
 
-export const CHAIN_WORDS = ['Banane', 'Elefant', 'Taschenlampe', 'Regenschirm', 'Fußball', 'Kuchen', 'Sonnenbrille', 'Pinguin', 'Rakete', 'Schokolade'];
+/** Wortkette: Jede Runde hat eine Kategorie – alle Wörter müssen dazu passen (sonst zu leicht). */
+export const CHAIN_CATEGORIES = [
+  { category: 'Tiere', words: ['Elefant', 'Pinguin', 'Krokodil', 'Giraffe', 'Hamster'] },
+  { category: 'Essen & Trinken', words: ['Banane', 'Kuchen', 'Schokolade', 'Tomate', 'Spaghetti'] },
+  { category: 'Länder', words: ['Deutschland', 'Brasilien', 'Kanada', 'Norwegen', 'Italien'] },
+  { category: 'Städte', words: ['Berlin', 'Paris', 'Madrid', 'London', 'Hamburg'] },
+  { category: 'Vornamen', words: ['Anna', 'Tobias', 'Lukas', 'Marie', 'Daniel'] },
+  { category: 'Berufe', words: ['Bäcker', 'Lehrer', 'Pilot', 'Arzt', 'Gärtner'] },
+  { category: 'Marken', words: ['Adidas', 'Nike', 'Lego', 'Samsung', 'Nutella'] },
+  { category: 'Sportarten', words: ['Fußball', 'Tennis', 'Handball', 'Golf', 'Rudern'] },
+  { category: 'Dinge im Haushalt', words: ['Taschenlampe', 'Regenschirm', 'Kühlschrank', 'Teller', 'Besen'] },
+];
+export const CHAIN_WORDS = CHAIN_CATEGORIES.flatMap((c) => c.words);
 
 /** Rechenaufgabe je Phase – gleiche Aufgabe auf allen Geräten (Seed). */
 export function makeMathTask(rng, phase = 'warmup') {
@@ -716,9 +728,12 @@ Object.assign(GAMES, {
   wordChain: {
     ...base, id: 'wordChain', name: 'Wortketten-Duell', icon: '🔗', devices: 'none', judge: 'host', accent: '#14B8A6',
     rankBy: 'elimination',
-    rules: 'Reihum laut sprechen: Jedes neue Wort beginnt mit dem letzten Buchstaben des vorherigen. Wer stockt, zögert oder ein Wort doppelt sagt, fliegt raus – der Host entscheidet.',
-    groupRules: 'Reihum laut: Jedes Wort beginnt mit dem letzten Buchstaben des vorherigen. Der Host tippt an, wer rausfliegt – der Letzte im Spiel gewinnt.',
-    createState: (rng) => ({ startWord: rng.pick(CHAIN_WORDS) }),
+    rules: 'Reihum laut sprechen: Jedes neue Wort muss zur Kategorie passen und mit dem letzten Buchstaben des vorherigen beginnen. Wer stockt, ein falsches Wort sagt oder eins doppelt nennt, fliegt raus – der Host entscheidet.',
+    groupRules: 'Reihum laut: Jedes Wort muss zur Kategorie passen und mit dem letzten Buchstaben des vorherigen beginnen. Der Host tippt an, wer rausfliegt – der Letzte im Spiel gewinnt.',
+    createState: (rng) => {
+      const { category, words } = rng.pick(CHAIN_CATEGORIES);
+      return { category, startWord: rng.pick(words) };
+    },
   },
   f1Start: {
     ...base, id: 'f1Start', name: 'Formel-1-Frühstart', icon: '🏎️', devices: 'own', judge: 'auto', accent: '#DC2626',
