@@ -1,5 +1,5 @@
 import { Avatar, Sips } from './ui.jsx';
-import { GAMES } from '../game/gameLibrary.js';
+import { GAMES, CATEGORIES } from '../game/gameLibrary.js';
 import { minStakeFor } from '../game/economy.js';
 import { PHASES } from '../game/constants.js';
 
@@ -30,7 +30,7 @@ export function DuelVs({ duel, byId, compact = false }) {
         <div className="game-title">
           <div className="icon">{game.icon}</div>
           <div>
-            <div className="kicker">Duell {duel.round} · {game.kind === 'real' ? 'Real-Life' : game.kind === 'digital' ? 'Digital' : 'Multi-Device'}</div>
+            <div className="kicker">Duell {duel.round} · {CATEGORIES[game.kind]?.label}</div>
             <h2 style={{ fontSize: compact ? 20 : 30 }}>{game.name}</h2>
           </div>
         </div>

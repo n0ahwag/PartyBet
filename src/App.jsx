@@ -9,6 +9,8 @@ import { CreateRoom } from './screens/CreateRoom.jsx';
 import { JoinRoom } from './screens/JoinRoom.jsx';
 import { HostScreen } from './screens/HostScreen.jsx';
 import { PlayerController } from './screens/PlayerController.jsx';
+import { Library } from './screens/Library.jsx';
+import { Practice } from './screens/Practice.jsx';
 
 export function App() {
   const { name, params } = useRoute();
@@ -21,6 +23,9 @@ export function App() {
     window.addEventListener('pointerdown', unlock);
     return () => window.removeEventListener('pointerdown', unlock);
   }, []);
+
+  // Bibliothek & Übungsmodus laufen ohne Raum (und ohne Anmeldung)
+  if (name === 'library') return params[0] ? <Practice gameId={params[0]} /> : <Library />;
 
   if (error) {
     return (

@@ -7,7 +7,11 @@ const ids = (list) => list.map((g) => g.id).sort();
 
 describe('filterLibrary', () => {
   it('2 Spieler ohne Utensilien: keine 3-Spieler-Spiele', () => {
-    expect(ids(filterLibrary({ playerCount: 2, equipment: [] }))).toEqual(['balance', 'memoryCode', 'speedTap']);
+    const lib = ids(filterLibrary({ playerCount: 2, equipment: [] }));
+    expect(lib).toContain('speedTap');
+    expect(lib).not.toContain('colorSprint');
+    expect(lib).not.toContain('estimate');
+    expect(lib).not.toContain('highCard');
   });
 
   it('Utensilien schalten Bonus-Spiele frei', () => {

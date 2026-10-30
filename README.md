@@ -13,7 +13,16 @@ alle anderen wetten Schlücke. **Vite + React + Firebase (Firestore, Anonymous A
   - **Finale:** Wer am Ende die meisten Schlücke hat, darf alle seine verbleibenden verteilen
 - **Live-Sync für Tablets:** Bildschirm bleibt an (Wake Lock), sofortiges Neuverbinden nach Standby/Hintergrund, Banner bei Verbindungsverlust
 - **Pleite-Regel:** Notfall-Aufgabe, peinliches Video, Kredit bei Mitspielern (+50 % Zinsen) oder Bank-Darlehen. Schulden werden automatisch aus Gewinnen getilgt
-- **5 Kern-Minispiele:** Farb-Sprint, Split-Screen Speed-Tap, Handy-Balance (Gyroskop), Memory-Code, Schätz-Duell, dazu 4 Utensilien-Spiele (Kartenduell, Münz-Orakel, Würfel-Showdown, Becher-Flip)
+- **17 Spiele in 8 Kategorien:**
+  - Real-Life: Farb-Sprint, Handy-Balance
+  - Digital: Speed-Tap (Split-Screen), Memory-Code, Emoji-Hit-Raten
+  - Multi-Device: Schätz-Duell
+  - Sensor: Schüttel-Manie, Kompass-Axt
+  - Frontkamera: Starr-Duell (Blinzel-/Lach-Erkennung per MediaPipe Face-Tracking)
+  - Audio: Rhythmus-Echo
+  - Social: Wahrheit oder Bluff
+  - Utensilien: Kartenduell, Bluff-Karten-Duell, Münz-Orakel, Münz-Sprint, Würfel-Showdown, Becher-Flip
+- **📚 Bibliothek:** alle Spiele nach Kategorie oder Spieleranzahl, mit **Übungsmodus** ohne ganze Runde (Hot-Seat auf einem Gerät, läuft ohne Anmeldung)
 - **Phasen:** Warm-up → Chaos-Runde (Alarm-Screen, Einsätze ×2) → Sudden Death (Doom-Screen, ×3, die zwei Führenden)
 - **Power-ups:** 🛡️ Schild, ✌️ Double-Down, 🧪 Sabotage-Trank, 🔄 Joker-Tausch
 - **Party-Wrapped:** Story-Karten mit Wett-König, Pechvogel, Saboteur, High Roller, Pleitegeier, …
@@ -39,7 +48,7 @@ alle anderen wetten Schlücke. **Vite + React + Firebase (Firestore, Anonymous A
     ├── hooks/                 useRoom (Realtime-Abo), usePhaseFx, Countdown, Auth
     ├── components/            Lobby, DuelVs, BetPanel, PowerupPanel, HostControls, Rescue, …
     ├── minigames/             Ein Modul pro Spiel: { Play, Stage, Review }
-    ├── screens/               Home, CreateRoom, JoinRoom, HostScreen, PlayerController, Wrapped
+    ├── screens/               Home, CreateRoom, JoinRoom, HostScreen, PlayerController, Wrapped, Library, Practice
     ├── lib/                   Sound, Seed-RNG, Router, Geräte-Fähigkeiten
     └── styles/global.css      Design-Tokens: Off-White, dynamische --accent-Farbe
 ```
