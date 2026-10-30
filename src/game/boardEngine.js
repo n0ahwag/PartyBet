@@ -141,3 +141,8 @@ export async function triggerChaos(code, id) {
   await triggerLiveEvent(code, { penalty: CHAOS_PENALTY, source: 'chaos' });
 }
 
+
+/** Schere-Stein-Papier-Turnier: Host bestätigt den Sieger eines Matches. */
+export async function setBracketWinner(code, id, matchKey, winnerId) {
+  await updateDoc(roundRef(code, id), { [`bracketWinners.${matchKey}`]: winnerId });
+}

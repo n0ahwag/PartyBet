@@ -1,4 +1,4 @@
-import { GAMES } from '../game/gameLibrary.js';
+import { GAMES, resultComplete } from '../game/gameLibrary.js';
 import { minStakeFor } from '../game/economy.js';
 import { submitResult } from '../game/engine.js';
 import { MINIGAMES, resultKey } from '../minigames/index.js';
@@ -80,7 +80,7 @@ export function PlayerDuelView({ code, room, duel, me, byId, players, run }) {
   if (duel.stage === 'playing') {
     if (isDuelist) {
       const key = resultKey(duel, me.id);
-      if (duel.results?.[key] && mg.Review) return <mg.Review duel={duel} byId={byId} big={false} />;
+      if (resultComplete(duel.gameId, duel.results?.[key]) && mg.Review) return <mg.Review duel={duel} byId={byId} big={false} />;
       const submit = (k, data) => run(() => submitResult(code, duel.id, k ?? key, data));
       return (
         <div className="stack">

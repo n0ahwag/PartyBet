@@ -1,4 +1,4 @@
-import { GAMES, CATEGORIES } from '../../game/gameLibrary.js';
+import { GAMES, CATEGORIES, resultComplete } from '../../game/gameLibrary.js';
 import { moveRule, FIELD_TYPES } from '../../game/board.js';
 import { submitRoundResult } from '../../game/boardEngine.js';
 import { MINIGAMES } from '../../minigames/index.js';
@@ -83,7 +83,8 @@ export function BoardRound({ code, round, byId, me, big = false, run }) {
   const game = GAMES[round.gameId];
   const mg = MINIGAMES[round.gameId];
   const shownGame = { ...game, rules: game.groupRules ?? game.rules };
-  const submitted = round.participants.filter((id) => round.results?.[id]);
+  const done = (id) => resultComplete(round.gameId, round.results?.[id]);
+  const submitted = round.participants.filter(done);
 
   const header = (
     <div className="game-title">
@@ -107,11 +108,11 @@ export function BoardRound({ code, round, byId, me, big = false, run }) {
   } else if (round.stage === 'playing') {
     const Play = mg.GroupPlay ?? mg.Play;
     const isAuto = game.judge === 'auto';
-    const mine = me && round.results?.[me.id];
+    const mine = me && done(me.id);
     const progress = isAuto && (
       <div className="row wrap" style={{ gap: 6 }}>
         {round.participants.map((id) => (
-          <span key={id} className={`pill ${round.results?.[id] ? 'good' : ''}`}>{byId[id]?.avatar} {byId[id]?.name} {round.results?.[id] ? '✓' : '…'}</span>
+          <span key={id} className={`pill ${done(id) ? 'good' : ''}`}>{byId[id]?.avatar} {byId[id]?.name} {done(id) ? '✓' : '…'}</span>
         ))}
       </div>
     );

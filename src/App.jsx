@@ -25,7 +25,7 @@ export function App() {
   }, []);
 
   // Bibliothek & Übungsmodus laufen ohne Raum (und ohne Anmeldung)
-  if (name === 'library') return params[0] ? <Practice gameId={params[0]} /> : <Library />;
+  if (name === 'library') return params[0] ? <Practice key={params[0]} gameId={params[0]} /> : <Library />;
 
   if (error) {
     return (

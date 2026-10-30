@@ -10,6 +10,7 @@ import { EmojiQuiz } from './EmojiQuiz.jsx';
 import { StareDown } from './StareDown.jsx';
 import { Rhythm } from './Rhythm.jsx';
 import { TruthBluff } from './TruthBluff.jsx';
+import { AnywhereGames } from './Anywhere.jsx';
 
 /** gameId → { Play (Gerät des Duellanten), Stage (TV/Zuschauer), Review? } */
 export const MINIGAMES = {
@@ -30,6 +31,7 @@ export const MINIGAMES = {
   bluffCard: HostJudged,
   coinSprint: HostJudged,
   truthBluff: TruthBluff,
+  ...AnywhereGames,
 };
 
 /** Unter welchem Schlüssel ein Gerät sein Ergebnis in duel.results ablegt. */
