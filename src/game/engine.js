@@ -45,6 +45,7 @@ const stripNulls = (obj = {}) => Object.fromEntries(Object.entries(obj).filter((
 
 export async function createRoom({
   hostId, mode, expectedPlayers, equipment, totalRounds, liveEvents = true, gameMode = 'party', boardLength = 'normal',
+  boardTheme = 'city',
 }) {
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = makeRoomCode();
@@ -71,7 +72,7 @@ export async function createRoom({
         liveEvent: null,
         gameMode, // 'party' (Schlücke & Wetten) | 'board' (Spielfeld) | 'group' | 'library' (Host wählt Spiele frei)
         ...(gameMode === 'board'
-          ? { board: { length: boardLength, fields: generateBoard(BOARD_LENGTHS[boardLength].fields, code) }, winnerId: null }
+          ? { board: { length: boardLength, theme: boardTheme, fields: generateBoard(BOARD_LENGTHS[boardLength].fields, code) }, winnerId: null }
           : {}),
         lastEventRound: -1,
         createdAt: serverTimestamp(),
@@ -91,6 +92,11 @@ export async function updateLobby(code, { expectedPlayers, equipment, totalRound
     totalRounds: Math.min(totalRounds, library.length), // jedes Spiel nur einmal
     library,
   });
+}
+
+/** Spielfeld-Modus: Themen-Welt in der Lobby wechseln (nur Host). */
+export async function setBoardTheme(code, theme) {
+  await updateDoc(roomRef(code), { 'board.theme': theme });
 }
 
 export async function joinRoom(code, uid, { name, avatar, caps }) {

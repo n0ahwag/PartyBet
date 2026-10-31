@@ -14,7 +14,8 @@ import { LibraryLobby } from '../components/library/LibraryLobby.jsx';
 import { navigate } from '../lib/router.js';
 import { t } from '../i18n/index.js';
 import { isMuted, setMuted } from '../lib/sound.js';
-import { BoardView, Standings, useAnimatedPositions } from '../components/board/BoardView.jsx';
+import { Standings, useAnimatedPositions } from '../components/board/BoardView.jsx';
+import { Board3D } from '../components/board/Board3D.jsx';
 import { BoardRound } from '../components/board/BoardRound.jsx';
 import { BoardHostControls } from '../components/board/BoardHostControls.jsx';
 import { GroupRound, PointsBoard } from '../components/group/GroupRound.jsx';
@@ -85,8 +86,10 @@ export function PlayerController({ uid, code }) {
         <>
           <PhaseBadge room={room} />
           <div className="phase-strip" />
-          <BoardView fields={room.board.fields} players={players} positions={positions} compact />
-          {round ? <BoardRound code={code} round={round} byId={byId} me={me} run={run} /> : <div className="card center muted">{t("Gleich geht's los…")}</div>}
+          {/* Beim Würfeln steht der Würfel oben, sonst die Karte */}
+          {round?.stage === 'review' && <BoardRound code={code} round={round} byId={byId} me={me} run={run} />}
+          <Board3D fields={room.board.fields} players={players} positions={positions} theme={room.board.theme} seed={code} meId={uid} compact />
+          {round?.stage !== 'review' && (round ? <BoardRound code={code} round={round} byId={byId} me={me} run={run} /> : <div className="card center muted">{t("Gleich geht's los…")}</div>)}
           {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />}
           <button className="btn ghost sm" onClick={() => setShowBoard((s) => !s)}>{showBoard ? t('Rangliste ausblenden') : `🏆 ${t('Wer führt?')}`}</button>
           {showBoard && <Standings players={players} fields={room.board.fields} meId={uid} />}

@@ -1,7 +1,9 @@
 import { GAMES, CATEGORIES, resultComplete } from '../../game/gameLibrary.js';
 import { GameArt } from '../GameArt.jsx';
-import { moveRule, FIELD_TYPES } from '../../game/board.js';
-import { submitRoundResult } from '../../game/boardEngine.js';
+import { useState } from 'react';
+import { moveRule, FIELD_TYPES, diceFor, rollersOf } from '../../game/board.js';
+import { submitRoundResult, rollDice } from '../../game/boardEngine.js';
+import { Dice } from './Dice.jsx';
 import { MINIGAMES } from '../../minigames/index.js';
 import { FORMAT_RESULT, revealOf } from '../../minigames/format.js';
 import { Rules, Waiting } from '../../minigames/shared.jsx';
@@ -78,6 +80,56 @@ function RankingList({ round, byId, meId }) {
 }
 
 /**
+ * Würfel-Phase: Wer würfeln darf, tippt auf seinem Handy auf den Würfel. Alle anderen
+ * (und der Hauptbildschirm) sehen die Würfel der Mitspieler rollen.
+ */
+function DiceStage({ code, round, byId, me, big, run }) {
+  const [tapped, setTapped] = useState(false);
+  const seed = `${code}:${round.id}`;
+  const n = round.participants.length;
+  const rollers = rollersOf(round, Object.values(byId));
+  const rolled = (id) => !!round.rolls?.[id] || (me?.id === id && tapped);
+  const open = rollers.filter((id) => !rolled(id));
+  const mine = me && rollers.includes(me.id);
+  const bonusOf = (id) => moveRule(round.ranks[id] ?? n, n).bonus;
+  const resultText = (id) => {
+    const v = diceFor(seed, id);
+    const b = bonusOf(id);
+    return <b className="pop">{b ? `🎲 ${v} + ${b} = ${t('{n} Felder', { n: v + b })}` : `🎲 ${t('{n} Felder', { n: v })}`}</b>;
+  };
+
+  return (
+    <div className="stack">
+      {mine && (
+        <div className="card center stack" style={{ gap: 8 }}>
+          <div className="kicker">{rolled(me.id) ? t('Dein Wurf') : t('Du darfst würfeln!')}</div>
+          <Dice key={`${round.id}:${me.id}`} size={big ? 150 : 128} value={diceFor(seed, me.id)} rolled={rolled(me.id)}
+            onRoll={() => { setTapped(true); run(() => rollDice(code, round.id, me.id)); }}
+            label={!rolled(me.id) && <b style={{ fontSize: 20 }}>👆 {t('Tippen zum Würfeln!')}</b>}
+            result={resultText(me.id)} />
+        </div>
+      )}
+      {rollers.filter((id) => id !== me?.id).length > 0 && (
+        <div className="card stack" style={{ gap: 10 }}>
+          <h3>🎲 {t('Würfel der anderen')}</h3>
+          <div className="row wrap" style={{ gap: 14, justifyContent: 'center' }}>
+            {rollers.filter((id) => id !== me?.id).map((id) => (
+              <Dice key={`${round.id}:${id}`} size={big ? 110 : 64} value={diceFor(seed, id)} rolled={rolled(id)} color={`color-mix(in srgb, ${byId[id]?.color} 14%, #fff)`}
+                label={<span className="small" style={{ fontWeight: 800 }}>{byId[id]?.avatar} {byId[id]?.name}{!rolled(id) ? ' …' : ''}</span>}
+                result={<span className="small">{resultText(id)}</span>} />
+            ))}
+          </div>
+        </div>
+      )}
+      <p className="center muted" style={{ margin: 0, fontWeight: 700 }}>
+        {!rollers.length ? t('Diesmal würfelt niemand – gleich wird gezogen.')
+          : open.length ? t('Warte auf {n} Würfe…', { n: open.length }) : `✅ ${t('Alle haben gewürfelt – gleich wird gezogen!')}`}
+      </p>
+    </div>
+  );
+}
+
+/**
  * Eine Gruppen-Challenge im Spielfeld-Modus.
  * me = Spieler auf diesem Handy (null auf dem Hauptbildschirm).
  */
@@ -130,6 +182,13 @@ export function BoardRound({ code, round, byId, me, big = false, run }) {
         </>
       );
     }
+  } else if (round.stage === 'review') {
+    body = (
+      <>
+        <DiceStage code={code} round={round} byId={byId} me={me} big={big} run={run} />
+        <RankingList round={round} byId={byId} meId={me?.id} />
+      </>
+    );
   } else {
     body = <RankingList round={round} byId={byId} meId={me?.id} />;
   }

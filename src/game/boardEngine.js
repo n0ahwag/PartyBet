@@ -12,7 +12,7 @@ import { makeRng } from '../lib/random.js';
  * Spieler schreiben nur ihr eigenes Ergebnis, Positionen ändert nur der Host.
  *
  * Ablauf einer Runde (rooms/{code}/rounds/{id}.stage):
- *   intro → playing → review (Platzierungen) → resolved (gezogen)
+ *   intro → playing → review (Platzierungen, Würfeln per Antippen) → resolved (gezogen)
  */
 
 const roomRef = (code) => doc(db, 'rooms', code);
@@ -63,6 +63,7 @@ export async function startChallenge(code) {
       stage: 'intro',
       results: {},
       ranks: null,
+      rolls: {}, // Spieler tippen zum Würfeln: rolls[uid] = true (Wert: diceFor)
       moves: null,
       chaos: false,
       chaosDone: false,
@@ -88,7 +89,12 @@ export async function submitRoundResult(code, id, uid, data) {
 
 /** ranks = { uid: Platz } – automatisch (Auto-Spiele) oder vom Host eingetragen. */
 export async function setRanks(code, id, ranks) {
-  await updateDoc(roundRef(code, id), { stage: 'review', ranks });
+  await updateDoc(roundRef(code, id), { stage: 'review', ranks, rolls: {}, reviewAt: Date.now() });
+}
+
+/** Spieler tippt auf den Würfel (nur der eigene Eintrag; die Zahl steht über diceFor fest). */
+export async function rollDice(code, id, uid) {
+  await updateDoc(roundRef(code, id), { [`rolls.${uid}`]: true });
 }
 
 /** Würfeln & ziehen: Bewegung + Sonderfelder für alle, Phase und Sieger bestimmen. */

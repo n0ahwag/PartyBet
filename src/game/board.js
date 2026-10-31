@@ -22,6 +22,31 @@ export const FIELD_TYPES = {
   goal: { id: 'goal', label: 'Zielfeld', icon: '🏆', color: '#EAB308' },
 };
 
+/** Themen-Welten für das 3D-Spielfeld (Farben, Hintergrund, Deko). */
+export const BOARD_THEMES = {
+  city: { id: 'city', label: 'Party-Stadt', icon: '🏙️' },
+  jungle: { id: 'jungle', label: 'Dschungel-Pfad', icon: '🌴' },
+  arcade: { id: 'arcade', label: 'Retro-Arcade', icon: '👾' },
+};
+
+/**
+ * Würfelwurf eines Spielers in einer Runde – deterministisch aus Runde und Spieler.
+ * So zeigt das Handy beim Antippen sofort dieselbe Zahl, mit der der Host später zieht.
+ */
+export function diceFor(seed, uid) {
+  return makeRng(`dice:${seed}:${uid}`).int(1, 6);
+}
+
+/** Wer muss in dieser Runde selbst würfeln? (Würfel-Platz und nicht aussetzend) */
+export function rollersOf(round, players) {
+  if (!round?.ranks) return [];
+  const n = round.participants.length;
+  return round.participants.filter((id) => {
+    const p = players.find((x) => x.id === id);
+    return p && !p.skipNext && moveRule(round.ranks[id] ?? n, n).dice;
+  });
+}
+
 export const ROCKET_STEPS = 3;
 export const CHAOS_PENALTY = 2;
 export const EVENT_PENALTY = 1; // zufällige Live-Events zwischen den Runden
@@ -109,7 +134,7 @@ export function applyRound({ players, ranks, fields, seed }) {
     }
     if (winnerId) continue; // Spiel ist schon entschieden
 
-    m.roll = rule.dice ? rng.int(1, 6) : null;
+    m.roll = rule.dice ? diceFor(seed, p.id) : null;
     m.steps = (m.roll ?? 0) + rule.bonus;
     m.landed = Math.min(goal, from + m.steps);
     let to = m.landed;

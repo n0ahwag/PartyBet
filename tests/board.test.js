@@ -108,3 +108,33 @@ describe('Gruppen-Challenges', () => {
     expect(all).toContain('shake');
   });
 });
+
+describe('3D-Spielfeld & Würfel', () => {
+  it('Pfad: ein Punkt pro Feld, gleichmäßige Abstände, Deko nie auf der Straße', async () => {
+    const { layoutBoard } = await import('../src/game/board3d.js');
+    for (const n of [20, 30, 40]) {
+      const l = layoutBoard(n, 'ABCD');
+      expect(l.fields).toHaveLength(n);
+      for (let i = 1; i < n; i++) {
+        const d = Math.hypot(l.fields[i].X - l.fields[i - 1].X, l.fields[i].Y - l.fields[i - 1].Y);
+        expect(d).toBeGreaterThan(0.9); // Felder überlappen nicht
+        expect(d).toBeLessThan(1.6); // Schwung macht Abstände minimal größer
+      }
+      for (const it of l.decor) for (const p of l.road) expect(Math.hypot(it.X - p.X, it.Y - p.Y)).toBeGreaterThanOrEqual(1.05);
+      expect(layoutBoard(n, 'ABCD')).toEqual(l); // alle Geräte gleich
+    }
+  });
+
+  it('Würfel: deterministisch 1–6, gleich im Zug und auf dem Handy', async () => {
+    const { diceFor, rollersOf } = await import('../src/game/board.js');
+    const vals = new Set(Array.from({ length: 200 }, (_, i) => diceFor('ROOM:r01', `p${i}`)));
+    expect([...vals].sort()).toEqual([1, 2, 3, 4, 5, 6]);
+    const fields = F('S..............................G');
+    const r = applyRound({ players: [{ id: 'a', position: 0 }, { id: 'b', position: 0 }, { id: 'c', position: 0 }], ranks: { a: 1, b: 2, c: 3 }, fields, seed: 'ROOM:r01' });
+    expect(r.moves.a.roll).toBe(diceFor('ROOM:r01', 'a'));
+    expect(r.moves.b.roll).toBe(diceFor('ROOM:r01', 'b'));
+    expect(r.moves.c.roll).toBeNull();
+    const round = { participants: ['a', 'b', 'c'], ranks: { a: 1, b: 2, c: 3 } };
+    expect(rollersOf(round, [{ id: 'a' }, { id: 'b', skipNext: true }, { id: 'c' }])).toEqual(['a']);
+  });
+});
