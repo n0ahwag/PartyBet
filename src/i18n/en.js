@@ -980,4 +980,8 @@ export const EN = {
   "Das Kugel-Labyrinth": "The Marble Maze",
   "Wie beim Holz-Labyrinth: Neige und kippe dein Handy sanft, um die Kugel ins Ziel zu rollen. Wer am schnellsten ankommt, gewinnt (90 Sekunden).": "Just like a wooden tilt maze: gently tilt your phone to roll the ball into the goal. Fastest to arrive wins (90 seconds).",
   "Alle bekommen dasselbe Labyrinth. Wer die Kugel am schnellsten ins Ziel kippt, gewinnt.": "Everyone gets the same maze. Whoever tilts the ball into the goal fastest wins.",
+  "Anzeige": "Advertisement",
+  "Impressum": "Legal notice",
+  "Datenschutz": "Privacy",
+  "Rechtliche Angaben nach deutschem Recht – nur auf Deutsch verfügbar.": "Legal information under German law – only available in German.",
 };

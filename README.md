@@ -65,6 +65,10 @@ Weitere Sprache hinzufügen: in `LANGS` eintragen, ein Wörterbuch wie `en.js` a
 - **Party-Wrapped:** Story-Karten mit Wett-König, Pechvogel, Saboteur, High Roller, Pleitegeier, …
 - **Sounds:** per WebAudio synthetisiert (Countdown, Gong, Tusch, Wett-Jingle, Alarm). Keine Audio-Dateien nötig
 
+## Werbung, Impressum & Datenschutz
+
+Google AdSense ist vorbereitet (Anzeigen nur auf ruhigen Seiten, `ads.txt`, Bestätigungs-Tag) und ist abgeschaltet, solange keine Publisher-ID gesetzt ist. Impressum (`#/impressum`) und Datenschutz (`#/datenschutz`) sind eingebaut, die Schrift wird lokal ausgeliefert. Die Einrichtung Schritt für Schritt steht in **[docs/ADSENSE.md](docs/ADSENSE.md)**.
+
 ## Ordnerstruktur
 
 ```
@@ -72,6 +76,7 @@ Weitere Sprache hinzufügen: in `LANGS` eintragen, ein Wörterbuch wie `en.js` a
 ├── firebase.json              Hosting (SPA-Rewrite) + Emulator-Config
 ├── firestore.rules            Security Rules (Host-Autorität, eigene Keys)
 ├── docs/DATABASE.md           Firestore-Datenmodell & Autoritäts-Modell
+├── docs/ADSENSE.md            Werbung einrichten (AdSense, Domain, Einwilligung)
 ├── tests/                     Vitest: Wirtschaft, Spielfeld, Gruppen-Ranking, Live-Events, Auswertung, Wrapped
 └── src/
     ├── main.jsx · App.jsx     Hash-Routing: #/ · #/create · #/join/CODE · #/host/CODE · #/play/CODE
