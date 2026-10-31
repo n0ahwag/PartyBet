@@ -29,7 +29,18 @@ export const LIVE_EVENTS = {
     id: 'color', title: 'Farb-Ansturm!', icon: '🎨',
     text: 'Berühre etwas in dieser Farbe!', colors: ['#8B5CF6', '#6D28D9'],
   },
+  freeze: {
+    id: 'freeze', title: 'Gruppen-Freeze!', icon: '🧊',
+    text: 'Handy SOFORT flach auf den Tisch legen – Bildschirm nach oben! Der Letzte verliert.', colors: ['#38BDF8', '#0369A1'],
+    measure: 'flat', reactionMs: 5000,
+  },
+  thumb: {
+    id: 'thumb', title: 'Daumen-Krieg!', icon: '👍',
+    text: 'Daumen aufs Display und gedrückt halten! Wer zuerst loslässt, verliert.', colors: ['#F59E0B', '#B45309'],
+    sensor: true, measure: 'hold',
+  },
 };
+LIVE_EVENTS.statue.measure = 'motion';
 
 export const LIVE_EVENT_IDS = Object.keys(LIVE_EVENTS);
 
@@ -55,3 +66,15 @@ export function statueLoser(reactions = {}) {
   if (!moved.length) return null;
   return moved.sort((a, b) => a[1].movedAfterMs - b[1].movedAfterMs)[0][0];
 }
+
+/** Gruppen-Freeze: wer zuletzt (oder gar nicht) flach gelegt hat. players = alle Spieler-IDs. */
+export function freezeLoser(reactions = {}, players = [], final = false) {
+  const missing = players.filter((id) => reactions[id]?.flatAfterMs == null);
+  if (missing.length === 1 && final) return missing[0];
+  if (missing.length) return undefined; // noch offen (bzw. mehrere fehlen → Host entscheidet)
+  const sorted = Object.entries(reactions).filter(([id]) => players.includes(id)).sort((a, b) => b[1].flatAfterMs - a[1].flatAfterMs);
+  return sorted[0]?.[0] ?? null;
+}
+
+/** Liegt das Handy flach und ruhig? (Schwerkraft fast nur auf der z-Achse) */
+export const isFlat = (a) => !!a && Math.abs(a.z) > 8.6 && Math.hypot(a.x, a.y) < 1.6;

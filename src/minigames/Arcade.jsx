@@ -18,7 +18,7 @@ import { t } from '../i18n/index.js';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 /** Canvas in Gerätepixeln; liefert den 2D-Kontext in CSS-Pixeln. */
-function setupCanvas(canvas, w, h) {
+export function setupCanvas(canvas, w, h) {
   const dpr = window.devicePixelRatio || 1;
   canvas.width = w * dpr;
   canvas.height = h * dpr;
@@ -27,16 +27,16 @@ function setupCanvas(canvas, w, h) {
   return ctx;
 }
 
-const canvasWidth = () => Math.min(360, (typeof window !== 'undefined' ? window.innerWidth : 360) - 40);
+export const canvasWidth = () => Math.min(360, (typeof window !== 'undefined' ? window.innerWidth : 360) - 40);
 
 /** Gemeinsamer Ablauf: Bereit → 3-2-1 → Spiel → Ergebnis. */
-function useArcade(onReady) {
+export function useArcade(onReady) {
   const [step, setStep] = useState('ready');
   const n = useGo(step === 'count', () => setStep('run'));
   return { step, setStep, n, start: async () => { await onReady?.(); setStep('count'); } };
 }
 
-function ReadyView({ text, start, label }) {
+export function ReadyView({ text, start, label }) {
   return (
     <div className="stack">
       <Waiting text={text} />
@@ -470,7 +470,7 @@ function SkyJumper({ duel, submit }) {
 }
 
 // ------------------------------------------------------------------ Exporte
-const auto = (Comp) => ({
+export const auto = (Comp) => ({
   Play: ({ duel, submit }) => <Comp duel={duel} submit={(d) => submit(null, d)} />,
   Stage: ResultList,
   Review: ResultList,

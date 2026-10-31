@@ -6,6 +6,7 @@ import {
   submitGroupResult, submitSyncTap, submitConfessionFact, submitConfessionGuess, submitStoryWord,
 } from '../game/groupEngine.js';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
+import { EXTRA_GROUP_GAMES } from './GroupExtras.jsx';
 import { sfx, vibrate, isSilent } from '../lib/sound.js';
 import { t, speechLang } from '../i18n/index.js';
 
@@ -284,4 +285,6 @@ const ChainStory = {
   },
 };
 
-export const GROUP_GAMES = { whoMost: WhoMost, syncTest: SyncTest, hivemind: Hivemind, confession: Confession, chainStory: ChainStory };
+export const GROUP_GAMES = {
+  whoMost: WhoMost, syncTest: SyncTest, hivemind: Hivemind, confession: Confession, chainStory: ChainStory, ...EXTRA_GROUP_GAMES,
+};

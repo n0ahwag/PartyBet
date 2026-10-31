@@ -4,7 +4,8 @@ export function detectCaps() {
   const motion = touch && typeof window.DeviceMotionEvent !== 'undefined';
   const compass = touch && typeof window.DeviceOrientationEvent !== 'undefined';
   const camera = !!navigator.mediaDevices?.getUserMedia;
-  return { touch, motion, compass, camera };
+  const mic = camera && !!(window.AudioContext || window.webkitAudioContext);
+  return { touch, motion, compass, camera, mic };
 }
 
 /** iOS verlangt eine explizite Freigabe für Bewegungssensoren (nur per Nutzer-Geste). */

@@ -1,4 +1,5 @@
-import { GAMES, CATEGORIES, filterLibrary } from './gameLibrary.js';
+import { GAMES, CATEGORIES, filterLibrary, ESTIMATE_QUESTIONS } from './gameLibrary.js';
+import { SKETCH_PROMPTS, SKETCH } from './extras.js';
 import { t } from '../i18n/index.js';
 
 /*
@@ -81,9 +82,29 @@ Object.assign(GAMES, {
   },
 });
 
-export const GROUP_ONLY_IDS = ['whoMost', 'syncTest', 'hivemind', 'confession', 'chainStory'];
+// Erweiterung: Team-Spiele und Zeichnen
+Object.assign(GAMES, {
+  tugOfWar: {
+    ...groupOnly, id: 'tugOfWar', name: 'Team-Tauziehen', icon: '🪢', minPlayers: 2, judge: 'auto', accent: '#F97316',
+    rules: 'Die App teilt euch in zwei Teams. 10 Sekunden lang tippt jeder so schnell er kann – das Seil wandert auf dem Bildschirm zum stärkeren Team. Das Team mit dem höchsten Tipp-Schnitt gewinnt.',
+    createState: (rng) => ({ seed: rng.int(1, 999999) }),
+  },
+  teamEstimate: {
+    ...groupOnly, id: 'teamEstimate', name: 'Team-Schätzen', icon: '🎯', minPlayers: 4, judge: 'auto', accent: '#0EA5E9',
+    rules: 'Zwei Teams, eine Schätzfrage. Jeder schätzt geheim – zählt wird der Mittelwert des Teams. Das Team, dessen Schnitt näher an der richtigen Antwort liegt, gewinnt.',
+    createState: (rng) => ({ seed: rng.int(1, 999999), qIdx: rng.int(0, ESTIMATE_QUESTIONS.length - 1) }),
+  },
+  blindSketch: {
+    ...groupOnly, id: 'blindSketch', name: 'Blind-Skizze', icon: '🖍️', minPlayers: 3, judge: 'auto', accent: '#A855F7',
+    initialStep: 'draw',
+    rules: `Alle zeichnen denselben Begriff – aber blind: Deine Linien bleiben unsichtbar, bis alle fertig sind (${SKETCH.drawMs / 1000} Sekunden). Dann werden die Bilder aufgedeckt und jeder stimmt für das beste fremde Kunstwerk.`,
+    createState: (rng) => ({ prompt: rng.pick(SKETCH_PROMPTS) }),
+  },
+});
+
+export const GROUP_ONLY_IDS = ['whoMost', 'syncTest', 'hivemind', 'confession', 'chainStory', 'tugOfWar', 'teamEstimate', 'blindSketch'];
 // Stealth-Modus: diese Gruppen-Spiele gehen auch leise (Ketten-Story ohne Vorlesen)
-for (const id of ['whoMost', 'syncTest', 'confession', 'chainStory']) GAMES[id].quiet = true;
+for (const id of ['whoMost', 'syncTest', 'confession', 'chainStory', 'teamEstimate', 'blindSketch']) GAMES[id].quiet = true;
 
 /** Bibliothek je Spielmodus (wird beim Erstellen im Raum gespeichert). */
 export function libraryFor(gameMode, playerCount, equipment = [], { stealth = false } = {}) {

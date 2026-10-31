@@ -69,7 +69,7 @@ function writeRound(tx, code, room, players, game, rng, round, phase, playedGame
     playerB: null,
     sabotage: null,
     stage: 'intro',
-    step: game.id === 'confession' ? 'collect' : null,
+    step: game.initialStep ?? (game.id === 'confession' ? 'collect' : null),
     results: {},
     ranks: null,
     points: null,
@@ -189,4 +189,9 @@ export async function submitStoryWord(code, id, uid, idx, word) {
 
 export async function submitGroupResult(code, id, uid, data) {
   await updateDoc(roundRef(code, id), { [`results.${uid}`]: data });
+}
+
+/** Einzelnes Feld im eigenen Ergebnis setzen (z. B. Blind-Skizze: sketch, dann vote). */
+export async function submitResultField(code, id, uid, field, value) {
+  await updateDoc(roundRef(code, id), { [`results.${uid}.${field}`]: value });
 }

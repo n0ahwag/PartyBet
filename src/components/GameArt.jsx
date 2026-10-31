@@ -560,6 +560,114 @@ const ART = {
       <Sparkle x={10} y={12} s={3} />
     </>
   ),
+
+  levelHit: ({ a, d }) => (
+    <>
+      <rect x="10" y="10" width="14" height="44" rx="5" fill={W} />
+      <rect x="10" y="22" width="14" height="10" fill="#22C55E" opacity="0.45" />
+      <rect x="13" y="27" width="8" height="24" rx="3" fill="#16A34A" />
+      <path d="M8 22h18M8 32h18" stroke="#16A34A" strokeWidth="1.6" />
+      <rect x="36" y="14" width="12" height="22" rx="6" fill={INK} />
+      <path d="M32 30a10 10 0 0 0 20 0" stroke={INK} strokeWidth="2.6" fill="none" strokeLinecap="round" />
+      <path d="M42 40v8M36 50h12" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />
+      <path d="M54 18q4 5 0 10M57 14q6 9 0 18" stroke={d} strokeWidth="2" fill="none" strokeLinecap="round" />
+      <Sparkle x={30} y={10} s={3.5} fill={YEL} />
+    </>
+  ),
+  breathBalloon: ({ a, d }) => (
+    <>
+      <path d="M33 45q-3 6 2 10" stroke={INK} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+      <ellipse cx="33" cy="27" rx="15" ry="18" fill={a} />
+      <ellipse cx="27" cy="19" rx="3.5" ry="5.5" fill={W} opacity="0.5" />
+      <path d="M30 44h6l-3 4z" fill={d} />
+      <path d="M8 40q5-2 9 0M6 46q6-2 11 0M9 52q5-2 9 0" stroke={W} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+      <Sparkle x={53} y={14} s={4} fill={YEL} />
+      <Sparkle x={52} y={44} s={3} />
+    </>
+  ),
+  traceLine: ({ a, d }) => (
+    <>
+      <path d="M10 44Q18 14 30 32T52 22" stroke={W} strokeWidth="9" fill="none" strokeLinecap="round" />
+      <path d="M10 44Q18 14 30 32T52 22" stroke={d} strokeWidth="1.6" strokeDasharray="3 3" fill="none" />
+      <path d="M10 44Q17 18 27 29" stroke={a} strokeWidth="3.2" fill="none" strokeLinecap="round" />
+      <circle cx="10" cy="44" r="3.5" fill="#16A34A" />
+      <g transform="rotate(-25 34 40)">
+        <rect x="28" y="30" width="9" height="20" rx="4.5" fill="#F2B48C" />
+        <rect x="29.5" y="31" width="6" height="5" rx="2.5" fill={W} opacity="0.8" />
+      </g>
+      <Sparkle x={52} y={46} s={4} fill={YEL} />
+    </>
+  ),
+  hotWire: ({ a, d }) => (
+    <>
+      <path d="M10 14L46 20L16 34L50 44" stroke={d} strokeWidth="13" fill="none" strokeLinejoin="round" strokeLinecap="round" />
+      <path d="M10 14L46 20L16 34L50 44" stroke="#FFFBEB" strokeWidth="9" fill="none" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx="50" cy="44" r="5" fill="#16A34A" />
+      <circle cx="31" cy="27" r="4.2" fill={a} stroke={INK} strokeWidth="1.5" />
+      <path d="M38 6l-4 7h5l-4 7" stroke={YEL_D} strokeWidth="2.2" fill="none" strokeLinejoin="round" strokeLinecap="round" />
+      <Sparkle x={12} y={50} s={3.5} fill={YEL} />
+    </>
+  ),
+  higherLower: ({ a, d }) => (
+    <>
+      <rect x="8" y="14" width="22" height="34" rx="5" fill={W} />
+      <rect x="34" y="14" width="22" height="34" rx="5" fill={mix(a, 0.35)} />
+      <Txt x={19} y={31} size={13} fill={d}>42</Txt>
+      <Txt x={45} y={31} size={18} fill={W}>?</Txt>
+      <path d="M45 6l-5 5h10z" fill="#16A34A" />
+      <path d="M45 58l-5-5h10z" fill="#DC2626" />
+      <Sparkle x={8} y={8} s={3.5} fill={YEL} />
+    </>
+  ),
+  priceTag: ({ a, d }) => (
+    <>
+      <path d="M12 26L30 8h22v22L34 48z" fill={W} />
+      <circle cx="44" cy="16" r="3.5" fill={d} />
+      <path d="M44 16q8-8 12 2" stroke={INK} strokeWidth="1.6" fill="none" />
+      <Txt x={31} y={29} size={14} fill={a} rotate={-45}>€?</Txt>
+      <Shadow c={d} rx={14} y={56} />
+      <Sparkle x={12} y={46} s={4} fill={YEL} />
+    </>
+  ),
+  tugOfWar: ({ a, d }) => (
+    <>
+      <path d="M6 36h52" stroke="#A16207" strokeWidth="4" strokeLinecap="round" />
+      <circle cx="32" cy="36" r="3.5" fill="#DC2626" />
+      <path d="M32 26v20" stroke={W} strokeWidth="2" strokeDasharray="2 2" />
+      <circle cx="13" cy="20" r="5" fill="#3B82F6" />
+      <path d="M13 25l-4 11M13 27l6 9" stroke="#3B82F6" strokeWidth="3.4" strokeLinecap="round" />
+      <path d="M9 36l-3 12M11 34l3 14" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round" />
+      <circle cx="51" cy="20" r="5" fill={a} />
+      <path d="M51 25l4 11M51 27l-6 9" stroke={a} strokeWidth="3.4" strokeLinecap="round" />
+      <path d="M55 36l3 12M53 34l-3 14" stroke={a} strokeWidth="3" strokeLinecap="round" />
+      <Sparkle x={32} y={12} s={4} fill={YEL} />
+    </>
+  ),
+  teamEstimate: ({ a, d }) => (
+    <>
+      <circle cx="32" cy="32" r="21" fill={W} />
+      <circle cx="32" cy="32" r="14" fill={mix(a, 0.4)} />
+      <circle cx="32" cy="32" r="7" fill={W} />
+      <circle cx="32" cy="32" r="3" fill="#DC2626" />
+      <circle cx="26" cy="26" r="3" fill="#3B82F6" stroke={INK} strokeWidth="1" />
+      <circle cx="38" cy="37" r="3" fill="#F97316" stroke={INK} strokeWidth="1" />
+      <Txt x={52} y={12} size={10} fill={d}>Ø</Txt>
+      <Sparkle x={10} y={52} s={4} fill={YEL} />
+    </>
+  ),
+  blindSketch: ({ a, d }) => (
+    <>
+      <rect x="10" y="12" width="36" height="40" rx="4" fill={W} transform="rotate(-6 28 32)" />
+      <path d="M17 38q4-12 10-4t10-8" stroke={INK} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.8" />
+      <circle cx="22" cy="24" r="3" stroke={INK} strokeWidth="1.8" fill="none" opacity="0.8" />
+      <rect x="34" y="8" width="24" height="9" rx="4.5" fill={INK} transform="rotate(12 46 12)" />
+      <circle cx="41" cy="13" r="2.3" fill={W} />
+      <circle cx="51" cy="15" r="2.3" fill={W} />
+      <path d="M44 34l12 12" stroke={a} strokeWidth="5" strokeLinecap="round" />
+      <path d="M44 34l-2-5 5 3z" fill={d} />
+      <Sparkle x={52} y={54} s={3.5} fill={YEL} />
+    </>
+  ),
 };
 
 /** Bild eines Spiels. Fällt auf das Emoji zurück, falls (noch) keine Illustration existiert. */
