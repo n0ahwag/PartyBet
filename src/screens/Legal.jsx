@@ -1,7 +1,7 @@
 import { OWNER, adsEnabled } from '../site.config.js';
 import { navigate } from '../lib/router.js';
 import { t, getLang } from '../i18n/index.js';
-import { LangSwitch } from '../components/ui.jsx';
+import { LangSwitch, HomeButton } from '../components/ui.jsx';
 
 /*
  * Impressum & Datenschutzerklärung (deutsches Recht, daher auf Deutsch).
@@ -119,7 +119,7 @@ export function Legal({ page }) {
     <div className="page legal">
       <div className="row between">
         <button className="btn ghost sm" onClick={() => (window.history.length > 1 ? window.history.back() : navigate('/'))}>←</button>
-        <LangSwitch />
+        <div className="row" style={{ gap: 6 }}><LangSwitch /><HomeButton /></div>
       </div>
       {getLang() !== 'de' && <p className="small muted" style={{ margin: 0 }}>{t('Rechtliche Angaben nach deutschem Recht – nur auf Deutsch verfügbar.')}</p>}
       <div className="card">{page === 'impressum' ? <Impressum /> : <Datenschutz />}</div>
