@@ -28,7 +28,7 @@ export function App() {
   }, []);
 
   // Bibliothek & Übungsmodus laufen ohne Raum (die Anmeldung braucht nur „Lobby erstellen“)
-  if (name === 'impressum' || name === 'datenschutz') return <Legal page={name} />;
+  if (name === 'impressum' || name === 'datenschutz' || name === 'kontakt') return <Legal page={name} />;
   if (name === 'library') return params[0] ? <Practice key={params[0]} gameId={params[0]} /> : <Library uid={uid} />;
 
   if (error) {

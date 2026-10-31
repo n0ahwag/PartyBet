@@ -2,7 +2,7 @@ import {
   collection, doc, getDoc, getDocs, setDoc, updateDoc, addDoc, runTransaction,
   serverTimestamp, increment, deleteDoc, writeBatch,
 } from 'firebase/firestore';
-import { db } from '../firebase.js';
+import { db, expiry } from '../firebase.js';
 import {
   START_BALANCE, BETTING_SECONDS, POWERUPS, POWERUP_IDS, SABOTAGE_RULES, RESCUE_OPTIONS,
   LOAN_INTEREST, EMERGENCY_TASKS, VIDEO_PROMPTS, PLAYER_COLORS, AVATARS, phaseForRound,
@@ -54,7 +54,7 @@ export async function createRoom({
     const created = await runTransaction(db, async (tx) => {
       const snap = await tx.get(ref);
       if (snap.exists()) return false;
-      tx.set(ref, {
+      tx.set(ref, { ...expiry(),
         code,
         hostId,
         mode, // 'screen' | 'mobile'
@@ -113,7 +113,7 @@ export async function joinRoom(code, uid, { name, avatar, caps }) {
   const count = (await getDocs(playersCol(code))).size;
   if (count >= room.data().expectedPlayers) throw new Error('Der Raum ist voll.');
   const rng = makeRng(`${code}:${uid}`);
-  await setDoc(playerRef(code, uid), {
+  await setDoc(playerRef(code, uid), { ...expiry(),
     name: name.trim().slice(0, 16),
     avatar: avatar || AVATARS[count % AVATARS.length],
     color: PLAYER_COLORS[count % PLAYER_COLORS.length],
@@ -185,7 +185,7 @@ export async function drawDuel(code) {
     const { duelists, game } = plan;
 
     const duelId = `r${String(round).padStart(2, '0')}`;
-    tx.set(duelRef(code, duelId), {
+    tx.set(duelRef(code, duelId), { ...expiry(),
       round,
       phase,
       gameId: game.id,
@@ -364,7 +364,7 @@ export async function settle(code, duelId) {
       stage: 'resolved',
       settlement: { ...result, reward },
     });
-    tx.set(doc(eventsCol(code)), {
+    tx.set(doc(eventsCol(code)), { ...expiry(),
       type: 'duel',
       duelId,
       round: duel.round,
@@ -390,7 +390,7 @@ export async function finishGame(code) {
 export async function requestRescue(code, uid, type, { lenderId, amount } = {}) {
   const rng = makeRng(`${uid}:${Date.now()}`);
   const prompt = type === 'task' ? rng.pick(EMERGENCY_TASKS) : type === 'video' ? rng.pick(VIDEO_PROMPTS) : null;
-  await addDoc(collection(db, 'rooms', code, 'rescues'), {
+  await addDoc(collection(db, 'rooms', code, 'rescues'), { ...expiry(),
     playerId: uid,
     type,
     prompt,
@@ -463,7 +463,7 @@ export async function triggerLiveEvent(code, { type, thenDraw = false, penalty =
   const id = `e${Date.now()}`;
   const ev = createLiveEvent(makeRng(`${code}:${id}`), type);
   const batch = writeBatch(db);
-  batch.set(liveEventRef(code, id), { ...ev, status: 'active', reactions: {}, createdAt: serverTimestamp() });
+  batch.set(liveEventRef(code, id), { ...expiry(), ...ev, status: 'active', reactions: {}, createdAt: serverTimestamp() });
   batch.update(roomRef(code), {
     // penalty: Felder zurück im Spielfeld-Modus (im Party-Modus: 5 Schlücke trinken)
     liveEvent: { id, ...ev, status: 'active', loserId: null, thenDraw, penalty, source, startedAt: Date.now() },

@@ -975,6 +975,7 @@ export const EN = {
   "Alle bekommen dasselbe Labyrinth. Wer die Kugel am schnellsten ins Ziel kippt, gewinnt.": "Everyone gets the same maze. Whoever tilts the ball into the goal fastest wins.",
   "Anzeige": "Advertisement",
   "Impressum": "Legal notice",
+  "Kontakt": "Contact",
   "Datenschutz": "Privacy",
   "Rechtliche Angaben nach deutschem Recht – nur auf Deutsch verfügbar.": "Legal information under German law – only available in German.",
   "Themen-Welt": "Theme world",

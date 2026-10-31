@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator, Timestamp } from 'firebase/firestore';
 
 const env = import.meta.env;
 
@@ -22,6 +22,13 @@ if (env.VITE_USE_EMULATOR === 'true') {
   connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
   connectFirestoreEmulator(db, 'localhost', 8080);
 }
+
+/**
+ * Räume werden nach einem Tag automatisch gelöscht: Jedes Raum-Dokument (und alles darunter)
+ * bekommt ein Ablaufdatum „expireAt“, das eine Firestore-TTL-Richtlinie auswertet (docs/DATABASE.md).
+ */
+export const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
+export const expiry = () => ({ expireAt: Timestamp.fromMillis(Date.now() + ROOM_TTL_MS) });
 
 /** Liefert die anonyme UID dieses Geräts (= playerId bzw. hostId). */
 let uidPromise;

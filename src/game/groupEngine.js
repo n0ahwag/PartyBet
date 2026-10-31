@@ -1,7 +1,7 @@
 import {
   collection, doc, getDocs, updateDoc, runTransaction, serverTimestamp, increment,
 } from 'firebase/firestore';
-import { db } from '../firebase.js';
+import { db, expiry } from '../firebase.js';
 import { GAMES, groupPlayable, pickGame } from './gameLibrary.js';
 import { phaseForRound } from './constants.js';
 import { FINAL_MULTIPLIER, confessionOrder } from './group.js';
@@ -59,7 +59,7 @@ export async function startGroupRound(code) {
 /** Legt das Runden-Dokument an und setzt es als aktuelle Runde. */
 function writeRound(tx, code, room, players, game, rng, round, phase, playedGames, extra = {}) {
   const id = `r${String(round).padStart(2, '0')}`;
-  tx.set(roundRef(code, id), {
+  tx.set(roundRef(code, id), { ...expiry(),
     round,
     phase,
     gameId: game.id,
@@ -166,7 +166,7 @@ export async function finishGroupRound(code, id, { points = {}, stats = {}, rank
       if (r === 1 && !ids.has(uid)) tx.update(playerRef(code, uid), { 'stats.firstPlaces': increment(1) });
     }
     tx.update(roundRef(code, id), { stage: 'resolved', points: final, multiplier: mult, ranks, ...extra });
-    tx.set(doc(collection(db, 'rooms', code, 'events')), {
+    tx.set(doc(collection(db, 'rooms', code, 'events')), { ...expiry(),
       type: 'groupRound', round: round.round, gameId: round.gameId, points: final, ...extra, at: serverTimestamp(),
     });
   });

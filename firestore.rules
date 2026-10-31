@@ -40,6 +40,20 @@ service cloud.firestore {
         && request.resource.data.counts[request.resource.data.last] == resource.data.counts.get(request.resource.data.last, 0) + 1;
     }
 
+    // Kontaktformular: jeder angemeldete Besucher darf eine Nachricht anlegen – lesen nur der
+    // Betreiber in der Firebase-Konsole (Admin), nicht über die App.
+    match /contact/{id} {
+      allow read, update, delete: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['name', 'email', 'message', 'createdAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 80
+        && request.resource.data.email is string && request.resource.data.email.size() <= 120
+        && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
+        && request.resource.data.message is string
+        && request.resource.data.message.size() >= 5 && request.resource.data.message.size() <= 3000
+        && request.resource.data.createdAt == request.time;
+    }
+
     match /rooms/{code} {
       allow read: if signedIn();
       allow create: if signedIn()
