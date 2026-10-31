@@ -19,7 +19,7 @@ export function Lobby({ code, room, players, meId, isHost, run, busy, big }) {
   const equipment = EQUIPMENT.filter((e) => room.equipment.includes(e.id));
 
   const startAnyway = () => run(async () => {
-    await updateLobby(code, { expectedPlayers: players.length, equipment: room.equipment, totalRounds: room.totalRounds, gameMode: room.gameMode });
+    await updateLobby(code, { expectedPlayers: players.length, equipment: room.equipment, totalRounds: room.totalRounds, gameMode: room.gameMode, stealth: !!room.stealth });
     await start();
   });
 
@@ -41,6 +41,7 @@ export function Lobby({ code, room, players, meId, isHost, run, busy, big }) {
             {board ? `🎲 ${t('Spielfeld-Modus ({n} Felder, alkoholfrei)', { n: room.board.fields.length })}`
               : group ? `👥 ${t('Gruppen-Modus · {n} Runden, alle gleichzeitig', { n: room.totalRounds })}`
                 : `🍻 ${t('Party-Modus · {n} Duelle', { n: room.totalRounds })}`}
+            {room.stealth ? ` · 🤫 ${t('Stealth-/Uni-Modus')}` : ''}
             {' · '}{t('Utensilien')}: {equipment.length ? equipment.map((e) => `${e.icon} ${t(e.label)}`).join(', ') : t('keine')} · {room.mode === 'screen' ? t('Hauptbildschirm') : t('Nur Handys')}
           </p>
         </div>

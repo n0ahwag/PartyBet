@@ -20,11 +20,12 @@ const MISSING_CAP = { needsMotion: 'Bewegungssensor', needsCompass: 'Kompass', n
 /** Spielauswahl: Spiele, die mit den Leuten in der Lobby funktionieren – oben die spielbaren. */
 function GamePicker({ code, players, room, isHost, run, busy }) {
   const [noEquipment, setNoEquipment] = useState(false);
+  const [quiet, setQuiet] = useState(!!room.stealth);
   const lang = useLang();
   const n = players.length;
 
   const { sections, locked, count } = useMemo(() => {
-    const all = Object.values(GAMES).filter((g) => g.group !== false && (!noEquipment || !g.equipment.length));
+    const all = Object.values(GAMES).filter((g) => g.group !== false && (!noEquipment || !g.equipment.length) && (!quiet || g.quiet));
     const capsOk = new Set(playableFor(all, players).map((g) => g.id));
     const fits = (g) => n >= g.minPlayers && capsOk.has(g.id);
     const order = ['group', 'anywhere', ...Object.keys(CATEGORIES).filter((k) => k !== 'anywhere' && k !== 'group')];
@@ -38,7 +39,7 @@ function GamePicker({ code, players, room, isHost, run, busy }) {
         return { game: g, reason: t('nicht jedes Handy hat: {what}', { what: t(MISSING_CAP[cap]) }) };
       }),
     };
-  }, [players, n, noEquipment, lang]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [players, n, noEquipment, quiet, lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const played = room.playedGames || [];
   const pick = (id) => run(() => startLibraryRound(code, id));
@@ -50,9 +51,10 @@ function GamePicker({ code, players, room, isHost, run, busy }) {
         <p className="small muted" style={{ margin: 0 }}>
           {n < 2 ? t('Warte auf mindestens 2 Spieler…') : t('{count} Spiele passen zu {n} Spielern.', { count, n })}
         </p>
-        <div className="grid-2">
-          <button className={`chip ${!noEquipment ? 'on' : ''}`} style={{ justifyContent: 'center' }} onClick={() => setNoEquipment(false)}>{t('Alle Spiele')}</button>
-          <button className={`chip ${noEquipment ? 'on' : ''}`} style={{ justifyContent: 'center' }} onClick={() => setNoEquipment(true)}>🙅 {t('Ohne Utensilien')}</button>
+        <div className="grid-3">
+          <button className={`chip ${!noEquipment && !quiet ? 'on' : ''}`} style={{ justifyContent: 'center' }} onClick={() => { setNoEquipment(false); setQuiet(false); }}>{t('Alle Spiele')}</button>
+          <button className={`chip ${noEquipment ? 'on' : ''}`} style={{ justifyContent: 'center' }} onClick={() => setNoEquipment((v) => !v)}>🙅 {t('Ohne Utensilien')}</button>
+          <button className={`chip ${quiet ? 'on' : ''}`} style={{ justifyContent: 'center' }} onClick={() => setQuiet((v) => !v)}>🤫 {t('Leise')}</button>
         </div>
       </div>
       {sections.map((s) => (

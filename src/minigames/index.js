@@ -13,6 +13,7 @@ import { Rhythm } from './Rhythm.jsx';
 import { TruthBluff } from './TruthBluff.jsx';
 import { AnywhereGames } from './Anywhere.jsx';
 import { SensorGames } from './Sensors.jsx';
+import { ArcadeGames } from './Arcade.jsx';
 
 /** gameId → { Play (Gerät des Duellanten), Stage (TV/Zuschauer), Review? } */
 export const MINIGAMES = {
@@ -35,6 +36,7 @@ export const MINIGAMES = {
   truthBluff: TruthBluff,
   ...AnywhereGames,
   ...SensorGames,
+  ...ArcadeGames,
 };
 
 /** Unter welchem Schlüssel ein Gerät sein Ergebnis in duel.results ablegt. */

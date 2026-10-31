@@ -13,7 +13,7 @@ import { Wrapped } from './Wrapped.jsx';
 import { LibraryLobby } from '../components/library/LibraryLobby.jsx';
 import { navigate } from '../lib/router.js';
 import { t } from '../i18n/index.js';
-import { isMuted, setMuted } from '../lib/sound.js';
+import { isMuted, setMuted, setStealth } from '../lib/sound.js';
 import { Standings, useAnimatedPositions, FieldBanner } from '../components/board/BoardView.jsx';
 import { Board3D } from '../components/board/Board3D.jsx';
 import { BoardRound, RoundBanners, RankingList } from '../components/board/BoardRound.jsx';
@@ -32,6 +32,8 @@ export function PlayerController({ uid, code }) {
   const [muted, setMutedState] = useState(isMuted());
   // Spielfeld: Karte erst nach dem Ziehen (bzw. vor der ersten Challenge), sonst nur Spiel/Würfel
   const boardMap = room?.gameMode === 'board' && (!round || round.stage === 'resolved');
+  // Stealth-/Uni-Modus: dieses Gerät bleibt lautlos, solange es in der Party ist
+  useEffect(() => { setStealth(room?.stealth); return () => setStealth(false); }, [room?.stealth]);
   useEffect(() => {
     if (room?.gameMode === 'board') window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [room?.gameMode, round?.id, round?.stage]);

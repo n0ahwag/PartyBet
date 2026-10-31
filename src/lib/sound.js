@@ -19,14 +19,21 @@ export function unlockAudio() {
   }
 }
 
+let stealth = false; // Stealth-/Uni-Modus: komplett lautlos (Vibration bleibt)
+
 export const isMuted = () => muted;
+/** true, wenn gerade nichts zu hören sein soll (stumm geschaltet oder Stealth-Modus). */
+export const isSilent = () => muted || stealth;
+export function setStealth(v) {
+  stealth = !!v;
+}
 export function setMuted(v) {
   muted = v;
   localStorage.setItem('fo_muted', v ? '1' : '0');
 }
 
 function tone(freq, { start = 0, dur = 0.15, type = 'sine', gain = 0.25, slideTo } = {}) {
-  if (muted) return;
+  if (muted || stealth) return;
   const c = ac();
   const t = c.currentTime + start;
   const osc = c.createOscillator();

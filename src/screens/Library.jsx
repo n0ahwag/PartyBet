@@ -41,12 +41,13 @@ export function GameCard({ game, onClick, disabled = false, note = null }) {
 /** Lobby für die Bibliothek erstellen: erst Leute beitreten lassen, dann passende Spiele auswählen. */
 function CreateLibraryLobby({ uid }) {
   const [mode, setMode] = useState('mobile');
+  const [stealth, setStealth] = useState(false);
   const [name, setName] = useState(localStorage.getItem('fo_name') || '');
   const [toast, toastNode] = useToast();
   const [run, busy] = useAction(toast);
 
   const create = () => run(async () => {
-    const code = await createRoom({ hostId: uid, mode, expectedPlayers: 12, equipment: [], totalRounds: 99, liveEvents: false, gameMode: 'library' });
+    const code = await createRoom({ hostId: uid, mode, expectedPlayers: 12, equipment: [], totalRounds: 99, liveEvents: false, gameMode: 'library', stealth });
     if (mode === 'mobile') {
       localStorage.setItem('fo_name', name);
       await joinRoom(code, uid, { name, avatar: localStorage.getItem('fo_avatar') || AVATARS[0], caps: detectCaps() });
@@ -71,6 +72,9 @@ function CreateLibraryLobby({ uid }) {
         </button>
       </div>
       {mode === 'mobile' && <input className="input" placeholder={t('Dein Name')} maxLength={16} value={name} onChange={(e) => setName(e.target.value)} />}
+      <button className={`chip ${stealth ? 'on' : ''}`} style={{ justifyContent: 'flex-start', textAlign: 'left' }} onClick={() => setStealth((v) => !v)}>
+        🤫 <span><b>{t('Stealth-/Uni-Modus')}</b><br /><span className="small muted" style={{ fontWeight: 500 }}>{t('Nur leise Spiele, keine Töne')}</span></span>
+      </button>
       <button className="btn primary lg block" disabled={busy || !uid || (mode === 'mobile' && !name.trim())} onClick={create}>{t('Lobby erstellen')}</button>
       {toastNode}
     </div>

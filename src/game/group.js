@@ -82,9 +82,16 @@ Object.assign(GAMES, {
 });
 
 export const GROUP_ONLY_IDS = ['whoMost', 'syncTest', 'hivemind', 'confession', 'chainStory'];
+// Stealth-Modus: diese Gruppen-Spiele gehen auch leise (Ketten-Story ohne Vorlesen)
+for (const id of ['whoMost', 'syncTest', 'confession', 'chainStory']) GAMES[id].quiet = true;
 
 /** Bibliothek je Spielmodus (wird beim Erstellen im Raum gespeichert). */
-export function libraryFor(gameMode, playerCount, equipment = []) {
+export function libraryFor(gameMode, playerCount, equipment = [], { stealth = false } = {}) {
+  const lib = libraryForMode(gameMode, playerCount, equipment);
+  return stealth ? lib.filter((g) => g.quiet) : lib;
+}
+
+function libraryForMode(gameMode, playerCount, equipment) {
   // Bibliotheks-Lobby: alle Spiele, die die ganze Gruppe spielen kann – der Host wählt passend zur Spielerzahl
   if (gameMode === 'library') return Object.values(GAMES).filter((g) => g.group !== false);
   if (gameMode === 'group') {

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { setStealth } from '../lib/sound.js';
 import { useRoom } from '../hooks/useRoom.js';
 import { usePhaseFx } from '../hooks/usePhaseFx.js';
 import { Lobby } from '../components/Lobby.jsx';
@@ -29,6 +30,8 @@ export function HostScreen({ uid, code }) {
   const [run, busy] = useAction(toast);
   // Spielfeld: Karte erst nach dem Ziehen (bzw. vor der ersten Challenge), sonst nur Spiel/Würfel
   const boardMap = room?.gameMode === 'board' && (!round || round.stage === 'resolved');
+  // Stealth-/Uni-Modus: dieses Gerät bleibt lautlos, solange es in der Party ist
+  useEffect(() => { setStealth(room?.stealth); return () => setStealth(false); }, [room?.stealth]);
   useEffect(() => {
     if (room?.gameMode === 'board') window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [room?.gameMode, round?.id, round?.stage]);
