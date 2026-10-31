@@ -3,7 +3,7 @@ import { FIELD_TYPES } from '../../game/board.js';
 import { sfx } from '../../lib/sound.js';
 import { t } from '../../i18n/index.js';
 
-const STEP_MS = 260;
+const STEP_MS = 320; // passt zur Übergangszeit der 3D-Figuren
 
 /** Pfad einer Figur in einer Runde: Feld für Feld bis zur Landung, dann Sprung (Rakete/Portal/Stolperstein). */
 function pathOf(m) {
@@ -48,46 +48,6 @@ export function useAnimatedPositions(players, round) {
   }, [round?.id, round?.stage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return anim ? { ...actual, ...anim } : actual;
-}
-
-/** Schlangenförmiges Spielfeld (Zeilen abwechselnd links→rechts / rechts→links). */
-export function BoardView({ fields, players, positions, compact = false }) {
-  const cols = compact ? 6 : 10;
-  const rows = Math.ceil(fields.length / cols);
-  const cells = [];
-  for (let r = 0; r < rows; r++) {
-    const row = [];
-    for (let c = 0; c < cols; c++) {
-      const i = r * cols + c;
-      row.push(i < fields.length ? i : null);
-    }
-    if (r % 2 === 1) row.reverse();
-    cells.push(...row);
-  }
-  const leaderPos = Math.max(0, ...players.map((p) => positions[p.id] ?? 0));
-
-  return (
-    <div className={`board ${compact ? 'compact' : ''}`} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
-      {cells.map((i, k) => {
-        if (i === null) return <div key={`x${k}`} />;
-        const type = FIELD_TYPES[fields[i]];
-        const here = players.filter((p) => (positions[p.id] ?? 0) === i);
-        return (
-          <div key={i} className={`field ${fields[i]} ${here.length && i === leaderPos && i > 0 ? 'lead' : ''}`}
-            style={type.color ? { background: `color-mix(in srgb, ${type.color} 22%, var(--card))`, borderColor: type.color } : undefined}
-            title={t(type.desc || type.label)}>
-            <span className="num">{i === 0 ? '' : i}</span>
-            {type.icon && <span className="ficon">{type.icon}</span>}
-            <div className="tokens">
-              {here.map((p) => (
-                <span key={p.id} className="token pop" style={{ background: p.color }} title={p.name}>{p.avatar}</span>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 export function FieldLegend() {

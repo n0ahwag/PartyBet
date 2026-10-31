@@ -27,6 +27,12 @@ Im Spielfeld-Modus läuft jedes Minispiel als **Gruppen-Challenge**:
 - **Wahrheit oder Bluff:** Ein Erzähler gegen alle.
 - **Real-Life- und Utensil-Spiele:** Der Host tippt die Reihenfolge an.
 
+Das Spielfeld ist eine **isometrische 3D-Karte** im Party-Brettspiel-Stil (reines SVG, keine 3D-Bibliothek):
+- **Karte:** Eine geschwungene Straße führt über eine Insel. Die Felder sind runde Scheiben, die Spielfiguren 3D-Figuren in Spielerfarbe mit Avatar. Sie hüpfen Feld für Feld.
+- **Themen-Welten:** *Party-Stadt*, *Dschungel-Pfad* oder *Retro-Arcade*, wählbar beim Erstellen und in der Lobby (Host). Jede Welt hat eigene Farben, eigenen Himmel und eigene Deko.
+- **Würfeln:** Wer würfeln darf, **tippt auf seinem Handy auf den Würfel** (2D-Würfel mit Dreh-Effekt). Die Zahl ist pro Runde und Spieler fest (`diceFor`), sodass alle Geräte dasselbe sehen. Sind alle fertig, ziehen die Figuren automatisch. Nach 25 s würfelt die App für Säumige.
+- **Handy:** Die Karte folgt der eigenen Figur, man kann wischen. „Ganzes Feld“ zeigt die Übersicht.
+
 ## Sprachen
 
 **Deutsch** und **Englisch**, umschaltbar auf der Startseite und über den 🌐-Knopf auf jedem Bildschirm. Die Sprache gilt **pro Gerät**: In einer Party kann jeder Spieler seine eigene Sprache nutzen, Spielinhalte wie Fragen und Rätsel erscheinen auf jedem Handy in dessen Sprache. Beim ersten Start wird die Browser-Sprache übernommen.
@@ -87,6 +93,7 @@ Google AdSense ist vorbereitet (Anzeigen nur auf ruhigen Seiten, `ads.txt`, Best
     │   ├── economy.js         Einsätze sperren, Quoten, Auszahlung (pure Functions)
     │   ├── engine.js          Firestore-Transaktionen: Raum, Duelle, Rettungen, Live-Events
     │   ├── board.js           Spielfeld-Modus: Feld erzeugen, Platzierung → Zug, Sonderfelder (pure)
+    │   ├── board3d.js         3D-Karte: Pfad, Deko, Iso-Projektion (pure)
     │   ├── boardEngine.js     Spielfeld-Modus: Gruppen-Challenges & Züge in Firestore
     │   ├── liveEvents.js      Live-Event-Katalog & Trigger-Regeln
     │   ├── group.js           Gruppen-Modus: Gruppen-Spiele, Bibliothek je Modus, Punkte (pure)
@@ -94,7 +101,7 @@ Google AdSense ist vorbereitet (Anzeigen nur auf ruhigen Seiten, `ads.txt`, Best
     │   └── wrapped.js         Statistik → Wrapped-Karten (Party & Spielfeld)
     ├── hooks/                 useRoom (Realtime-Abo), usePhaseFx, Countdown, Auth
     ├── components/            Lobby, DuelVs, BetPanel, PowerupPanel, HostControls, Rescue, LiveEventOverlay, …
-    │   ├── board/             BoardView (animiertes Spielfeld), BoardRound, BoardHostControls
+    │   ├── board/             Board3D (isometrische Karte & Themen), Dice (Würfel), BoardRound, BoardHostControls
     │   └── group/             GroupRound, PointsBoard, GroupHostControls
     ├── minigames/             Ein Modul pro Spiel: { Play, Stage, Review, GroupPlay?, GroupStage? } + format.js
     ├── screens/               Home, CreateRoom, JoinRoom, HostScreen, PlayerController, Wrapped, Library, Practice

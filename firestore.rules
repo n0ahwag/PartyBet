@@ -73,9 +73,11 @@ service cloud.firestore {
         allow read: if signedIn();
         allow create, delete: if isHost(code);
         allow update: if isHost(code) || (
-          isPlayer(code) && resource.data.stage == 'playing'
-          && request.auth.uid in resource.data.participants
-          && onlyChanged(['results']) && onlyOwnKey('results')
+          isPlayer(code) && request.auth.uid in resource.data.participants && (
+            (resource.data.stage == 'playing' && onlyChanged(['results']) && onlyOwnKey('results'))
+            // Spielfeld: zum Würfeln antippen (nur der eigene Eintrag, nur nach der Platzierung)
+            || (resource.data.stage == 'review' && onlyChanged(['rolls']) && onlyOwnKey('rolls'))
+          )
         );
       }
 

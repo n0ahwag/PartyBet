@@ -2,7 +2,8 @@ import { EQUIPMENT } from '../game/constants.js';
 import { AdSlot } from './AdSlot.jsx';
 import { GameArt } from './GameArt.jsx';
 import { GAMES } from '../game/gameLibrary.js';
-import { startGame, updateLobby, kickPlayer } from '../game/engine.js';
+import { startGame, updateLobby, kickPlayer, setBoardTheme } from '../game/engine.js';
+import { Board3D, ThemePicker } from './board/Board3D.jsx';
 import { startBoardGame } from '../game/boardEngine.js';
 import { startGroupGame } from '../game/groupEngine.js';
 import { BOARD_LENGTHS } from '../game/board.js';
@@ -46,6 +47,13 @@ export function Lobby({ code, room, players, meId, isHost, run, busy, big }) {
         </div>
       </div>
       <div className="stack">
+        {board && (
+          <div className="card stack">
+            <h3>🗺️ {t('Themen-Welt')}</h3>
+            <ThemePicker value={room.board.theme ?? 'city'} disabled={!isHost} onChange={(id) => isHost && run(() => setBoardTheme(code, id))} />
+            <Board3D fields={room.board.fields} players={players} positions={{}} theme={room.board.theme ?? 'city'} seed={code} meId={meId} />
+          </div>
+        )}
         <div className="card stack">
           <div className="row between">
             <h3>{t('Spieler')}</h3>

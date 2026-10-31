@@ -9,7 +9,8 @@ import { PhaseOverlay, PhaseBadge } from '../components/PhaseOverlay.jsx';
 import { LiveEventOverlay } from '../components/LiveEventOverlay.jsx';
 import { OfflineBanner, Loading, useToast, useAction, LangSwitch } from '../components/ui.jsx';
 import { Wrapped } from './Wrapped.jsx';
-import { BoardView, Standings, FieldLegend, useAnimatedPositions } from '../components/board/BoardView.jsx';
+import { Standings, FieldLegend, useAnimatedPositions } from '../components/board/BoardView.jsx';
+import { Board3D } from '../components/board/Board3D.jsx';
 import { BoardRound } from '../components/board/BoardRound.jsx';
 import { BoardHostControls } from '../components/board/BoardHostControls.jsx';
 import { GroupRound, PointsBoard } from '../components/group/GroupRound.jsx';
@@ -67,10 +68,12 @@ export function HostScreen({ uid, code }) {
       ) : room.gameMode === 'board' ? (
         <div className="host-grid">
           <div className="stack">
-            <BoardView fields={room.board.fields} players={players} positions={positions} />
+            {/* Beim Würfeln stehen die Würfel oben, sonst die Karte */}
+            {round?.stage === 'review' && <div className="card"><BoardRound code={code} round={round} byId={byId} me={null} big run={run} /></div>}
+            <Board3D fields={room.board.fields} players={players} positions={positions} theme={room.board.theme} seed={code} />
             <FieldLegend />
-            {round ? <div className="card"><BoardRound code={code} round={round} byId={byId} me={null} big run={run} /></div>
-              : <div className="card center"><h2>{t('Bereit für die erste Challenge?')}</h2></div>}
+            {round?.stage !== 'review' && (round ? <div className="card"><BoardRound code={code} round={round} byId={byId} me={null} big run={run} /></div>
+              : <div className="card center"><h2>{t('Bereit für die erste Challenge?')}</h2></div>)}
           </div>
           <div className="stack">
             <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />
