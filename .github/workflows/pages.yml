@@ -35,6 +35,7 @@ jobs:
           VITE_OWNER_CITY: ${{ vars.OWNER_CITY }}
           VITE_OWNER_COUNTRY: ${{ vars.OWNER_COUNTRY }}
           VITE_OWNER_EMAIL: ${{ vars.OWNER_EMAIL }}
+          VITE_CONTACT_FORM_KEY: ${{ vars.CONTACT_FORM_KEY }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -1,7 +1,7 @@
 import {
   collection, doc, getDocs, updateDoc, runTransaction, serverTimestamp, increment,
 } from 'firebase/firestore';
-import { db } from '../firebase.js';
+import { db, expiry } from '../firebase.js';
 import { GAMES, groupPlayable, pickGame } from './gameLibrary.js';
 import { applyRound, boardPhase, CHAOS_PENALTY } from './board.js';
 import { triggerLiveEvent } from './engine.js';
@@ -54,7 +54,7 @@ export async function startChallenge(code) {
     chosen = game.id;
 
     const id = `r${String(round).padStart(2, '0')}`;
-    tx.set(roundRef(code, id), {
+    tx.set(roundRef(code, id), { ...expiry(),
       round,
       phase: room.phase,
       gameId: game.id,
@@ -141,7 +141,7 @@ export async function moveTokens(code, id) {
       ...(phase !== room.phase ? { phaseChangedAt: Date.now() } : {}),
       ...(result.winnerId ? { winnerId: result.winnerId } : {}),
     });
-    tx.set(doc(collection(db, 'rooms', code, 'events')), {
+    tx.set(doc(collection(db, 'rooms', code, 'events')), { ...expiry(),
       type: 'boardRound', round: round.round, gameId: round.gameId, ranks: round.ranks, at: serverTimestamp(),
     });
   });

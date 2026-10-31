@@ -154,3 +154,26 @@ Ein Dokument pro Tag (UTC) über **alle** Partys: `{ counts: { gameId: n }, last
 - **Wofür:** Die Spielauswahl (`pickGame` → `leastPlayed`) summiert die letzten 7 Tage und wählt nur unter den am wenigsten gespielten Kandidaten. Die Regel „jedes Spiel nur einmal pro Party“ gilt weiter.
 - **Bei Ausfall:** Fehlt die Regel oder das Netz, wird ohne Statistik gewählt.
 
+
+## Automatisches Löschen nach 1 Tag (TTL)
+
+Jedes Dokument unter `rooms/{code}` (Raum, `players`, `duels`, `rounds`, `rescues`, `liveEvents`, `events`)
+bekommt beim Anlegen das Feld `expireAt` = jetzt + 24 h (`expiry()` in `src/firebase.js`).
+Firestore löscht Dokumente automatisch (meist innerhalb von 24 h nach Ablauf), sobald für jede
+Sammlungsgruppe eine TTL-Richtlinie auf `expireAt` aktiv ist. Einmalig einrichten – entweder in der
+Firebase-/Google-Cloud-Konsole (Firestore → TTL bzw. „Time-to-live“ → Richtlinie erstellen,
+Sammlungsgruppe + Feld `expireAt`) oder per Cloud Shell:
+
+```bash
+for g in rooms players duels rounds rescues liveEvents events; do
+  gcloud firestore fields ttls update expireAt --collection-group=$g --enable-ttl --project=partybe-d44b7 --async
+done
+```
+
+Ein Raum wird so einen Tag nach dem Erstellen gelöscht (auch wenn noch gespielt würde).
+
+## Kontaktformular
+
+Nachrichten landen in `contact/{id}` (nur anlegen erlaubt, in der App nicht lesbar).
+Lesen: Firebase-Konsole → Firestore → `contact`. Optional E-Mail-Weiterleitung über web3forms.com
+(GitHub-Variable `CONTACT_FORM_KEY`).
