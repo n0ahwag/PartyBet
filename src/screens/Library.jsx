@@ -96,7 +96,7 @@ export function Library({ uid }) {
   return (
     <div className="page">
       <div className="row between">
-        <button className="btn ghost sm" onClick={() => navigate('/')}>←</button>
+        <button className="btn ghost sm" title={t('Zur Startseite')} onClick={() => navigate('/')}>🏠</button>
         <h2>📚 {t('Bibliothek')}</h2>
         <LangSwitch />
       </div>

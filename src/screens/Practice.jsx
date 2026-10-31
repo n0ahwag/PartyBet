@@ -9,7 +9,7 @@ import { makeRng } from '../lib/random.js';
 import { navigate } from '../lib/router.js';
 import { sfx } from '../lib/sound.js';
 import { t, useLang } from '../i18n/index.js';
-import { LangSwitch } from '../components/ui.jsx';
+import { LangSwitch, HomeButton } from '../components/ui.jsx';
 
 /*
  * Übungsmodus: ein einzelnes Duell lokal auf diesem Gerät – ohne Raum, ohne Firebase.
@@ -52,7 +52,7 @@ export function Practice({ gameId }) {
     [B]: { id: B, name: names[1] || t('Spieler 2'), avatar: '🔴', color: '#EF4444' },
   }), [names]);
 
-  if (!game) return <div className="page center"><h2>{t('Spiel nicht gefunden')}</h2><button className="btn" onClick={() => navigate('/library')}>{t('Bibliothek')}</button></div>;
+  if (!game) return <div className="page center"><h2>{t('Spiel nicht gefunden')}</h2><button className="btn" onClick={() => navigate('/library')}>{t('Bibliothek')}</button><HomeButton /></div>;
   const mg = MINIGAMES[game.id];
 
   const start = () => {
@@ -84,6 +84,7 @@ export function Practice({ gameId }) {
         <div className="row between">
           <button className="btn ghost sm" onClick={() => navigate('/library')}>←</button>
           <span className="pill">{CATEGORIES[game.kind]?.icon} {t(CATEGORIES[game.kind]?.label)}</span>
+          <HomeButton />
         </div>
         <div className="game-title">
           <GameArt game={game} size={88} />
@@ -121,7 +122,7 @@ export function Practice({ gameId }) {
     <div className="row between">
       <button className="btn ghost sm" onClick={() => setDuel(null)}>✕</button>
       <b className="row" style={{ gap: 8 }}><GameArt game={game} size={26} /> {t(game.name)}</b>
-      <span className="pill">{t('Übung')}</span>
+      <div className="row" style={{ gap: 6 }}><span className="pill">{t('Übung')}</span><HomeButton /></div>
     </div>
   );
 

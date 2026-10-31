@@ -8,7 +8,7 @@ import { BankruptPanel, LoanInbox, RescueAdmin } from '../components/Rescue.jsx'
 import { Scoreboard } from '../components/Scoreboard.jsx';
 import { PhaseOverlay, PhaseBadge } from '../components/PhaseOverlay.jsx';
 import { LiveEventOverlay } from '../components/LiveEventOverlay.jsx';
-import { Avatar, Inventory, OfflineBanner, Loading, Sips, useToast, useAction, LangSwitch } from '../components/ui.jsx';
+import { Avatar, Inventory, OfflineBanner, Loading, Sips, useToast, useAction, LangSwitch, HomeButton } from '../components/ui.jsx';
 import { Wrapped } from './Wrapped.jsx';
 import { LibraryLobby } from '../components/library/LibraryLobby.jsx';
 import { navigate } from '../lib/router.js';
@@ -40,6 +40,7 @@ export function PlayerController({ uid, code }) {
       <div className="page center">
         <h2>{t('Du bist (noch) nicht in diesem Raum.')}</h2>
         {room.status === 'lobby' && <button className="btn primary" onClick={() => navigate(`/join/${code}`)}>{t('Beitreten')}</button>}
+        <button className="btn ghost" onClick={() => navigate('/')}>🏠 {t('Zur Startseite')}</button>
       </div>
     );
   }
@@ -56,6 +57,13 @@ export function PlayerController({ uid, code }) {
       <PhaseOverlay phase={overlay} mode={room.gameMode} />
       <OfflineBanner online={online} />
       <LiveEventOverlay code={code} room={room} players={players} byId={byId} me={me} isHost={isHost} run={run} />
+      <div className="row between">
+        <HomeButton confirm isHost={isHost} />
+        <div className="row" style={{ gap: 6 }}>
+          <button className="btn ghost sm" onClick={() => { setMuted(!muted); setMutedState(!muted); }}>{muted ? '🔇' : '🔊'}</button>
+          <LangSwitch />
+        </div>
+      </div>
       <header className="row">
         <Avatar player={me} />
         <div className="grow">
@@ -65,8 +73,6 @@ export function PlayerController({ uid, code }) {
         {group ? <span className="balance">⭐ {me.points ?? 0} P</span> : board
           ? <span className="balance">📍 {me.position ?? 0}/{goal}{me.skipNext ? ' ⏸️' : ''}</span>
           : <Sips n={me.balance} className="big" />}
-        <button className="btn ghost sm" onClick={() => { setMuted(!muted); setMutedState(!muted); }}>{muted ? '🔇' : '🔊'}</button>
-        <LangSwitch />
       </header>
 
       {library ? (

@@ -1003,4 +1003,9 @@ export const EN = {
   "Party-Stadt": "Party Town",
   "Dschungel-Pfad": "Jungle Trail",
   "Retro-Arcade": "Retro Arcade",
+  "Party wirklich verlassen?": "Really leave the party?",
+  "Du bist der Host – ohne dich kann die Party nicht weitergehen. Über „Zurück zur letzten Party“ auf der Startseite kommst du jederzeit wieder rein.": "You're the host – the party can't continue without you. Use “Back to the last party” on the home screen to get back in any time.",
+  "Die Party läuft ohne dich weiter. Über „Zurück zur letzten Party“ auf der Startseite kannst du jederzeit wieder einsteigen.": "The party carries on without you. Use “Back to the last party” on the home screen to rejoin any time.",
+  "Verlassen": "Leave",
+  "Bleiben": "Stay",
 };

@@ -37,6 +37,7 @@ export function App() {
         <h2>{t('Verbindung fehlgeschlagen')}</h2>
         <p className="muted">{error}</p>
         <p className="small muted">{t('Ist „Anonyme Anmeldung“ in Firebase Authentication aktiviert?')}</p>
+        <button className="btn ghost" onClick={() => { window.location.hash = '/'; window.location.reload(); }}>🏠 {t('Zur Startseite')}</button>
       </div>
     );
   }

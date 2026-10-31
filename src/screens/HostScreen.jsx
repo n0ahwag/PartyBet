@@ -7,7 +7,7 @@ import { RescueAdmin } from '../components/Rescue.jsx';
 import { Scoreboard } from '../components/Scoreboard.jsx';
 import { PhaseOverlay, PhaseBadge } from '../components/PhaseOverlay.jsx';
 import { LiveEventOverlay } from '../components/LiveEventOverlay.jsx';
-import { OfflineBanner, Loading, useToast, useAction, LangSwitch } from '../components/ui.jsx';
+import { OfflineBanner, Loading, useToast, useAction, LangSwitch, HomeButton } from '../components/ui.jsx';
 import { Wrapped } from './Wrapped.jsx';
 import { Standings, FieldLegend, useAnimatedPositions } from '../components/board/BoardView.jsx';
 import { Board3D } from '../components/board/Board3D.jsx';
@@ -29,7 +29,7 @@ export function HostScreen({ uid, code }) {
 
   if (loading) return <Loading text={t('Lade Arena…')} />;
   if (!room) return <div className="page center"><h2>{t('Raum {code} nicht gefunden', { code })}</h2><button className="btn" onClick={() => navigate('/')}>{t('Zur Startseite')}</button></div>;
-  if (room.hostId !== uid) return <div className="page center"><h2>{t('Nur das Host-Gerät kann diesen Bildschirm öffnen.')}</h2></div>;
+  if (room.hostId !== uid) return <div className="page center"><h2>{t('Nur das Host-Gerät kann diesen Bildschirm öffnen.')}</h2><button className="btn" onClick={() => navigate('/')}>{t('Zur Startseite')}</button></div>;
   if (room.status === 'finished') return <Wrapped code={code} players={players} room={room} />;
 
   return (
@@ -43,6 +43,7 @@ export function HostScreen({ uid, code }) {
           <PhaseBadge room={room} />
           <span className="pill">Code {code}</span>
           <LangSwitch />
+          <HomeButton confirm isHost />
         </div>
       </header>
       {room.status === 'playing' && <div className="phase-strip" />}

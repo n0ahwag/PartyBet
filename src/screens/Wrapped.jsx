@@ -34,7 +34,11 @@ export function Wrapped({ code, players, room }) {
         const left = e.clientX < window.innerWidth * 0.3;
         setI((x) => Math.max(0, Math.min(cards.length - 1, x + (left ? -1 : 1))));
       }}>
-      <div className="progress">{cards.map((c, idx) => <div key={c.id} className={idx <= i ? 'done' : ''} />)}</div>
+      <div className="row" style={{ gap: 10 }}>
+        <div className="progress grow">{cards.map((c, idx) => <div key={c.id} className={idx <= i ? 'done' : ''} />)}</div>
+        <button className="btn sm" style={{ background: 'rgba(255,255,255,0.9)', color: '#141E30' }} title={t('Zur Startseite')}
+          onClick={(e) => { e.stopPropagation(); navigate('/'); }}>🏠</button>
+      </div>
       <div className="body" key={card.id}>
         <div className="kick slide-up">{card.kicker}</div>
         {card.player && <div className="pop" style={{ fontSize: 110 }}>{card.player.avatar}</div>}
