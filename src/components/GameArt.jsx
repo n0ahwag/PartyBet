@@ -501,6 +501,65 @@ const ART = {
       <path d="M22 30q4 6 10 4" stroke={a} strokeWidth="1.8" strokeDasharray="1.5 2.5" fill="none" strokeLinecap="round" />
     </>
   ),
+  pixelRun: ({ a, d }) => (
+    <>
+      <rect x="6" y="44" width="52" height="9" rx="2" fill={d} />
+      <rect x="6" y="44" width="52" height="3" fill={mix(a, 0.5)} />
+      <rect x="40" y="31" width="8" height="13" fill="#DC2626" />
+      <rect x="49" y="36" width="7" height="8" fill="#F97316" />
+      <g transform="translate(14 14)">
+        <rect x="4" y="0" width="12" height="10" fill={INK} />
+        <rect x="11" y="3" width="3" height="3" fill={W} />
+        <rect x="2" y="10" width="15" height="9" fill={a} />
+        <rect x="3" y="19" width="4" height="7" fill={INK} />
+        <rect x="12" y="19" width="4" height="7" fill={INK} transform="rotate(-25 14 19)" />
+      </g>
+      <path d="M8 22h5M6 28h5" stroke={INK} strokeWidth="2" strokeLinecap="round" opacity="0.4" />
+      <path d="M34 20q6-10 14 0" stroke={W} strokeWidth="2" strokeDasharray="2 3" fill="none" />
+      <Sparkle x={52} y={13} s={4} fill={YEL} />
+    </>
+  ),
+  blockStacker: ({ a, d }) => (
+    <>
+      <Shadow c={d} rx={16} y={57} />
+      {[0, 1, 2, 3].map((i) => (
+        <rect key={i} x={14 + i * 2.5 + (i === 3 ? 4 : 0)} y={44 - i * 9} width={36 - i * 4} height="8" rx="2"
+          fill={['#F472B6', '#FACC15', '#34D399', a][i]} />
+      ))}
+      <rect x="20" y="9" width="24" height="8" rx="2" fill={mix(a, 0.35)} />
+      <path d="M14 13h4M46 13h4" stroke={INK} strokeWidth="2" strokeLinecap="round" />
+      <path d="M32 19v5" stroke={INK} strokeWidth="2" strokeDasharray="2 2" />
+      <Sparkle x={53} y={30} s={4} fill={YEL} />
+    </>
+  ),
+  longJump: ({ a, d }) => (
+    <>
+      <rect x="4" y="46" width="22" height="10" fill="#C2410C" />
+      <rect x="26" y="46" width="34" height="10" fill="#FDE68A" />
+      <rect x="25" y="46" width="2" height="10" fill={W} />
+      <path d="M14 42Q30 6 50 40" stroke={a} strokeWidth="2.5" strokeDasharray="3 3" fill="none" strokeLinecap="round" />
+      <g transform="rotate(20 33 20)">
+        <circle cx="33" cy="13" r="4" fill="#F2B48C" />
+        <rect x="29" y="17" width="8" height="10" rx="3" fill={INK} />
+        <path d="M30 26l-5 5M36 26l5 4" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />
+      </g>
+      <path d="M50 46v-6" stroke={d} strokeWidth="2" />
+      <Sparkle x={52} y={13} s={4} fill={YEL} />
+    </>
+  ),
+  skyJumper: ({ a, d }) => (
+    <>
+      {[[10, 50, '#16A34A'], [32, 38, '#16A34A'], [14, 26, '#F97316'], [36, 14, '#16A34A']].map(([x, y, c], i) => (
+        <rect key={i} x={x} y={y} width="18" height="4" rx="2" fill={c} />
+      ))}
+      <rect x="22" y="22" width="12" height="13" rx="4" fill={a} />
+      <rect x="25" y="25" width="2" height="3" fill={W} />
+      <rect x="29" y="25" width="2" height="3" fill={W} />
+      <path d="M28 42v6M24 44l4 4 4-4" stroke={d} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.6" transform="rotate(180 28 45)" />
+      <Sparkle x={52} y={48} s={3.5} fill={YEL} />
+      <Sparkle x={10} y={12} s={3} />
+    </>
+  ),
 };
 
 /** Bild eines Spiels. Fällt auf das Emoji zurück, falls (noch) keine Illustration existiert. */

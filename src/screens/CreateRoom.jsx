@@ -20,20 +20,21 @@ export function CreateRoom({ uid }) {
   const [equipment, setEquipment] = useState([]);
   const [rounds, setRounds] = useState(8);
   const [liveEvents, setLiveEvents] = useState(true);
+  const [stealth, setStealth] = useState(false);
   const [name, setName] = useState(localStorage.getItem('fo_name') || '');
   const [toast, toastNode] = useToast();
   const [run, busy] = useAction(toast);
 
   const board = gameMode === 'board';
   const group = gameMode === 'group';
-  const library = useMemo(() => libraryFor(gameMode, count, equipment), [gameMode, count, equipment]);
+  const library = useMemo(() => libraryFor(gameMode, count, equipment, { stealth }), [gameMode, count, equipment, stealth]);
   // Jedes Spiel nur einmal pro Party → höchstens so viele Duelle wie Spiele
   const maxRounds = Math.max(1, library.length);
   useEffect(() => setRounds((r) => Math.min(r, maxRounds)), [maxRounds]);
   const toggle = (id) => setEquipment((eq) => (eq.includes(id) ? eq.filter((e) => e !== id) : [...eq, id]));
 
   const create = () => run(async () => {
-    const code = await createRoom({ hostId: uid, mode, expectedPlayers: count, equipment, totalRounds: rounds, liveEvents, gameMode, boardLength, boardTheme });
+    const code = await createRoom({ hostId: uid, mode, expectedPlayers: count, equipment, totalRounds: rounds, liveEvents: liveEvents && !stealth, gameMode, boardLength, boardTheme, stealth });
     if (mode === 'mobile') {
       localStorage.setItem('fo_name', name);
       await joinRoom(code, uid, { name, avatar: AVATARS[0], caps: detectCaps() });
@@ -151,6 +152,14 @@ export function CreateRoom({ uid }) {
 
       <div className="card row">
         <div className="grow">
+          <b>🤫 {t('Stealth-/Uni-Modus')}</b>
+          <div className="small muted">{t('Nur leise, unauffällige Spiele – ohne Töne, Rufen oder Aufstehen. Perfekt für Vorlesung & Bibliothek.')}</div>
+        </div>
+        <button className={`chip ${stealth ? 'on' : ''}`} onClick={() => setStealth((v) => !v)}>{stealth ? '🤫' : '🔊'}</button>
+      </div>
+
+      {!stealth && <div className="card row">
+        <div className="grow">
           <b>⚡ {t('Spontane Live-Events')}</b>
           <div className="small muted">
             {board
@@ -160,7 +169,7 @@ export function CreateRoom({ uid }) {
           </div>
         </div>
         <button className={`chip ${liveEvents ? 'on' : ''}`} onClick={() => setLiveEvents((v) => !v)}>{liveEvents ? t('An') : t('Aus')}</button>
-      </div>
+      </div>}
 
       <button className="btn primary lg block" disabled={busy || !uid || (mode === 'mobile' && !name.trim())} onClick={create}>{t('Raum erstellen')}</button>
       {toastNode}

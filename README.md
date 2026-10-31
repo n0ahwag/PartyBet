@@ -34,6 +34,10 @@ Das Spielfeld ist eine **isometrische 3D-Karte** im Party-Brettspiel-Stil (reine
 - **Würfeln:** Nach jeder Challenge würfelt **jeder** und **tippt dafür auf seinem Handy auf seine Würfel** (2D-Würfel mit Dreh-Effekt). Platz 1 bekommt zusätzlich einen Gold-Würfel (4–6), Platz 2 einen Silber-Würfel (2–4) und Platz 3 einen Bronze-Würfel (1–3). Die Augen sind pro Runde, Spieler und Würfel fest (`diceFor`), sodass alle Geräte dasselbe sehen. Wer aussetzen muss, würfelt nicht. Sind alle fertig, ziehen die Figuren automatisch. Nach 25 s würfelt die App für Säumige.
 - **Handy:** Die Karte folgt der eigenen Figur, man kann wischen. „Ganzes Feld“ zeigt die Übersicht.
 
+## 🤫 Stealth-/Uni-Modus
+
+Der Modus lässt sich beim Erstellen jeder Party und der Bibliotheks-Lobby einschalten. Es gibt dann nur **leise, unauffällige Spiele** (Flag `quiet`): kein Rufen, kein Aufstehen, kein Ton nötig. Dazu gehören z. B. Der fliegende Teppich, Wasserwaage, Kopfrechnen, Zahlen-Merker, die Arcade-Spiele, „Wer am ehesten“ und das Beicht-Quiz. Alle Geräte der Party sind lautlos (Vibration bleibt), die Ketten-Story wird nicht vorgelesen, und Live-Events sind aus. In der Bibliotheks-Lobby filtert „🤫 Leise“ die Auswahl.
+
 ## Abwechslung über alle Partys
 
 Die App zählt in Firestore (`gameStats`, ein Dokument pro Tag), wie oft jedes Spiel **in allen Partys** gespielt wurde. Bei jeder Auswahl gewinnen die Spiele, die in den **letzten 7 Tagen am wenigsten** gespielt wurden. Party, Spielfeld und Gruppe werten das automatisch aus. Die Bibliothek zeigt die meist- und wenigstgespielten Spiele der Woche.
@@ -60,9 +64,10 @@ Weitere Sprache hinzufügen: in `LANGS` eintragen, ein Wörterbuch wie `en.js` a
 - **Pleite-Regel:** Notfall-Aufgabe, peinliches Video, Kredit bei Mitspielern (+50 % Zinsen) oder Bank-Darlehen. Schulden werden automatisch aus Gewinnen getilgt
 - **26 Spiele in 9 Kategorien:**
   - 🌍 Überall spielbar (ohne Utensilien & Sensoren): Mentale Stoppuhr, Blitz-Kopfrechnen, Wortketten-Duell, Formel-1-Frühstart, Geheime Zahlen knacken, Assoziations-Blitz, Kategorie-Sprint, Zahlen-Merker, Echtes Schere-Stein-Papier (K.-o.-Turnier)
-  - Real-Life: Farb-Sprint, Handy-Balance
+  - Real-Life: Farb-Sprint, Der fliegende Teppich (Handy-Balance)
   - Digital: Speed-Tap (Split-Screen), Memory-Code, Emoji-Hit-Raten
   - Multi-Device: Schätz-Duell
+  - 🕹️ Arcade (Canvas, gleicher Parcours für alle): Pixel-Sprint (Endless-Runner), Block-Stacker (Turm-Stapler), Weitsprung-Challenge (Tempo und Winkel timen), Vertikal-Jumper (Plattformen, Steuern per Neigen oder Drücken)
   - Sensor: Schüttel-Manie, Kompass-Axt, Die virtuelle Wasserwaage (Gyroskop), Der Tresor-Dreher (Kompass, 360°-Drehung), Der Höhen-Strecker (Beschleunigung, Hub geschätzt), Der Lichtsensor-Blitz (Umgebungslicht-Sensor, sonst Frontkamera als Lichtmesser), Das Kugel-Labyrinth (Neigung)
   - Frontkamera: Starr-Duell (Blinzel-/Lach-Erkennung per MediaPipe Face-Tracking)
   - Audio: Rhythmus-Echo

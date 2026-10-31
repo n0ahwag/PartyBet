@@ -20,6 +20,7 @@ export const CATEGORIES = {
   audio: { label: 'Audio', icon: '🎵' },
   utensil: { label: 'Utensilien', icon: '🧰' },
   social: { label: 'Social', icon: '🗣️' },
+  arcade: { label: 'Arcade', icon: '🕹️' },
 };
 
 export const COLORS = [
@@ -158,7 +159,7 @@ export const GAMES = {
   },
   balance: {
     id: 'balance',
-    name: 'Handy-Balance',
+    name: 'Der fliegende Teppich',
     icon: '🧘',
     kind: 'real',
     minPlayers: 2,
@@ -167,7 +168,7 @@ export const GAMES = {
     needsMotion: true,
     judge: 'auto',
     accent: '#10B981',
-    rules: 'Handy flach auf die Handfläche (oder den Kopf!). 10 Sekunden. Der Sensor misst, wer am ruhigsten ist.',
+    rules: 'Handy-Balance: Leg dein Handy flach auf die Hand wie einen fliegenden Teppich – 10 Sekunden, ganz ohne Geräusche. Das Gyroskop misst, wer am ruhigsten bleibt.',
     createState() {
       return { durationMs: 10000 };
     },
@@ -462,6 +463,7 @@ export function requirementsOf(game) {
   if (game.needsMotion) r.push(t('Bewegungssensor'));
   if (game.needsCompass) r.push(t('Kompass'));
   if (game.needsCamera) r.push(t('Frontkamera'));
+  if (game.quiet) r.push(`🤫 ${t('leise')}`);
   return r;
 }
 
@@ -829,7 +831,55 @@ Object.assign(NEW_SCORES, {
   marbleMaze: (r) => (r.ms == null ? Infinity : r.ms),
 });
 
+// ------------------------------------------------------------------ Arcade-Minispiele (Canvas, Seed = gleicher Parcours für alle)
+const arcadeBase = { kind: 'arcade', minPlayers: 2, equipment: [], devices: 'own', judge: 'auto' };
+Object.assign(GAMES, {
+  pixelRun: {
+    ...arcadeBase, id: 'pixelRun', name: 'Pixel-Sprint', icon: '🏃', accent: '#EA580C',
+    rules: 'Mini-Endless-Runner: Deine Pixel-Figur rennt von selbst – tippe, um über die Hindernisse zu springen. Es wird immer schneller. Wer am weitesten kommt, gewinnt.',
+    groupRules: 'Alle rennen denselben Parcours. Wer am weitesten kommt, gewinnt.',
+    createState: (rng) => ({ seed: rng.int(1, 999999) }),
+  },
+  blockStacker: {
+    ...arcadeBase, id: 'blockStacker', name: 'Block-Stacker', icon: '🧱', accent: '#4F46E5',
+    rules: 'Turm-Stapler: Ein Block schwebt hin und her – tippe, um ihn exakt auf den Turm zu setzen. Was übersteht, fällt ab. Der höchste Turm gewinnt.',
+    groupRules: 'Alle stapeln gleichzeitig. Der höchste Turm gewinnt, bei Gleichstand die meisten perfekten Blöcke.',
+    createState: (rng) => ({ seed: rng.int(1, 999999) }),
+  },
+  longJump: {
+    ...arcadeBase, id: 'longJump', name: 'Weitsprung-Challenge', icon: '🦘', accent: '#0891B2',
+    rules: 'Timing-Jumper: Halten lädt den Anlauf auf, Loslassen ist der Absprung, dann im richtigen Moment den Winkel festlegen (ideal: 45°). 3 Versuche – der weiteste Sprung zählt.',
+    groupRules: 'Alle springen je 3-mal. Der weiteste Sprung gewinnt.',
+    createState: (rng) => ({ chargeMs: rng.int(900, 1300), angleMs: rng.int(1100, 1500) }),
+  },
+  skyJumper: {
+    ...arcadeBase, id: 'skyJumper', name: 'Vertikal-Jumper', icon: '🪜', accent: '#7C3AED',
+    rules: 'Hüpf in einem endlosen Level von Plattform zu Plattform nach oben – steuern durch Neigen oder Drücken links/rechts. Wer runterfällt, ist raus. Die größte Höhe gewinnt.',
+    groupRules: 'Alle klettern im selben Level. Die größte Höhe gewinnt.',
+    createState: (rng) => ({ seed: rng.int(1, 999999) }),
+  },
+});
+
+Object.assign(NEW_SCORES, {
+  pixelRun: (r) => -r.m,
+  blockStacker: (r) => -(r.floors * 100 + r.perfects),
+  longJump: (r) => -r.best,
+  skyJumper: (r) => -r.m,
+});
+
 for (const [id, fn] of Object.entries(NEW_SCORES)) {
   GAMES[id].groupScore = fn;
   GAMES[id].decide = decideByScore(id);
 }
+
+/**
+ * Stealth-/Uni-Modus: leise & unauffällig – kein Rufen, kein Aufstehen, kein Ton nötig.
+ * (Gruppen-Spiele aus group.js werden dort markiert.)
+ */
+export const QUIET_IDS = [
+  'balance', 'memoryCode', 'estimate', 'emojiQuiz', 'truthBluff', 'speedTap',
+  'stopwatch', 'mathBlitz', 'f1Start', 'secretNumber', 'association', 'categorySprint', 'numberMemory',
+  'spiritLevel', 'lightFlash', 'marbleMaze', 'pixelRun', 'blockStacker', 'longJump', 'skyJumper',
+];
+for (const id of QUIET_IDS) GAMES[id].quiet = true;
+

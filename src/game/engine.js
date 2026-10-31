@@ -46,7 +46,7 @@ const stripNulls = (obj = {}) => Object.fromEntries(Object.entries(obj).filter((
 
 export async function createRoom({
   hostId, mode, expectedPlayers, equipment, totalRounds, liveEvents = true, gameMode = 'party', boardLength = 'normal',
-  boardTheme = 'city',
+  boardTheme = 'city', stealth = false,
 }) {
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = makeRoomCode();
@@ -61,15 +61,16 @@ export async function createRoom({
         status: 'lobby', // lobby | playing | finished
         expectedPlayers: gameMode === 'library' ? MAX_PLAYERS : expectedPlayers,
         equipment,
-        library: libraryFor(gameMode, expectedPlayers, equipment).map((g) => g.id),
-        totalRounds: Math.min(totalRounds, libraryFor(gameMode, expectedPlayers, equipment).length),
+        library: libraryFor(gameMode, expectedPlayers, equipment, { stealth }).map((g) => g.id),
+        totalRounds: Math.min(totalRounds, libraryFor(gameMode, expectedPlayers, equipment, { stealth }).length),
+        stealth, // Stealth-/Uni-Modus: nur leise Spiele, keine Sounds, keine Live-Events
         round: 0,
         phase: 'warmup',
         currentDuelId: null,
         lastGameId: null,
         lastDuelists: [],
         playedGames: [], // jedes Spiel nur einmal pro Party
-        liveEvents: gameMode === 'library' ? false : liveEvents,
+        liveEvents: gameMode === 'library' || stealth ? false : liveEvents,
         liveEvent: null,
         gameMode, // 'party' (Schlücke & Wetten) | 'board' (Spielfeld) | 'group' | 'library' (Host wählt Spiele frei)
         ...(gameMode === 'board'
@@ -85,8 +86,8 @@ export async function createRoom({
   throw new Error('Konnte keinen freien Raumcode finden.');
 }
 
-export async function updateLobby(code, { expectedPlayers, equipment, totalRounds, gameMode = 'party' }) {
-  const library = libraryFor(gameMode, expectedPlayers, equipment).map((g) => g.id);
+export async function updateLobby(code, { expectedPlayers, equipment, totalRounds, gameMode = 'party', stealth = false }) {
+  const library = libraryFor(gameMode, expectedPlayers, equipment, { stealth }).map((g) => g.id);
   await updateDoc(roomRef(code), {
     expectedPlayers,
     equipment,

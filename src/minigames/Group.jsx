@@ -6,7 +6,7 @@ import {
   submitGroupResult, submitSyncTap, submitConfessionFact, submitConfessionGuess, submitStoryWord,
 } from '../game/groupEngine.js';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
-import { sfx, vibrate } from '../lib/sound.js';
+import { sfx, vibrate, isSilent } from '../lib/sound.js';
 import { t, speechLang } from '../i18n/index.js';
 
 /*
@@ -219,6 +219,7 @@ const Confession = {
 // ------------------------------------------------------------------ 5 Ketten-Story
 /** Liest einen Text per Sprachausgabe vor (Deutsch). */
 export function speak(text) {
+  if (isSilent()) return; // Stealth-Modus / stumm: nicht vorlesen
   try {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = speechLang();

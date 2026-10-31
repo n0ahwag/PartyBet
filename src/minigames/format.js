@@ -33,6 +33,10 @@ export const FORMAT_RESULT = {
   heightStretch: (r) => `${t('{n} Punkte', { n: r.score })} · ${t('ca. {n} cm Hub', { n: r.heightCm })}`,
   lightFlash: (r) => (r.jumpStart ? `🚫 ${t('Frühstart')}` : r.ms == null ? t('zu spät') : `${r.ms} ms`),
   marbleMaze: (r) => (r.ms == null ? `❌ ${t('nicht geschafft')}` : `🏁 ${sec(r.ms)}`),
+  pixelRun: (r) => `🏃 ${r.m} m`,
+  blockStacker: (r) => `🧱 ${t('{n} Stockwerke', { n: r.floors })}${r.perfects ? ` · ${r.perfects}× ${t('perfekt')}` : ''}`,
+  longJump: (r) => `🦘 ${num(r.best)} m`,
+  skyJumper: (r) => `🪜 ${r.m} m`,
   truthBluff: (r, round, uid) => {
     const claim = round.results?.[round.playerA];
     if (uid === round.playerA) return `${t('Erzähler')} (${claim?.truth ? t('stimmt') : t('gelogen')})`;
