@@ -15,7 +15,7 @@ import { t, useLang } from '../../i18n/index.js';
  * alle gleichzeitig, Platz 1/2/3 = 3/2/1 Punkte.
  */
 
-const MISSING_CAP = { needsMotion: 'Bewegungssensor', needsCompass: 'Kompass', needsCamera: 'Frontkamera' };
+const MISSING_CAP = { needsMotion: 'Bewegungssensor', needsCompass: 'Kompass', needsCamera: 'Frontkamera', needsMic: 'Mikrofon' };
 
 /** Spielauswahl: Spiele, die mit den Leuten in der Lobby funktionieren – oben die spielbaren. */
 function GamePicker({ code, players, room, isHost, run, busy }) {

@@ -34,6 +34,14 @@ Das Spielfeld ist eine **isometrische 3D-Karte** im Party-Brettspiel-Stil (reine
 - **Würfeln:** Nach jeder Challenge würfelt **jeder** und **tippt dafür auf seinem Handy auf seine Würfel** (2D-Würfel mit Dreh-Effekt). Platz 1 bekommt zusätzlich einen Gold-Würfel (4–6), Platz 2 einen Silber-Würfel (2–4) und Platz 3 einen Bronze-Würfel (1–3). Die Augen sind pro Runde, Spieler und Würfel fest (`diceFor`), sodass alle Geräte dasselbe sehen. Wer aussetzen muss, würfelt nicht. Sind alle fertig, ziehen die Figuren automatisch. Nach 25 s würfelt die App für Säumige.
 - **Handy:** Die Karte folgt der eigenen Figur, man kann wischen. „Ganzes Feld“ zeigt die Übersicht.
 
+## 🆕 Erweiterung: Mikrofon, Teams & Zeichnen
+
+- **🎤 Mikrofon:** Pegel-Treffer (Lautstärke in der Zielzone halten), Atem-Ballon (aufpusten, vor der geheimen Platzgrenze stoppen)
+- **✍️ Geschick:** Linie halten (Form in einem Zug nachfahren), Heißer Draht (Kugel per Neigen durch den Parcours)
+- **💡 Wissen:** Höher oder Tiefer (längste Serie), Preisschild (Preise schätzen, kleinste Abweichung in %)
+- **👥 Gruppen:** Team-Tauziehen (Tipp-Duell zweier Teams), Team-Schätzen (Team-Mittelwert zählt), Blind-Skizze (blind zeichnen, dann abstimmen)
+- **⚡ Live-Events:** Gruppen-Freeze (Handy flach hinlegen – der Letzte verliert), Daumen-Krieg (Daumen halten – wer zuerst loslässt, verliert)
+
 ## 🤫 Stealth-/Uni-Modus
 
 Der Modus lässt sich beim Erstellen jeder Party und der Bibliotheks-Lobby einschalten. Es gibt dann nur **leise, unauffällige Spiele** (Flag `quiet`): kein Rufen, kein Aufstehen, kein Ton nötig. Dazu gehören z. B. Der fliegende Teppich, Wasserwaage, Kopfrechnen, Zahlen-Merker, die Arcade-Spiele, „Wer am ehesten“ und das Beicht-Quiz. Alle Geräte der Party sind lautlos (Vibration bleibt), die Ketten-Story wird nicht vorgelesen, und Live-Events sind aus. In der Bibliotheks-Lobby filtert „🤫 Leise“ die Auswahl.

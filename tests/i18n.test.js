@@ -8,6 +8,7 @@ import * as c from '../src/game/constants.js';
 import * as b from '../src/game/board.js';
 import * as g from '../src/game/group.js';
 import * as le from '../src/game/liveEvents.js';
+import * as ex from '../src/game/extras.js';
 
 function files(dir) {
   return readdirSync(dir).flatMap((f) => {
@@ -52,6 +53,9 @@ function dataKeys() {
   for (let r = 1; r <= 5; r++) add(b.moveRule(r).label);
   [b.BOARD_PHASES, g.GROUP_PHASES].forEach((m) => Object.values(m).forEach((x) => { add(x.label); add(x.title); add(x.tagline); }));
   Object.values(le.LIVE_EVENTS).forEach((x) => { add(x.title); add(x.text); });
+  ex.HIGHER_LOWER_SETS.forEach((x) => { add(x.topic); add(x.unit); x.items.forEach(([name]) => add(name)); });
+  ex.PRICE_ITEMS.forEach((x) => { add(x.q); add(x.unit); });
+  [Object.values(ex.SHAPE_LABELS), ex.SKETCH_PROMPTS, ex.TEAM_NAMES].forEach((list) => list.forEach(add));
   return out;
 }
 

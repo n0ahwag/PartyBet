@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { GAMES, rankGroupRound, resultComplete } from '../../game/gameLibrary.js';
+import { GAMES, rankGroupRound, resultComplete, ESTIMATE_QUESTIONS } from '../../game/gameLibrary.js';
+import { tugResult, teamEstimateResult, sketchResult } from '../../game/extras.js';
 import {
   pointsForRanks, tallyVotes, syncResult, hivemindResult, confessionResult, storyState, storyResult,
 } from '../../game/group.js';
@@ -35,6 +36,14 @@ function HivemindInput({ round, byId, onConfirm, busy }) {
  * läuft alles automatisch: Start nach Countdown, Auswertung, Beicht-Quiz-Schritte. Sichtbar
  * bleibt dort nur, was ein Mensch eintragen muss (Platzierungen) – der Rest steckt im ⚙️-Menü.
  */
+/** Ergebnis der Erweiterungs-Gruppenspiele (Team-Tauziehen, Team-Schätzen, Blind-Skizze). */
+function extraResult(round) {
+  if (round.gameId === 'tugOfWar') return tugResult(round);
+  if (round.gameId === 'teamEstimate') return teamEstimateResult(round, ESTIMATE_QUESTIONS[round.game.qIdx].a);
+  if (round.gameId === 'blindSketch') { const r = sketchResult(round); return { points: r.points, stats: r.stats, ranks: r.ranks, extra: r.extra }; }
+  return null;
+}
+
 export function GroupHostControls({ code, room, round, byId, run, busy, children }) {
   const fired = useRef({});
   const game = round && GAMES[round.gameId];
@@ -61,6 +70,14 @@ export function GroupHostControls({ code, room, round, byId, run, busy, children
       if (round.participants.filter((u) => u !== owner).every((u) => round.results?.[u]?.guesses?.[round.quizIndex])) {
         once(`${round.id}:reveal:${round.quizIndex}`, () => { sfx.tusch(); run(() => setRoundState(code, round.id, { revealed: true })); });
       }
+    } else if (id === 'tugOfWar' && all((u) => round.results?.[u]?.done)) {
+      once(`${round.id}:tug`, () => finish(extraResult(round)));
+    } else if (id === 'teamEstimate' && all((u) => round.results?.[u]?.guess != null)) {
+      once(`${round.id}:est`, () => finish(extraResult(round)));
+    } else if (id === 'blindSketch' && round.step === 'draw' && all((u) => round.results?.[u]?.sketch != null)) {
+      once(`${round.id}:vote`, () => run(() => setRoundState(code, round.id, { step: 'vote' })));
+    } else if (id === 'blindSketch' && round.step === 'vote' && all((u) => round.results?.[u]?.vote)) {
+      once(`${round.id}:sketch`, () => finish(extraResult(round)));
     } else if (!game.groupOnly && game.judge === 'auto' && all((u) => resultComplete(id, round.results?.[u]))) {
       once(`${round.id}:rank`, () => finishRanks(rankGroupRound(round, round.participants)));
     }
@@ -124,12 +141,16 @@ export function GroupHostControls({ code, room, round, byId, run, busy, children
   } else if (game.judge === 'host') {
     main = <RankingInput key={round.id} round={round} byId={byId} busy={busy} elimination={game.rankBy === 'elimination'} onConfirm={finishRanks} />;
   } else {
-    const label = round.gameId === 'whoMost' ? t('Jetzt auszählen') : round.gameId === 'chainStory' ? t('Geschichte jetzt beenden') : t('Jetzt auswerten');
+    const sketchDraw = round.gameId === 'blindSketch' && round.step === 'draw';
+    const label = round.gameId === 'whoMost' ? t('Jetzt auszählen') : round.gameId === 'chainStory' ? t('Geschichte jetzt beenden')
+      : sketchDraw ? t('Bilder jetzt aufdecken') : t('Jetzt auswerten');
     main = (
       <button className="btn ghost sm" disabled={busy} onClick={() => {
         if (round.gameId === 'whoMost') { const t = tallyVotes(round); return finish({ points: t.points, stats: t.stats, extra: { top: t.top } }); }
         if (round.gameId === 'syncTest') { const r = syncResult(round); return finish({ points: r.points, stats: r.stats, extra: { spread: r.spread, success: r.success } }); }
         if (round.gameId === 'chainStory') return finish({ ...storyResult(round), extra: { story: storyState(round).text } });
+        if (sketchDraw) return run(() => setRoundState(code, round.id, { step: 'vote' }));
+        if (extraResult(round)) return finish(extraResult(round));
         return finishRanks(rankGroupRound(round, round.participants));
       }}>{label}</button>
     );

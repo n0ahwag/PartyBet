@@ -12,7 +12,7 @@ describe('Neue Spiele 6–13', () => {
       expect(CATEGORIES[g.kind], g.id).toBeTruthy();
       expect(() => g.createState(makeRng('x'), { phase: 'warmup' })).not.toThrow();
     }
-    expect(Object.keys(GAMES)).toHaveLength(35);
+    expect(Object.keys(GAMES)).toHaveLength(41);
   });
 
   it('Schüttel-Manie: mehr Schüttler gewinnt, Sabotage −15 %', () => {

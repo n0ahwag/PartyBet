@@ -1,4 +1,5 @@
 import { EMOJI_PUZZLES } from '../game/gameLibrary.js';
+import { PRICE_ITEMS, HIGHER_LOWER_SETS, SHAPE_LABELS, traceAccuracy } from '../game/extras.js';
 import { t, tn, locale } from '../i18n/index.js';
 
 /** Zahl mit fester Nachkommastellenzahl im Format der gewählten Sprache (3,39 bzw. 3.39). */
@@ -37,6 +38,12 @@ export const FORMAT_RESULT = {
   blockStacker: (r) => `🧱 ${t('{n} Stockwerke', { n: r.floors })}${r.perfects ? ` · ${r.perfects}× ${t('perfekt')}` : ''}`,
   longJump: (r) => `🦘 ${num(r.best)} m`,
   skyJumper: (r) => `🪜 ${r.m} m`,
+  levelHit: (r) => (r.denied ? `🎤 ${t('kein Mikrofon')}` : `🎚️ ${t('{n} s in der Zone', { n: num(r.inMs / 1000, 1) })}`),
+  breathBalloon: (r) => (r.popped ? `💥 ${t('geplatzt')}` : `🎈 ${r.size} %`),
+  traceLine: (r) => `✍️ ${t('Genauigkeit {n} %', { n: traceAccuracy(r.score) })}`,
+  hotWire: (r) => (r.ms == null ? `❌ ${t('{p} % geschafft', { p: Math.round((r.progress ?? 0) * 100) })}` : `🏁 ${sec(r.ms + (r.touches ?? 0) * 2000)} (${t('{n} Berührungen', { n: r.touches ?? 0 })})`),
+  higherLower: (r) => `🔥 ${t('{n} richtig', { n: r.streak })} · ${sec(r.ms)}`,
+  priceTag: (r) => `🏷️ Ø ${num(r.error, 1)} % ${t('daneben')}`,
   truthBluff: (r, round, uid) => {
     const claim = round.results?.[round.playerA];
     if (uid === round.playerA) return `${t('Erzähler')} (${claim?.truth ? t('stimmt') : t('gelogen')})`;
@@ -56,5 +63,12 @@ export function revealOf(round) {
   if (round.gameId === 'association') return `${t('Begriff')}: ${t(g.prompt)}`;
   if (round.gameId === 'categorySprint') return t('{category} mit „{letter}“', { category: t(g.category), letter: g.letter });
   if (round.gameId === 'numberMemory') return `${t('Folge')}: ${g.digits}`;
+  if (round.gameId === 'breathBalloon') return `${t('Geheime Platzgrenze')}: ${Math.round(g.popAt * 100)} %`;
+  if (round.gameId === 'levelHit') return `${t('Zielzone')}: ${g.zone.lo}–${g.zone.hi}`;
+  if (round.gameId === 'traceLine') return `${t('Form')}: ${t(SHAPE_LABELS[g.shape])}`;
+  if (round.gameId === 'higherLower') return `${t('Thema')}: ${t(HIGHER_LOWER_SETS[g.setIdx].topic)}`;
+  if (round.gameId === 'priceTag') {
+    return g.items.map((idx) => `${t(PRICE_ITEMS[idx].q)}: ${PRICE_ITEMS[idx].a.toLocaleString(locale())} ${t(PRICE_ITEMS[idx].unit)}`).join(' · ');
+  }
   return null;
 }

@@ -1,5 +1,8 @@
 import { makeRng } from '../lib/random.js';
 import { t } from '../i18n/index.js';
+import {
+  makeLevelZone, makePopAt, SHAPES, makeHigherLower, makePriceRound, PRICE_ITEMS, priceError, HIGHER_LOWER_STEPS,
+} from './extras.js';
 
 /**
  * Spielebibliothek. Reine Daten + Logik (keine React-Komponenten), damit
@@ -450,7 +453,8 @@ export function playableFor(library, duelists) {
   const all = (cap) => duelists.every((p) => p?.caps?.[cap]);
   return library.filter((g) => (!g.needsMotion || all('motion'))
     && (!g.needsCompass || all('compass'))
-    && (!g.needsCamera || all('camera')));
+    && (!g.needsCamera || all('camera'))
+    && (!g.needsMic || all('mic')));
 }
 
 /** Kurzbeschreibung der Voraussetzungen für die Bibliothek. */
@@ -463,6 +467,7 @@ export function requirementsOf(game) {
   if (game.needsMotion) r.push(t('Bewegungssensor'));
   if (game.needsCompass) r.push(t('Kompass'));
   if (game.needsCamera) r.push(t('Frontkamera'));
+  if (game.needsMic) r.push(t('Mikrofon'));
   if (game.quiet) r.push(`🤫 ${t('leise')}`);
   return r;
 }
@@ -867,6 +872,64 @@ Object.assign(NEW_SCORES, {
   skyJumper: (r) => -r.m,
 });
 
+// ------------------------------------------------------------------ Erweiterung: Mikrofon, Geschick, Wissen
+CATEGORIES.mic = { label: 'Mikrofon', icon: '🎤' };
+CATEGORIES.knowledge = { label: 'Wissen', icon: '💡' };
+const extraBase = { minPlayers: 2, equipment: [], devices: 'own', judge: 'auto' };
+Object.assign(GAMES, {
+  levelHit: {
+    ...extraBase, kind: 'mic', id: 'levelHit', name: 'Pegel-Treffer', icon: '🎚️', needsMic: true, accent: '#DB2777',
+    rules: 'Eine Zielzone für die Lautstärke erscheint. Summe, singe oder rufe ins Mikrofon und halte deinen Pegel 8 Sekunden lang so genau wie möglich in der Zone. Wer am längsten drin bleibt, gewinnt.',
+    groupRules: 'Alle bekommen dieselbe Zielzone. Pegel per Stimme in der Zone halten – wer am längsten drin bleibt, gewinnt.',
+    createState: (rng) => ({ zone: makeLevelZone(rng) }),
+  },
+  breathBalloon: {
+    ...extraBase, kind: 'mic', id: 'breathBalloon', name: 'Atem-Ballon', icon: '🎈', needsMic: true, accent: '#E11D48',
+    rules: 'Puste ins Mikrofon, um deinen Ballon aufzublasen. Je größer, desto besser – aber irgendwo liegt die geheime Platzgrenze! Tippe rechtzeitig auf „Stopp“. Geplatzt = verloren.',
+    groupRules: 'Alle haben dieselbe geheime Platzgrenze. Der größte Ballon, der nicht geplatzt ist, gewinnt.',
+    createState: (rng) => ({ popAt: makePopAt(rng) }),
+  },
+  traceLine: {
+    ...extraBase, kind: 'digital', id: 'traceLine', name: 'Linie halten', icon: '✍️', accent: '#0D9488',
+    rules: 'Eine Form erscheint. Fahre sie mit einem Finger in einem Zug so genau wie möglich nach – Absetzen beendet den Versuch. Die Abweichung wird gemessen.',
+    groupRules: 'Alle fahren dieselbe Form nach. Der genaueste Strich gewinnt.',
+    createState: (rng) => ({ shape: rng.pick(SHAPES), limitMs: 15000 }),
+  },
+  hotWire: {
+    ...extraBase, kind: 'sensor', id: 'hotWire', name: 'Heißer Draht', icon: '⚡', needsMotion: true, accent: '#F59E0B',
+    rules: 'Steuere die Kugel durch Neigen des Handys durch den schmalen Draht-Parcours bis ins Ziel. Jede Berührung der Wand kostet 2 Sekunden Strafzeit. Die schnellste Zeit gewinnt.',
+    groupRules: 'Alle fahren denselben Parcours. Schnellste Zeit inklusive Strafzeit gewinnt.',
+    createState: (rng) => ({ seed: rng.int(1, 999999) }),
+  },
+  higherLower: {
+    ...extraBase, kind: 'knowledge', id: 'higherLower', name: 'Höher oder Tiefer', icon: '↕️', accent: '#2563EB',
+    rules: `Du siehst einen Begriff mit seinem Wert. Ist der Wert des nächsten Begriffs höher oder tiefer? Bei einem Fehler ist Schluss. Die längste Serie gewinnt (max. ${HIGHER_LOWER_STEPS}), bei Gleichstand die schnellere Zeit.`,
+    groupRules: 'Alle bekommen dieselben Begriffe. Die längste Serie gewinnt, bei Gleichstand die schnellere Zeit.',
+    createState: (rng) => makeHigherLower(rng),
+  },
+  priceTag: {
+    ...extraBase, kind: 'knowledge', id: 'priceTag', name: 'Preisschild', icon: '🏷️', accent: '#16A34A',
+    rules: 'Drei Produkte oder Rekorde erscheinen – schätze jeweils den Preis. Wer im Schnitt am wenigsten danebenliegt (in Prozent), gewinnt.',
+    groupRules: 'Alle schätzen dieselben drei Preise. Die kleinste durchschnittliche Abweichung gewinnt.',
+    createState: (rng) => makePriceRound(rng),
+  },
+});
+
+/** Preisschild: mittlere prozentuale Abweichung über alle Schätzungen. */
+export function priceTagError(game, guesses = []) {
+  const errs = game.items.map((idx, i) => (Number.isFinite(guesses[i]) ? priceError(guesses[i], PRICE_ITEMS[idx].a) : 1000));
+  return Math.round((errs.reduce((s, e) => s + e, 0) / errs.length) * 10) / 10;
+}
+
+Object.assign(NEW_SCORES, {
+  levelHit: (r) => -r.inMs,
+  breathBalloon: (r) => (r.popped ? Infinity : -r.size),
+  traceLine: (r) => r.score,
+  hotWire: (r) => (r.ms == null ? 1e7 - (r.progress ?? 0) * 1000 : r.ms + (r.touches ?? 0) * 2000),
+  higherLower: (r) => -r.streak * 1e7 + r.ms,
+  priceTag: (r) => r.error,
+});
+
 for (const [id, fn] of Object.entries(NEW_SCORES)) {
   GAMES[id].groupScore = fn;
   GAMES[id].decide = decideByScore(id);
@@ -880,6 +943,7 @@ export const QUIET_IDS = [
   'balance', 'memoryCode', 'estimate', 'emojiQuiz', 'truthBluff', 'speedTap',
   'stopwatch', 'mathBlitz', 'f1Start', 'secretNumber', 'association', 'categorySprint', 'numberMemory',
   'spiritLevel', 'lightFlash', 'marbleMaze', 'pixelRun', 'blockStacker', 'longJump', 'skyJumper',
+  'traceLine', 'hotWire', 'higherLower', 'priceTag',
 ];
 for (const id of QUIET_IDS) GAMES[id].quiet = true;
 
