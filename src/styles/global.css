@@ -209,7 +209,6 @@ body.phase-suddenDeath .phase-strip { background: #dc2626; animation: pulse 0.8s
 /* 3D-Spielfeld (isometrisch) */
 .board3d { position: relative; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
 .board3d-scroll { width: 100%; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-.board3d.compact .board3d-scroll { height: min(58vh, 420px); }
 .board3d-scroll::-webkit-scrollbar { display: none; }
 .board3d-fit { position: absolute; z-index: 2; right: 10px; top: 10px; border: none; border-radius: 999px; padding: 6px 12px; font: 800 12px var(--font); background: rgba(255,255,255,0.88); box-shadow: 0 2px 8px rgba(0,0,0,0.15); cursor: pointer; }
 .pawn-hop { animation: pawn-hop 0.3s ease-out; }
@@ -241,3 +240,7 @@ body.phase-suddenDeath .phase-strip { background: #dc2626; animation: pulse 0.8s
 /* Sicherheitsabfrage */
 .dialog-backdrop { background: rgba(20, 16, 12, 0.55); display: grid; place-items: center; padding: 20px; z-index: 90; }
 .dialog { max-width: 420px; width: 100%; }
+
+/* Züge der Runde (eingeklappt unter der Karte) */
+.moves-details summary { cursor: pointer; font-weight: 800; list-style: none; }
+.moves-details summary::-webkit-details-marker { display: none; }

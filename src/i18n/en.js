@@ -1008,4 +1008,5 @@ export const EN = {
   "Die Party läuft ohne dich weiter. Über „Zurück zur letzten Party“ auf der Startseite kannst du jederzeit wieder einsteigen.": "The party carries on without you. Use “Back to the last party” on the home screen to rejoin any time.",
   "Verlassen": "Leave",
   "Bleiben": "Stay",
+  "Züge dieser Runde": "Moves this round",
 };

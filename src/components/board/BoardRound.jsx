@@ -43,7 +43,7 @@ function moveText(m, byId) {
 }
 
 /** Platzierungen (review) bzw. gezogene Züge (resolved). */
-function RankingList({ round, byId, meId }) {
+export function RankingList({ round, byId, meId }) {
   const game = GAMES[round.gameId];
   const fmt = FORMAT_RESULT[round.gameId];
   const ids = [...round.participants].sort((a, b) => (round.ranks?.[a] ?? 99) - (round.ranks?.[b] ?? 99));
@@ -69,13 +69,31 @@ function RankingList({ round, byId, meId }) {
           </div>
         );
       })}
-      {round.stage === 'resolved' && round.winnerId && (
-        <div className="card accent center pop"><h2>🏆 {t('{name} erreicht das Ziel!', { name: byId[round.winnerId]?.name })}</h2></div>
-      )}
-      {round.stage === 'resolved' && round.chaos && !round.chaosDone && (
+    </div>
+  );
+}
+
+/** Hinweise nach dem Ziehen (Sieger, Chaos-Feld) – stehen über der Karte. */
+export function RoundBanners({ round, byId }) {
+  if (round?.stage !== 'resolved') return null;
+  return (
+    <>
+      {round.winnerId && <div className="card accent center pop"><h2>🏆 {t('{name} erreicht das Ziel!', { name: byId[round.winnerId]?.name })}</h2></div>}
+      {round.chaos && !round.chaosDone && (
         <div className="card center" style={{ borderColor: FIELD_TYPES.chaos.color }}>💥 {t("Jemand ist auf einem Chaos-Feld gelandet – gleich gibt's eine Challenge für alle!")}</div>
       )}
-    </div>
+    </>
+  );
+}
+
+/** Eingeklappte Liste der Züge dieser Runde (unter der Karte). */
+export function RoundMoves({ round, byId, meId }) {
+  if (round?.stage !== 'resolved') return null;
+  return (
+    <details className="card moves-details">
+      <summary>📋 {t('Züge dieser Runde')}</summary>
+      <div style={{ marginTop: 10 }}><RankingList round={round} byId={byId} meId={meId} /></div>
+    </details>
   );
 }
 
@@ -103,7 +121,7 @@ function DiceStage({ code, round, byId, me, big, run }) {
       {mine && (
         <div className="card center stack" style={{ gap: 8 }}>
           <div className="kicker">{rolled(me.id) ? t('Dein Wurf') : t('Du darfst würfeln!')}</div>
-          <Dice key={`${round.id}:${me.id}`} size={big ? 150 : 128} value={diceFor(seed, me.id)} rolled={rolled(me.id)}
+          <Dice key={`${round.id}:${me.id}`} size={big ? 150 : 92} value={diceFor(seed, me.id)} rolled={rolled(me.id)}
             onRoll={() => { setTapped(true); run(() => rollDice(code, round.id, me.id)); }}
             label={!rolled(me.id) && <b style={{ fontSize: 20 }}>👆 {t('Tippen zum Würfeln!')}</b>}
             result={resultText(me.id)} />
@@ -114,7 +132,7 @@ function DiceStage({ code, round, byId, me, big, run }) {
           <h3>🎲 {t('Würfel der anderen')}</h3>
           <div className="row wrap" style={{ gap: 14, justifyContent: 'center' }}>
             {rollers.filter((id) => id !== me?.id).map((id) => (
-              <Dice key={`${round.id}:${id}`} size={big ? 110 : 64} value={diceFor(seed, id)} rolled={rolled(id)} color={`color-mix(in srgb, ${byId[id]?.color} 14%, #fff)`}
+              <Dice key={`${round.id}:${id}`} size={big ? 110 : 52} value={diceFor(seed, id)} rolled={rolled(id)} color={`color-mix(in srgb, ${byId[id]?.color} 14%, #fff)`}
                 label={<span className="small" style={{ fontWeight: 800 }}>{byId[id]?.avatar} {byId[id]?.name}{!rolled(id) ? ' …' : ''}</span>}
                 result={<span className="small">{resultText(id)}</span>} />
             ))}
@@ -186,7 +204,7 @@ export function BoardRound({ code, round, byId, me, big = false, run }) {
     body = (
       <>
         <DiceStage code={code} round={round} byId={byId} me={me} big={big} run={run} />
-        <RankingList round={round} byId={byId} meId={me?.id} />
+        {big && <RankingList round={round} byId={byId} meId={me?.id} />}
       </>
     );
   } else {

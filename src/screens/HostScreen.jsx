@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useRoom } from '../hooks/useRoom.js';
 import { usePhaseFx } from '../hooks/usePhaseFx.js';
 import { Lobby } from '../components/Lobby.jsx';
@@ -11,7 +12,7 @@ import { OfflineBanner, Loading, useToast, useAction, LangSwitch, HomeButton } f
 import { Wrapped } from './Wrapped.jsx';
 import { Standings, FieldLegend, useAnimatedPositions } from '../components/board/BoardView.jsx';
 import { Board3D } from '../components/board/Board3D.jsx';
-import { BoardRound } from '../components/board/BoardRound.jsx';
+import { BoardRound, RoundBanners, RoundMoves } from '../components/board/BoardRound.jsx';
 import { BoardHostControls } from '../components/board/BoardHostControls.jsx';
 import { GroupRound, PointsBoard } from '../components/group/GroupRound.jsx';
 import { GroupHostControls } from '../components/group/GroupHostControls.jsx';
@@ -26,6 +27,11 @@ export function HostScreen({ uid, code }) {
   const positions = useAnimatedPositions(players, round);
   const [toast, toastNode] = useToast();
   const [run, busy] = useAction(toast);
+  // Spielfeld: Karte erst nach dem Ziehen (bzw. vor der ersten Challenge), sonst nur Spiel/Würfel
+  const boardMap = room?.gameMode === 'board' && (!round || round.stage === 'resolved');
+  useEffect(() => {
+    if (room?.gameMode === 'board') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [room?.gameMode, round?.id, round?.stage]);
 
   if (loading) return <Loading text={t('Lade Arena…')} />;
   if (!room) return <div className="page center"><h2>{t('Raum {code} nicht gefunden', { code })}</h2><button className="btn" onClick={() => navigate('/')}>{t('Zur Startseite')}</button></div>;
@@ -69,15 +75,18 @@ export function HostScreen({ uid, code }) {
       ) : room.gameMode === 'board' ? (
         <div className="host-grid">
           <div className="stack">
-            {/* Beim Würfeln stehen die Würfel oben, sonst die Karte */}
-            {round?.stage === 'review' && <div className="card"><BoardRound code={code} round={round} byId={byId} me={null} big run={run} /></div>}
-            <Board3D fields={room.board.fields} players={players} positions={positions} theme={room.board.theme} seed={code} />
-            <FieldLegend />
-            {round?.stage !== 'review' && (round ? <div className="card"><BoardRound code={code} round={round} byId={byId} me={null} big run={run} /></div>
-              : <div className="card center"><h2>{t('Bereit für die erste Challenge?')}</h2></div>)}
+            {/* Immer nur eine Ansicht: Challenge/Würfel ODER (nach dem Ziehen) die Karte */}
+            {boardMap ? (
+              <>
+                <RoundBanners round={round} byId={byId} />
+                <Board3D fields={room.board.fields} players={players} positions={positions} theme={room.board.theme} seed={code} />
+                <FieldLegend />
+              </>
+            ) : <div className="card"><BoardRound code={code} round={round} byId={byId} me={null} big run={run} /></div>}
           </div>
           <div className="stack">
             <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />
+            <RoundMoves round={round} byId={byId} />
             <div className="card stack">
               <h3>{t('Wer führt?')}</h3>
               <Standings players={players} fields={room.board.fields} />

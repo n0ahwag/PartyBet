@@ -128,7 +128,7 @@ export function BoardHostControls({ code, room, round, byId, run, busy }) {
       <>
         <button className="btn primary lg block" disabled={busy || !!room.liveEvent} onClick={() => run(() => nextStep(code))}>▶️ {t('Nächste Challenge')}</button>
         {room.liveEvents !== false && (
-          <button className="btn soft block" disabled={busy || !!room.liveEvent} onClick={() => run(() => triggerLiveEvent(code))}>⚡ {t('Live-Event jetzt auslösen')}</button>
+          <button className="btn soft sm block" disabled={busy || !!room.liveEvent} onClick={() => run(() => triggerLiveEvent(code))}>⚡ {t('Live-Event jetzt auslösen')}</button>
         )}
       </>
     );
