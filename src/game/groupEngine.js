@@ -94,7 +94,10 @@ function writeRound(tx, code, room, players, game, rng, round, phase, playedGame
  * "lobby", damit jederzeit weitere Leute beitreten können (sie spielen ab der
  * nächsten Runde mit). Jedes Spiel darf beliebig oft gespielt werden.
  */
-export async function startLibraryRound(code, gameId) {
+/**
+ * @param replay true = „Nochmal“: Regeln sind bekannt → ohne Intro-Countdown direkt losspielen
+ */
+export async function startLibraryRound(code, gameId, { replay = false } = {}) {
   const refs = (await getDocs(collection(db, 'rooms', code, 'players'))).docs.map((d) => d.ref);
   const id = await runTransaction(db, async (tx) => {
     const room = (await tx.get(roomRef(code))).data();
@@ -107,7 +110,8 @@ export async function startLibraryRound(code, gameId) {
     const played = room.playedGames || [];
     const rng = makeRng(`${code}:library:${round}:${Date.now()}`);
     return writeRound(tx, code, room, players, game, rng, round, 'warmup',
-      played.includes(game.id) ? played : [...played, game.id], { introEndsAt: Date.now() + LIBRARY_INTRO_MS });
+      played.includes(game.id) ? played : [...played, game.id],
+      replay ? { stage: 'playing', playStartedAt: Date.now() } : { introEndsAt: Date.now() + LIBRARY_INTRO_MS });
   });
   recordPlay(gameId); // auch frei gewählte Spiele zählen für die Wochen-Statistik
   return id;

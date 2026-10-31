@@ -113,7 +113,7 @@ function AfterRound({ code, round, isHost, run, busy, players }) {
   const game = GAMES[round.gameId];
   return (
     <div className="card stack">
-      <button className="btn primary lg block" disabled={busy || players.length < game.minPlayers} onClick={() => run(() => startLibraryRound(code, round.gameId))}>
+      <button className="btn primary lg block" disabled={busy || players.length < game.minPlayers} onClick={() => run(() => startLibraryRound(code, round.gameId, { replay: true }))}>
         🔁 {t('Nochmal: {game}', { game: t(game.name) })}
       </button>
       <button className="btn soft block" disabled={busy} onClick={() => run(() => backToPicker(code))}>🎮 {t('Anderes Spiel wählen')}</button>
