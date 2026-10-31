@@ -47,7 +47,7 @@ function dataKeys() {
   [c.POWERUPS, c.RESCUE_OPTIONS, b.FIELD_TYPES].forEach((m) => Object.values(m).forEach((x) => { add(x.label); add(x.desc); }));
   Object.values(b.BOARD_LENGTHS).forEach((x) => add(x.label));
   Object.values(b.BOARD_THEMES).forEach((x) => add(x.label));
-  for (let r = 1; r <= 5; r++) for (const n of [2, 3, 5]) add(b.moveRule(r, n).label);
+  for (let r = 1; r <= 5; r++) add(b.moveRule(r).label);
   [b.BOARD_PHASES, g.GROUP_PHASES].forEach((m) => Object.values(m).forEach((x) => { add(x.label); add(x.title); add(x.tagline); }));
   Object.values(le.LIVE_EVENTS).forEach((x) => { add(x.title); add(x.text); });
   return out;

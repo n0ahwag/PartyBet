@@ -1,7 +1,7 @@
 import { GAMES, CATEGORIES, resultComplete } from '../../game/gameLibrary.js';
 import { GameArt } from '../GameArt.jsx';
 import { useState } from 'react';
-import { moveRule, FIELD_TYPES, diceFor, rollersOf } from '../../game/board.js';
+import { moveRule, FIELD_TYPES, rollDiceFor, rollersOf } from '../../game/board.js';
 import { submitRoundResult, rollDice } from '../../game/boardEngine.js';
 import { Dice } from './Dice.jsx';
 import { MINIGAMES } from '../../minigames/index.js';
@@ -15,11 +15,11 @@ function MoveTable({ count }) {
   const ranks = Array.from({ length: Math.min(count, 4) }, (_, i) => i + 1);
   return (
     <div className="card stack" style={{ gap: 6 }}>
-      <h3>{t('Platzierung → Zug')}</h3>
+      <h3>{t('Platzierung → Würfel')}</h3>
       {ranks.map((r) => (
         <div key={r} className="row between">
           <b>{MEDAL[r - 1] ?? `${r}.`} {r === 4 ? t('ab Platz 4') : t('{n}. Platz', { n: r })}</b>
-          <span>{t(moveRule(r, count).label)}</span>
+          <span>{t(moveRule(r).label)}</span>
         </div>
       ))}
     </div>
@@ -30,8 +30,8 @@ function moveText(m, byId) {
   if (!m) return '';
   if (m.skipped) return `⏸️ ${t('setzt aus')}`;
   const parts = [];
-  if (m.roll != null) parts.push(`🎲 ${m.roll}${m.steps > m.roll ? ` +${m.steps - m.roll}` : ''}`);
-  else if (m.steps) parts.push(`+${m.steps}`);
+  if (m.dice?.length) parts.push(`🎲 ${m.dice.map((d) => d.value).join(' + ')}${m.dice.length > 1 ? ` = ${m.roll}` : ''}`);
+  else if (m.roll != null) parts.push(`🎲 ${m.roll}`);
   parts.push(`→ ${m.landed ?? m.to}`);
   const e = m.effect;
   if (e?.type === 'rocket') parts.push(`🚀 +${e.delta} → ${m.to}`);
@@ -64,7 +64,7 @@ export function RankingList({ round, byId, meId }) {
               {game.judge === 'auto' && <div className="small muted">{res ? fmt?.(res, round, id) : t('kein Ergebnis')}</div>}
             </div>
             <span className="small" style={{ fontWeight: 800, textAlign: 'right' }}>
-              {round.stage === 'resolved' ? moveText(m, byId) : t(moveRule(rank, round.participants.length).label)}
+              {round.stage === 'resolved' ? moveText(m, byId) : t(moveRule(rank).label)}
             </span>
           </div>
         );
@@ -109,19 +109,21 @@ function DiceStage({ code, round, byId, me, big, run }) {
   const rolled = (id) => !!round.rolls?.[id] || (me?.id === id && tapped);
   const open = rollers.filter((id) => !rolled(id));
   const mine = me && rollers.includes(me.id);
-  const bonusOf = (id) => moveRule(round.ranks[id] ?? n, n).bonus;
+  const diceOf = (id) => rollDiceFor(seed, id, round.ranks[id] ?? n);
   const resultText = (id) => {
-    const v = diceFor(seed, id);
-    const b = bonusOf(id);
-    return <b className="pop">{b ? `🎲 ${v} + ${b} = ${t('{n} Felder', { n: v + b })}` : `🎲 ${t('{n} Felder', { n: v })}`}</b>;
+    const d = diceOf(id);
+    const sum = d.reduce((a, x) => a + x.value, 0);
+    return <b className="pop">🎲 {d.length > 1 ? `${d.map((x) => x.value).join(' + ')} = ` : ''}{t('{n} Felder', { n: sum })}</b>;
   };
+  const kindText = (id) => t(moveRule(round.ranks[id] ?? n).label);
 
   return (
     <div className="stack">
       {mine && (
         <div className="card center stack" style={{ gap: 8 }}>
           <div className="kicker">{rolled(me.id) ? t('Dein Wurf') : t('Du darfst würfeln!')}</div>
-          <Dice key={`${round.id}:${me.id}`} size={big ? 150 : 92} value={diceFor(seed, me.id)} rolled={rolled(me.id)}
+          <div className="small muted" style={{ fontWeight: 700 }}>{kindText(me.id)}</div>
+          <Dice key={`${round.id}:${me.id}`} size={big ? 130 : diceOf(me.id).length > 1 ? 84 : 96} dice={diceOf(me.id)} rolled={rolled(me.id)}
             onRoll={() => { setTapped(true); run(() => rollDice(code, round.id, me.id)); }}
             label={!rolled(me.id) && <b style={{ fontSize: 20 }}>👆 {t('Tippen zum Würfeln!')}</b>}
             result={resultText(me.id)} />
@@ -132,7 +134,7 @@ function DiceStage({ code, round, byId, me, big, run }) {
           <h3>🎲 {t('Würfel der anderen')}</h3>
           <div className="row wrap" style={{ gap: 14, justifyContent: 'center' }}>
             {rollers.filter((id) => id !== me?.id).map((id) => (
-              <Dice key={`${round.id}:${id}`} size={big ? 110 : 52} value={diceFor(seed, id)} rolled={rolled(id)} color={`color-mix(in srgb, ${byId[id]?.color} 14%, #fff)`}
+              <Dice key={`${round.id}:${id}`} size={big ? 84 : 40} dice={diceOf(id)} rolled={rolled(id)} tint={`color-mix(in srgb, ${byId[id]?.color} 14%, #fff)`}
                 label={<span className="small" style={{ fontWeight: 800 }}>{byId[id]?.avatar} {byId[id]?.name}{!rolled(id) ? ' …' : ''}</span>}
                 result={<span className="small">{resultText(id)}</span>} />
             ))}

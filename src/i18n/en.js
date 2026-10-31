@@ -1009,4 +1009,9 @@ export const EN = {
   "Verlassen": "Leave",
   "Bleiben": "Stay",
   "Züge dieser Runde": "Moves this round",
+  "Platzierung → Würfel": "Placing → dice",
+  "🥇 Gold-Würfel (4–6) + Würfel": "🥇 Gold die (4–6) + die",
+  "🥈 Silber-Würfel (2–4) + Würfel": "🥈 Silver die (2–4) + die",
+  "🥉 Bronze-Würfel (1–3) + Würfel": "🥉 Bronze die (1–3) + die",
+  "🎲 Würfel": "🎲 Die",
 };
