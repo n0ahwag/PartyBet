@@ -26,6 +26,19 @@ export const OWNER = {
 export const adsEnabled = () => /^ca-pub-\d{10,20}$/.test(ADSENSE.client);
 
 /**
+ * Adsterra-Banner (nur genutzt, solange AdSense nicht aktiv ist). Die Schlüssel stehen ohnehin
+ * öffentlich im Seitenquelltext; per GitHub-Variable überschreibbar.
+ */
+export const ADSTERRA = {
+  host: env.VITE_ADSTERRA_HOST || 'bauval.org',
+  banner: env.VITE_ADSTERRA_BANNER ?? 'f74078a06e96dc85c4430d131b9a7a05', // 320 × 50
+  box: env.VITE_ADSTERRA_BOX ?? 'b98efcf79dcf2716dd95eee011450712', // 300 × 250
+};
+export const adsterraEnabled = () => !adsEnabled() && !!(ADSTERRA.banner || ADSTERRA.box);
+/** Werbung, die eine eigene Einwilligung braucht (AdSense bringt seine eigene Abfrage mit). */
+export const needsOwnConsent = () => adsterraEnabled();
+
+/**
  * Kontaktformular: Nachrichten landen immer in Firestore (Sammlung „contact“).
  * Optional zusätzlich per E-Mail über web3forms.com – dafür den kostenlosen Access Key
  * als GitHub-Variable CONTACT_FORM_KEY setzen.

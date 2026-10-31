@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { OWNER, CONTACT, adsEnabled } from '../site.config.js';
+import { OWNER, CONTACT, adsEnabled, adsterraEnabled } from '../site.config.js';
+import { setAdConsent, useAdConsent } from '../lib/consent.js';
 import { db, ensureUid } from '../firebase.js';
 import { navigate } from '../lib/router.js';
 import { t, getLang } from '../i18n/index.js';
@@ -117,6 +118,31 @@ function Impressum() {
   );
 }
 
+function AdsterraInfo() {
+  const consent = useAdConsent();
+  return (
+    <>
+      <h3>8. Werbung (Adsterra)</h3>
+      <p>Zur Finanzierung zeigen wir auf ruhigen Seiten (Start, Bibliothek, Lobby, Übungsmodus) – nie während eines
+        Spiels – Anzeigen des Werbenetzwerks Adsterra (adsterra.com). Die Anzeigen werden nur geladen, wenn du im
+        Hinweis „Werbung &amp; Cookies“ zugestimmt hast (Art. 6 Abs. 1 lit. a DSGVO, § 25 Abs. 1 TDDDG). Dann werden
+        von den Servern von Adsterra und seinen Werbepartnern Inhalte geladen; dabei werden deine IP-Adresse,
+        Browser- und Geräteinformationen sowie die besuchte Seite übertragen, und es können Cookies oder ähnliche
+        Kennungen gesetzt werden, um Anzeigen auszuliefern, Klicks zu zählen und Betrug zu verhindern. Eine
+        Übermittlung in Länder außerhalb der EU (Drittländer) ist möglich. Ohne Zustimmung werden keine Daten an
+        Adsterra übermittelt. Weitere Informationen findest du in der Datenschutzerklärung von Adsterra auf
+        adsterra.com.</p>
+      <p>Deine Einwilligung kannst du jederzeit mit Wirkung für die Zukunft widerrufen bzw. ändern.
+        Aktuell: <b>{consent === 'granted' ? 'zugestimmt' : consent === 'denied' ? 'abgelehnt' : 'noch nicht entschieden'}</b></p>
+      <p className="row" style={{ gap: 8 }}>
+        {consent === 'granted'
+          ? <button className="btn soft sm" onClick={() => setAdConsent('denied')}>Einwilligung widerrufen</button>
+          : <button className="btn soft sm" onClick={() => setAdConsent('granted')}>Werbung zulassen</button>}
+      </p>
+    </>
+  );
+}
+
 function Datenschutz() {
   const ads = adsEnabled();
   return (
@@ -166,6 +192,7 @@ function Datenschutz() {
         Ich lösche die Nachrichten, sobald die Anfrage erledigt ist und keine gesetzlichen Aufbewahrungspflichten
         entgegenstehen.</p>
 
+      {adsterraEnabled() && <AdsterraInfo />}
       {ads ? (
         <>
           <h3>8. Werbung (Google AdSense)</h3>
@@ -180,7 +207,7 @@ function Datenschutz() {
         </>
       ) : null}
 
-      <h3>{ads ? '9' : '8'}. Deine Rechte</h3>
+      <h3>{ads || adsterraEnabled() ? '9' : '8'}. Deine Rechte</h3>
       <p>Du hast das Recht auf Auskunft (Art. 15), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der
         Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20) und Widerspruch (Art. 21 DSGVO). Eine erteilte Einwilligung
         kannst du jederzeit mit Wirkung für die Zukunft widerrufen. Außerdem kannst du dich bei einer

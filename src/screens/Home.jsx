@@ -25,7 +25,7 @@ export function Home() {
         <button className="btn block" disabled={code.length !== 4} onClick={() => navigate(`/join/${code}`)}>{t('Beitreten')}</button>
       </div>
       {last && <button className="btn ghost sm" onClick={() => navigate(last)}>↩︎ {t('Zurück zur letzten Party')}</button>}
-      <AdSlot />
+      <AdSlot size="box" />
       <p className="faint small center">{t('Bitte verantwortungsvoll trinken. Schlücke können auch Wasser sein 💧')}</p>
       <LegalLinks />
     </div>
