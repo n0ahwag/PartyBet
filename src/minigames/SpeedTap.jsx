@@ -243,4 +243,5 @@ function SoloReaction({ duel, submit }) {
   );
 }
 
-SpeedTap.GroupPlay = SoloReaction;
+// Wie alle anderen Spiele: submit(key, data) – key = null → eigener Spieler
+SpeedTap.GroupPlay = ({ duel, submit }) => <SoloReaction duel={duel} submit={(d) => submit(null, d)} />;
