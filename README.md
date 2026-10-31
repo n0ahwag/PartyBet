@@ -8,7 +8,7 @@ Realtime-Party- und Gesellschaftsspiel als Mobile-First Web-App. **Vite + React 
 |---|---|---|---|
 | Ablauf | Zwei werden zum 1-gegen-1 ausgelost, alle anderen wetten | **Alle** spielen jede Challenge gemeinsam | **Alle** spielen gleichzeitig, rundenweise |
 | Ziel | Am Ende die meisten Schlücke | Als Erster das Ziel-Feld erreichen | Die meisten Punkte (Finale ×2) |
-| Ergebnis | Verlierer trinkt, Gewinner verteilt | Platzierung bestimmt den Zug: 🥇 würfelt +2 · 🥈 würfelt · 🥉 +1 Feld · Rest bleibt stehen |
+| Ergebnis | Verlierer trinkt, Gewinner verteilt | Alle würfeln, die Platzierung bringt einen Extra-Würfel: 🥇 Gold (4–6) · 🥈 Silber (2–4) · 🥉 Bronze (1–3), jeweils plus normaler Würfel · Rest: normaler Würfel |
 | Extras | Wetten, Power-ups, Pleite-Regel | Sonderfelder: 🚀 Rakete (+3) · 🌀 Portal (Platz tauschen mit dem Führenden) · 💥 Chaos (Challenge für alle, der Letzte geht 2 zurück) · 🪨 Stolperstein (1 zurück oder aussetzen) |
 | Live-Events | Langsamster trinkt 5 Schlücke | Langsamster geht 1 Feld zurück |
 | Phasen | Warm-up → Chaos (×2) → Sudden Death (×3) | Aufwärmen → Halbzeit-Chaos (ab 40 %) → Endspurt (ab 75 % des Führenden) |
@@ -30,7 +30,7 @@ Im Spielfeld-Modus läuft jedes Minispiel als **Gruppen-Challenge**:
 Das Spielfeld ist eine **isometrische 3D-Karte** im Party-Brettspiel-Stil (reines SVG, keine 3D-Bibliothek):
 - **Karte:** Eine geschwungene Straße führt über eine Insel. Die Felder sind runde Scheiben, die Spielfiguren 3D-Figuren in Spielerfarbe mit Avatar. Sie hüpfen Feld für Feld.
 - **Themen-Welten:** *Party-Stadt*, *Dschungel-Pfad* oder *Retro-Arcade*, wählbar beim Erstellen und in der Lobby (Host). Jede Welt hat eigene Farben, eigenen Himmel und eigene Deko.
-- **Würfeln:** Wer würfeln darf, **tippt auf seinem Handy auf den Würfel** (2D-Würfel mit Dreh-Effekt). Die Zahl ist pro Runde und Spieler fest (`diceFor`), sodass alle Geräte dasselbe sehen. Sind alle fertig, ziehen die Figuren automatisch. Nach 25 s würfelt die App für Säumige.
+- **Würfeln:** Nach jeder Challenge würfelt **jeder** und **tippt dafür auf seinem Handy auf seine Würfel** (2D-Würfel mit Dreh-Effekt). Platz 1 bekommt zusätzlich einen Gold-Würfel (4–6), Platz 2 einen Silber-Würfel (2–4) und Platz 3 einen Bronze-Würfel (1–3). Die Augen sind pro Runde, Spieler und Würfel fest (`diceFor`), sodass alle Geräte dasselbe sehen. Wer aussetzen muss, würfelt nicht. Sind alle fertig, ziehen die Figuren automatisch. Nach 25 s würfelt die App für Säumige.
 - **Handy:** Die Karte folgt der eigenen Figur, man kann wischen. „Ganzes Feld“ zeigt die Übersicht.
 
 ## Sprachen

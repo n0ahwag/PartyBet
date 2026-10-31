@@ -90,9 +90,9 @@ rooms/{CODE}                         ← 4-stelliger Raumcode, z. B. "KXQP"
 | `stage` | Host | `intro → playing → review → resolved` |
 | `results.{uid}` | **Teilnehmer** (nur eigener Key, nur `playing`) | Messwert des Spiels |
 | `ranks` | Host (automatisch oder per Eingabe) | `{ uid: Platz }`, ohne Ergebnis: Platz n+1 (zieht nicht) |
-| `rolls.{uid}` | **Teilnehmer** (nur eigener Key, nur `review`) | Spielfeld: „zum Würfeln angetippt“ (`true`). Die Augenzahl steht über `diceFor(code:rundenId, uid)` fest |
+| `rolls.{uid}` | **Teilnehmer** (nur eigener Key, nur `review`) | Spielfeld: „zum Würfeln angetippt“ (`true`). Die Augen stehen über `rollDiceFor(code:rundenId, uid, Platz)` fest |
 | `reviewAt` | Host | Beginn der Würfel-Phase (nach 25 s würfelt die App für alle) |
-| `moves` | Host beim Ziehen | `{ uid: { rank, roll, steps, from, landed, to, field, effect, skipped } }` |
+| `moves` | Host beim Ziehen | `{ uid: { rank, dice: [{ kind: gold|silver|bronze|normal, value }], roll (Summe), steps, from, landed, to, field, effect, skipped } }` |
 | `chaos`, `chaosDone`, `winnerId` | Host | Chaos-Feld betreten? / Sieger |
 | `step`, `order`, `quizIndex`, `revealed` | Host | Gruppen-Modus, Beicht-Quiz: Sammel-/Rate-Phase |
 | `points`, `multiplier` | Host | Gruppen-Modus: vergebene Punkte dieser Runde |

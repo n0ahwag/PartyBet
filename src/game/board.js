@@ -2,8 +2,8 @@ import { makeRng } from '../lib/random.js';
 
 /*
  * Spielfeld-Modus (alkoholfrei): reine Spiellogik ohne Firebase.
- * Alle spielen jede Challenge gemeinsam; die Platzierung bestimmt, wer
- * würfeln darf und wie weit man zieht. Wer zuerst das Ziel erreicht, gewinnt.
+ * Alle spielen jede Challenge gemeinsam und würfeln danach; die Platzierung
+ * bestimmt, welchen Spezialwürfel man zusätzlich bekommt. Wer zuerst das Ziel erreicht, gewinnt.
  */
 
 export const BOARD_LENGTHS = {
@@ -29,21 +29,33 @@ export const BOARD_THEMES = {
   arcade: { id: 'arcade', label: 'Retro-Arcade', icon: '👾' },
 };
 
+/** Würfel-Arten: Platz 1–3 bekommen zusätzlich zum normalen Würfel einen Spezialwürfel. */
+export const DICE_KINDS = {
+  gold: { id: 'gold', faces: [4, 5, 6], color: '#FCD34D' },
+  silver: { id: 'silver', faces: [2, 3, 4], color: '#CBD5E1' },
+  bronze: { id: 'bronze', faces: [1, 2, 3], color: '#F0B27A' },
+  normal: { id: 'normal', faces: [1, 2, 3, 4, 5, 6], color: '#FFFFFF' },
+};
+
 /**
- * Würfelwurf eines Spielers in einer Runde – deterministisch aus Runde und Spieler.
+ * Würfelwurf eines Spielers in einer Runde – deterministisch aus Runde, Spieler und Würfel-Nummer.
  * So zeigt das Handy beim Antippen sofort dieselbe Zahl, mit der der Host später zieht.
  */
-export function diceFor(seed, uid) {
-  return makeRng(`dice:${seed}:${uid}`).int(1, 6);
+export function diceFor(seed, uid, index = 0, faces = DICE_KINDS.normal.faces) {
+  return makeRng(`dice:${seed}:${uid}:${index}`).pick(faces);
 }
 
-/** Wer muss in dieser Runde selbst würfeln? (Würfel-Platz und nicht aussetzend) */
+/** Alle Würfel eines Spielers mit Ergebnis: [{ kind, value }]. */
+export function rollDiceFor(seed, uid, rank) {
+  return moveRule(rank).dice.map((kind, i) => ({ kind, value: diceFor(seed, uid, i, DICE_KINDS[kind].faces) }));
+}
+
+/** Wer würfelt in dieser Runde? Jeder – außer wer aussetzen muss. */
 export function rollersOf(round, players) {
   if (!round?.ranks) return [];
-  const n = round.participants.length;
   return round.participants.filter((id) => {
     const p = players.find((x) => x.id === id);
-    return p && !p.skipNext && moveRule(round.ranks[id] ?? n, n).dice;
+    return p && !p.skipNext;
   });
 }
 
@@ -51,13 +63,15 @@ export const ROCKET_STEPS = 3;
 export const CHAOS_PENALTY = 2;
 export const EVENT_PENALTY = 1; // zufällige Live-Events zwischen den Runden
 
-/** Bewegung je Platzierung: wer würfeln darf und wie viele Felder. */
-export function moveRule(rank, playerCount) {
-  if (rank > playerCount) return { dice: false, bonus: 0, label: 'kein Ergebnis – stehen bleiben' };
-  if (rank === 1) return { dice: true, bonus: 2, label: '🎲 Würfeln + 2' };
-  if (rank === 2) return playerCount === 2 ? { dice: false, bonus: 1, label: '+1 Feld' } : { dice: true, bonus: 0, label: '🎲 Würfeln' };
-  if (rank === 3) return { dice: false, bonus: 1, label: '+1 Feld' };
-  return { dice: false, bonus: 0, label: 'stehen bleiben' };
+/**
+ * Würfel je Platzierung: Jeder würfelt mit einem normalen Würfel. Platz 1 bekommt
+ * zusätzlich einen Gold-Würfel (4–6), Platz 2 einen Silber-Würfel (2–4), Platz 3 einen Bronze-Würfel (1–3).
+ */
+export function moveRule(rank) {
+  if (rank === 1) return { dice: ['gold', 'normal'], label: '🥇 Gold-Würfel (4–6) + Würfel' };
+  if (rank === 2) return { dice: ['silver', 'normal'], label: '🥈 Silber-Würfel (2–4) + Würfel' };
+  if (rank === 3) return { dice: ['bronze', 'normal'], label: '🥉 Bronze-Würfel (1–3) + Würfel' };
+  return { dice: ['normal'], label: '🎲 Würfel' };
 }
 
 /** Spielfeld mit zufällig verteilten Sonderfeldern (nicht direkt hintereinander). */
@@ -106,9 +120,10 @@ export function boardPhase(leaderPos, length) {
  * @param players [{ id, position, skipNext }]
  * @param ranks   { uid: rank }
  * @param fields  Spielfeld (Array von Feldtypen)
+ * @param fixedRolls { uid: [Augen…] } – optional, für Tests
  * @returns { moves, positions, skipNext, winnerId, chaos, stats }
  */
-export function applyRound({ players, ranks, fields, seed }) {
+export function applyRound({ players, ranks, fields, seed, fixedRolls = null }) {
   const rng = makeRng(`move:${seed}`);
   const goal = fields.length - 1;
   const positions = Object.fromEntries(players.map((p) => [p.id, p.position ?? 0]));
@@ -122,7 +137,6 @@ export function applyRound({ players, ranks, fields, seed }) {
   const order = [...players].sort((a, b) => (ranks[a.id] ?? 99) - (ranks[b.id] ?? 99));
   for (const p of order) {
     const rank = ranks[p.id] ?? players.length;
-    const rule = moveRule(rank, players.length);
     const from = positions[p.id];
     const m = { rank, from, roll: null, steps: 0, landed: from, to: from, field: null, effect: null, skipped: false };
     moves[p.id] = m;
@@ -134,8 +148,12 @@ export function applyRound({ players, ranks, fields, seed }) {
     }
     if (winnerId) continue; // Spiel ist schon entschieden
 
-    m.roll = rule.dice ? diceFor(seed, p.id) : null;
-    m.steps = (m.roll ?? 0) + rule.bonus;
+    // fixedRolls (nur für Tests): feste Augenzahlen statt Würfel
+    m.dice = fixedRolls?.[p.id]
+      ? fixedRolls[p.id].map((value) => ({ kind: 'normal', value }))
+      : rollDiceFor(seed, p.id, rank);
+    m.roll = m.dice.reduce((sum, d) => sum + d.value, 0);
+    m.steps = m.roll;
     m.landed = Math.min(goal, from + m.steps);
     let to = m.landed;
     const field = fields[to];
