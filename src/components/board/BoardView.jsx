@@ -5,49 +5,103 @@ import { t } from '../../i18n/index.js';
 
 const STEP_MS = 320; // passt zur Übergangszeit der 3D-Figuren
 
-/** Pfad einer Figur in einer Runde: Feld für Feld bis zur Landung, dann Sprung (Rakete/Portal/Stolperstein). */
-function pathOf(m) {
+const BANNER_MS = 2600; // so lange steht die große Sonderfeld-Einblendung
+
+/** Weg einer Figur bis zum Landefeld (ohne den Sprung durch ein Sonderfeld). */
+function walkOf(m) {
   const path = [];
   for (let i = m.from; i <= (m.landed ?? m.from); i++) path.push(i);
-  if (!path.length) path.push(m.from);
-  if (m.to !== path.at(-1)) path.push(m.to);
-  return path;
+  return path.length ? path : [m.from];
 }
 
+const EFFECT_SOUND = { rocket: 'rocket', portal: 'portal', chaos: 'alarm', stumble: 'fail' };
+
 /**
- * Zeigt Positionen an und animiert nach jeder gezogenen Runde die Bewegung
- * Schritt für Schritt (einmal pro Runde und Gerät).
+ * Animiert nach jeder gezogenen Runde (einmal pro Runde und Gerät):
+ *  1. alle Figuren laufen Feld für Feld bis zu ihrem Landefeld,
+ *  2. für jedes Sonderfeld erscheint nacheinander eine große Einblendung (banner),
+ *     danach springt die Figur (Rakete vor, Portal-Tausch, Stolperstein zurück).
+ * @returns { positions, banner } – banner = { playerId, move } oder null
  */
 export function useAnimatedPositions(players, round) {
   const actual = Object.fromEntries(players.map((p) => [p.id, p.position ?? 0]));
   const [anim, setAnim] = useState(null);
+  const [banner, setBanner] = useState(null);
   const done = useRef(null);
 
   useEffect(() => {
     if (round?.stage !== 'resolved' || !round.moves || done.current === round.id) return undefined;
     done.current = round.id;
-    const paths = Object.fromEntries(Object.entries(round.moves).map(([id, m]) => [id, pathOf(m)]));
+    const moves = round.moves;
+    const paths = Object.fromEntries(Object.entries(moves).map(([id, m]) => [id, walkOf(m)]));
     const len = Math.max(...Object.values(paths).map((p) => p.length));
-    let t = 0;
+    // Sonderfelder in Zug-Reihenfolge (bester Platz zuerst, wie in applyRound)
+    const effects = Object.entries(moves)
+      .filter(([, m]) => m.effect && !m.skipped)
+      .sort(([, a], [, b]) => (a.rank ?? 99) - (b.rank ?? 99));
+    const timers = [];
+    let pos = Object.fromEntries(Object.entries(paths).map(([id, p]) => [id, p[0]]));
+    let step = 0;
     sfx.dice();
-    setAnim(Object.fromEntries(Object.entries(paths).map(([id, p]) => [id, p[0]])));
-    const timer = setInterval(() => {
-      t += 1;
-      if (t >= len) {
-        clearInterval(timer);
-        setAnim(null);
-        const effects = Object.values(round.moves).map((m) => m.effect?.type);
-        if (effects.includes('rocket')) sfx.rocket();
-        if (effects.includes('portal')) sfx.portal();
+    setAnim(pos);
+
+    const runEffects = (i) => {
+      if (i >= effects.length) { setBanner(null); setAnim(null); return; }
+      const [id, m] = effects[i];
+      setBanner({ playerId: id, move: m });
+      const snd = EFFECT_SOUND[m.effect.type];
+      if (snd) sfx[snd]?.();
+      timers.push(setTimeout(() => {
+        pos = { ...pos, [id]: m.to };
+        if (m.effect.type === 'portal' && m.effect.with) pos[m.effect.with] = m.landed;
+        setAnim(pos);
+        setBanner(null);
+        timers.push(setTimeout(() => runEffects(i + 1), 650));
+      }, BANNER_MS));
+    };
+
+    const walk = setInterval(() => {
+      step += 1;
+      if (step >= len) {
+        clearInterval(walk);
+        timers.push(setTimeout(() => runEffects(0), 250));
         return;
       }
       sfx.step();
-      setAnim(Object.fromEntries(Object.entries(paths).map(([id, p]) => [id, p[Math.min(t, p.length - 1)]])));
+      pos = Object.fromEntries(Object.entries(paths).map(([id, p]) => [id, p[Math.min(step, p.length - 1)]]));
+      setAnim(pos);
     }, STEP_MS);
-    return () => clearInterval(timer);
+    return () => { clearInterval(walk); timers.forEach(clearTimeout); setBanner(null); };
   }, [round?.id, round?.stage]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return anim ? { ...actual, ...anim } : actual;
+  return { positions: anim ? { ...actual, ...anim } : actual, banner };
+}
+
+/** Große Vollbild-Einblendung, wenn jemand auf einem Sonderfeld landet (auf allen Geräten). */
+export function FieldBanner({ banner, byId }) {
+  if (!banner) return null;
+  const { move: m, playerId } = banner;
+  const p = byId[playerId];
+  const type = FIELD_TYPES[m.effect.type];
+  const name = p?.name ?? '?';
+  const e = m.effect;
+  const text = e.type === 'rocket' ? t('{name} fliegt {n} Felder nach vorne!', { name, n: e.delta })
+    : e.type === 'portal' ? (e.with ? t('{name} tauscht den Platz mit {other}!', { name, other: byId[e.with]?.name ?? '?' }) : t('{name} ist schon vorne – das Portal bleibt zu.', { name }))
+      : e.type === 'stumble' ? (e.kind === 'back' ? t('{name} stolpert 1 Feld zurück.', { name }) : t('{name} muss nächste Runde aussetzen.', { name }))
+        : t('{name} löst eine Challenge für alle aus – der Letzte geht 2 Felder zurück!', { name });
+  const title = { rocket: 'RAKETE!', portal: 'PORTAL!', stumble: 'STOLPERSTEIN!', chaos: 'CHAOS-FELD!' }[e.type];
+  return (
+    <div className="overlay field-banner" style={{ '--f': type.color }}>
+      <div className="stack center pop" style={{ gap: 10 }}>
+        <div className="field-banner-icon">{type.icon}</div>
+        <div className="field-banner-title">{t(title)}</div>
+        <div className="row" style={{ justifyContent: 'center', gap: 10 }}>
+          <span className="avatar" style={{ width: 54, height: 54, fontSize: 30, background: `color-mix(in srgb, ${p?.color ?? '#999'} 30%, #fff)` }}>{p?.avatar}</span>
+        </div>
+        <div className="field-banner-text">{text}</div>
+      </div>
+    </div>
+  );
 }
 
 export function FieldLegend() {

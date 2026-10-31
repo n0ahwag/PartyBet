@@ -10,7 +10,7 @@ import { PhaseOverlay, PhaseBadge } from '../components/PhaseOverlay.jsx';
 import { LiveEventOverlay } from '../components/LiveEventOverlay.jsx';
 import { OfflineBanner, Loading, useToast, useAction, LangSwitch, HomeButton } from '../components/ui.jsx';
 import { Wrapped } from './Wrapped.jsx';
-import { Standings, FieldLegend, useAnimatedPositions } from '../components/board/BoardView.jsx';
+import { Standings, FieldLegend, useAnimatedPositions, FieldBanner } from '../components/board/BoardView.jsx';
 import { Board3D } from '../components/board/Board3D.jsx';
 import { BoardRound, RoundBanners, RoundMoves } from '../components/board/BoardRound.jsx';
 import { BoardHostControls } from '../components/board/BoardHostControls.jsx';
@@ -24,7 +24,7 @@ import { t } from '../i18n/index.js';
 export function HostScreen({ uid, code }) {
   const { room, players, byId, duel, round, rescues, online, loading } = useRoom(code);
   const overlay = usePhaseFx(room, duel ?? round);
-  const positions = useAnimatedPositions(players, round);
+  const { positions, banner } = useAnimatedPositions(players, round);
   const [toast, toastNode] = useToast();
   const [run, busy] = useAction(toast);
   // Spielfeld: Karte erst nach dem Ziehen (bzw. vor der ersten Challenge), sonst nur Spiel/Würfel
@@ -79,7 +79,8 @@ export function HostScreen({ uid, code }) {
             {boardMap ? (
               <>
                 <RoundBanners round={round} byId={byId} />
-                <Board3D fields={room.board.fields} players={players} positions={positions} theme={room.board.theme} seed={code} />
+                <FieldBanner banner={banner} byId={byId} />
+                <Board3D fields={room.board.fields} players={players} positions={positions} theme={room.board.theme} seed={code} follow focus={banner?.playerId} />
                 <FieldLegend />
               </>
             ) : <div className="card"><BoardRound code={code} round={round} byId={byId} me={null} big run={run} /></div>}

@@ -253,3 +253,10 @@ body.phase-suddenDeath .phase-strip { background: #dc2626; animation: pulse 0.8s
 .booster-example { background: var(--card); border-radius: 12px; padding: 8px 10px; border: 1px dashed color-mix(in srgb, var(--b) 45%, transparent); }
 .booster-guide { max-height: calc(100dvh - 40px); overflow-y: auto; }
 .inventory-btn { background: none; border: none; padding: 0; cursor: pointer; font: inherit; color: inherit; }
+
+/* Große Sonderfeld-Einblendung (Rakete, Portal, Stolperstein, Chaos) */
+.field-banner { z-index: 70; background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--f) 85%, #fff), color-mix(in srgb, var(--f) 75%, #000)); color: #fff; }
+.field-banner-icon { font-size: clamp(90px, 26vw, 200px); line-height: 1; animation: banner-bounce 0.9s ease-in-out infinite; }
+.field-banner-title { font-size: clamp(44px, 12vw, 110px); font-weight: 900; letter-spacing: -0.03em; line-height: 0.95; text-shadow: 0 4px 0 rgba(0,0,0,0.18); }
+.field-banner-text { font-size: clamp(20px, 5vw, 36px); font-weight: 800; max-width: 760px; }
+@keyframes banner-bounce { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-14px) rotate(4deg); } }
