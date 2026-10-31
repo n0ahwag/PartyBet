@@ -31,8 +31,10 @@ export const adsEnabled = () => /^ca-pub-\d{10,20}$/.test(ADSENSE.client);
  */
 export const ADSTERRA = {
   host: env.VITE_ADSTERRA_HOST || 'bauval.org',
-  banner: env.VITE_ADSTERRA_BANNER ?? 'f74078a06e96dc85c4430d131b9a7a05', // 320 × 50
-  box: env.VITE_ADSTERRA_BOX ?? 'b98efcf79dcf2716dd95eee011450712', // 300 × 250
+  // Vorerst deaktiviert. Wieder einschalten: Schlüssel eintragen (oder GitHub-Variablen ADSTERRA_BANNER/ADSTERRA_BOX):
+  // Banner 320 × 50: 'f74078a06e96dc85c4430d131b9a7a05' · Box 300 × 250: 'b98efcf79dcf2716dd95eee011450712'
+  banner: env.VITE_ADSTERRA_BANNER || '', // 320 × 50
+  box: env.VITE_ADSTERRA_BOX || '', // 300 × 250
 };
 export const adsterraEnabled = () => !adsEnabled() && !!(ADSTERRA.banner || ADSTERRA.box);
 /** Werbung, die eine eigene Einwilligung braucht (AdSense bringt seine eigene Abfrage mit). */
