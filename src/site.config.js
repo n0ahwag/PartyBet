@@ -14,13 +14,13 @@ export const ADSENSE = {
   test: env.VITE_ADSENSE_TEST === 'true',
 };
 
-/** Pflichtangaben fürs Impressum (§ 5 DDG). Bitte mit deinen echten Daten füllen. */
+/** Pflichtangaben fürs Impressum (§ 5 DDG). Per GitHub-Variable überschreibbar. */
 export const OWNER = {
-  name: env.VITE_OWNER_NAME || '[Vor- und Nachname]',
-  street: env.VITE_OWNER_STREET || '[Straße und Hausnummer]',
-  city: env.VITE_OWNER_CITY || '[PLZ Ort]',
+  name: env.VITE_OWNER_NAME || 'Noah Wagner',
+  street: env.VITE_OWNER_STREET || 'Herrenapfelstraße 51',
+  city: env.VITE_OWNER_CITY || '60435 Frankfurt am Main',
   country: env.VITE_OWNER_COUNTRY || 'Deutschland',
-  email: env.VITE_OWNER_EMAIL || '[E-Mail-Adresse]',
+  email: env.VITE_OWNER_EMAIL || 'noah.phillip.wagner@gmail.com',
 };
 
 export const adsEnabled = () => /^ca-pub-\d{10,20}$/.test(ADSENSE.client);

@@ -48,7 +48,7 @@ function Impressum() {
         übernehmen wir keine Gewähr. Für Inhalte externer Seiten (z. B. Werbung) sind ausschließlich deren Betreiber verantwortlich.</p>
       <p><b>Hinweis</b><br />
         FaceOff Party ist ein Partyspiel. Bitte trinkt verantwortungsvoll – Schlücke können jederzeit Wasser sein.
-        Kein Alkohol an Minderjährige.</p>
+        Spiele mit Alkohol nur ab 18 Jahren – kein Alkohol an Minderjährige.</p>
     </>
   );
 }
@@ -75,7 +75,10 @@ function Datenschutz() {
         oder Punkte). Es ist kein Konto, keine E-Mail-Adresse und kein Klarname nötig. Rechtsgrundlage ist
         Art. 6 Abs. 1 lit. b DSGVO (Bereitstellung des von dir genutzten Spiels). Eine Übermittlung in die USA ist
         möglich; Google ist unter dem EU-US Data Privacy Framework zertifiziert. Raumdaten werden nur für das Spiel
-        benötigt; die Löschung kannst du jederzeit per E-Mail verlangen.</p>
+        benötigt; nicht mehr genutzte Räume löschen wir regelmäßig. Die sofortige Löschung kannst du jederzeit per
+        E-Mail verlangen.</p>
+      <p>Zusätzlich zählen wir anonym, wie oft jedes Minispiel pro Woche gespielt wurde (nur Spiel und Datum, ohne
+        Bezug zu Personen oder Geräten), damit seltene Spiele häufiger drankommen.</p>
 
       <h3>4. Speicherung auf deinem Gerät</h3>
       <p>Im lokalen Speicher deines Browsers merken wir uns Spielername, Avatar, Sprache, Ton an/aus und den letzten Raum,
@@ -109,7 +112,10 @@ function Datenschutz() {
       <p>Du hast das Recht auf Auskunft (Art. 15), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der
         Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20) und Widerspruch (Art. 21 DSGVO). Eine erteilte Einwilligung
         kannst du jederzeit mit Wirkung für die Zukunft widerrufen. Außerdem kannst du dich bei einer
-        Datenschutz-Aufsichtsbehörde beschweren. Wende dich dafür an die oben genannte E-Mail-Adresse.</p>
+        Datenschutz-Aufsichtsbehörde beschweren, z. B. bei der für uns zuständigen: Der Hessische Beauftragte für
+        Datenschutz und Informationsfreiheit, Gustav-Stresemann-Ring 1, 65189 Wiesbaden, datenschutz.hessen.de.
+        Für alle Anliegen genügt eine E-Mail an die oben genannte Adresse.</p>
+      <p className="small muted">Stand: Oktober 2026</p>
     </>
   );
 }
