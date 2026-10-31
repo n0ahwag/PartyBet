@@ -18,8 +18,15 @@ export function iso(X, Y, Z = 0) {
 const SPACING = 1.3; // Abstand der Felder entlang des Pfads
 const TURN_R = 1.25; // Radius der Kehren
 
-/** Anzahl Reihen je Spielfeld-Länge (kurz 3, normal 4, lang 5). */
-const rowsFor = (n) => (n <= 22 ? 3 : n <= 32 ? 4 : 5);
+/**
+ * Anzahl Reihen je Spielfeld-Länge: so, dass die Insel ungefähr quadratisch bleibt
+ * (Reihenlänge ≈ 1,5 × Reihenanzahl). 20 Felder → 3 Reihen, 90 → 7, 150 → 10.
+ */
+const rowsFor = (n) => {
+  const total = (n - 1) * SPACING;
+  const turn = Math.PI * TURN_R;
+  return Math.max(2, Math.round((-turn + Math.sqrt(turn * turn + 6 * total)) / 3));
+};
 
 /**
  * Mittellinie als Funktion der Bogenlänge s.

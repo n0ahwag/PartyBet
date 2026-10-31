@@ -28,6 +28,7 @@ Im Spielfeld-Modus läuft jedes Minispiel als **Gruppen-Challenge**:
 - **Real-Life- und Utensil-Spiele:** Der Host tippt die Reihenfolge an.
 
 Das Spielfeld ist eine **isometrische 3D-Karte** im Party-Brettspiel-Stil (reines SVG, keine 3D-Bibliothek):
+- **Länge:** Kurz 90 / Normal 120 / Lang 150 Felder, das sind ca. 14 / 18 / 23 Challenges (per Simulation gewählt, mindestens ~10).
 - **Karte:** Eine geschwungene Straße führt über eine Insel. Die Felder sind runde Scheiben, die Spielfiguren 3D-Figuren in Spielerfarbe mit Avatar. Sie hüpfen Feld für Feld.
 - **Themen-Welten:** *Party-Stadt*, *Dschungel-Pfad* oder *Retro-Arcade*, wählbar beim Erstellen und in der Lobby (Host). Jede Welt hat eigene Farben, eigenen Himmel und eigene Deko.
 - **Würfeln:** Nach jeder Challenge würfelt **jeder** und **tippt dafür auf seinem Handy auf seine Würfel** (2D-Würfel mit Dreh-Effekt). Platz 1 bekommt zusätzlich einen Gold-Würfel (4–6), Platz 2 einen Silber-Würfel (2–4) und Platz 3 einen Bronze-Würfel (1–3). Die Augen sind pro Runde, Spieler und Würfel fest (`diceFor`), sodass alle Geräte dasselbe sehen. Wer aussetzen muss, würfelt nicht. Sind alle fertig, ziehen die Figuren automatisch. Nach 25 s würfelt die App für Säumige.
@@ -71,7 +72,7 @@ Weitere Sprache hinzufügen: in `LANGS` eintragen, ein Wörterbuch wie `en.js` a
 - **📚 Bibliothek:** oben **Lobby erstellen** – erst treten alle per Raumcode bei (auch später noch jederzeit), dann wählt der Host frei Spiele aus, die zur Spielerzahl und den Geräten passen (beliebig oft, alle gleichzeitig, 3/2/1 Punkte; „Nochmal“ / „Anderes Spiel“, am Ende Wrapped). Darunter alle Spiele nach Kategorie oder Spieleranzahl, mit **Übungsmodus** auf einem Gerät
 - **Jedes Spiel nur einmal pro Party:** Die Anzahl Duelle ist auf die verfügbaren Spiele begrenzt
 - **Phasen:** Warm-up → Chaos-Runde (Alarm-Screen, Einsätze ×2) → Sudden Death (Doom-Screen, ×3, die zwei Führenden)
-- **Power-ups:** 🛡️ Schild, ✌️ Double-Down, 🧪 Sabotage-Trank, 🔄 Joker-Tausch
+- **Power-ups:** 🛡️ Schild, ✌️ Double-Down, 🧪 Sabotage-Trank, 🔄 Joker-Tausch. Große Karten mit „So funktioniert's“, Zeitpunkt und Rechenbeispiel; Antippen der Power-ups in der Kopfzeile öffnet die Erklärung aller Booster
 - **Party-Wrapped:** Story-Karten mit Wett-König, Pechvogel, Saboteur, High Roller, Pleitegeier, …
 - **Sounds:** per WebAudio synthetisiert (Countdown, Gong, Tusch, Wett-Jingle, Alarm). Keine Audio-Dateien nötig
 

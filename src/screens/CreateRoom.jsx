@@ -75,7 +75,7 @@ export function CreateRoom({ uid }) {
             <div className="row">
               {Object.values(BOARD_LENGTHS).map((b) => (
                 <button key={b.id} className={`chip grow ${boardLength === b.id ? 'on' : ''}`} style={{ justifyContent: 'center' }} onClick={() => setBoardLength(b.id)}>
-                  {t(b.label)} ({b.fields})
+                  {t(b.label)} · {t('ca. {n} Challenges', { n: b.rounds })}
                 </button>
               ))}
             </div>

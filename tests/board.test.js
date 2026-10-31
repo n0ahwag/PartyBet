@@ -114,7 +114,7 @@ describe('Gruppen-Challenges', () => {
 describe('3D-Spielfeld & Würfel', () => {
   it('Pfad: ein Punkt pro Feld, gleichmäßige Abstände, Deko nie auf der Straße', async () => {
     const { layoutBoard } = await import('../src/game/board3d.js');
-    for (const n of [20, 30, 40]) {
+    for (const n of [20, 30, 40, 90, 150]) {
       const l = layoutBoard(n, 'ABCD');
       expect(l.fields).toHaveLength(n);
       for (let i = 1; i < n; i++) {

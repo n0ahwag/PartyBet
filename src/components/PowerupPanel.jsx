@@ -3,6 +3,7 @@ import { POWERUPS } from '../game/constants.js';
 import { activatePowerup } from '../game/engine.js';
 import { sfx } from '../lib/sound.js';
 import { t } from '../i18n/index.js';
+import { BoosterCard, BoosterGuide, BOOSTER_COLORS } from './Boosters.jsx';
 
 /**
  * Power-ups vorbereiten. Gültig werden sie, wenn der Host die Wetten schließt
@@ -10,6 +11,7 @@ import { t } from '../i18n/index.js';
  */
 export function PowerupPanel({ code, duel, me, players, run }) {
   const [picking, setPicking] = useState(null);
+  const [guide, setGuide] = useState(false);
   const isDuelist = me.id === duel.playerA || me.id === duel.playerB;
   const active = duel.powerups?.[me.id];
   const inv = me.inventory || {};
@@ -29,12 +31,9 @@ export function PowerupPanel({ code, duel, me, players, run }) {
 
   if (active) {
     return (
-      <div className="card tinted row">
-        <span style={{ fontSize: 28 }}>{POWERUPS[active.type].icon}</span>
-        <div className="grow">
-          <b>{t(POWERUPS[active.type].label)}</b> {t('vorbereitet')}
-          {active.target && <div className="small muted">{t('Ziel')}: {players.find((p) => p.id === active.target)?.name}</div>}
-        </div>
+      <div className="card stack" style={{ gap: 8 }}>
+        <h3>✅ {t('Power-up vorbereitet')}{active.target ? ` · ${t('Ziel')}: ${players.find((p) => p.id === active.target)?.name}` : ''}</h3>
+        <BoosterCard p={POWERUPS[active.type]} open={false} />
       </div>
     );
   }
@@ -46,7 +45,8 @@ export function PowerupPanel({ code, duel, me, players, run }) {
       : players.filter((p) => p.id !== duel.playerA && p.id !== duel.playerB && p.balance > 0);
     return (
       <div className="card stack">
-        <h3>{picking.icon} {t(picking.label)}: {t('Ziel wählen')}</h3>
+        <h3 style={{ color: BOOSTER_COLORS[picking.id] }}>{picking.icon} {t(picking.label)}: {t('Ziel wählen')}</h3>
+        <p className="small muted" style={{ margin: 0 }}>{t(picking.desc)}</p>
         {targets.map((target) => (
           <button key={target.id} className="btn soft" onClick={() => activate(picking, target.id)}>{target.avatar} {target.name}</button>
         ))}
@@ -57,19 +57,14 @@ export function PowerupPanel({ code, duel, me, players, run }) {
 
   return (
     <div className="card stack">
-      <h3>{t('Power-ups (1 pro Duell)')}</h3>
-      <div className="stack" style={{ gap: 8 }}>
-        {usable.map((p) => (
-          <button key={p.id} className="btn soft" style={{ justifyContent: 'flex-start', textAlign: 'left' }}
-            onClick={() => (p.target ? setPicking(p) : activate(p))}>
-            <span style={{ fontSize: 24 }}>{p.icon}</span>
-            <span className="grow">
-              <div>{t(p.label)} ×{inv[p.id]}</div>
-              <div className="small muted" style={{ fontWeight: 500 }}>{t(p.desc)}</div>
-            </span>
-          </button>
-        ))}
+      <div className="row between">
+        <h3>⚡ {t('Power-ups (1 pro Duell)')}</h3>
+        <button className="btn ghost sm" onClick={() => setGuide(true)}>ℹ️ {t('Alle erklärt')}</button>
       </div>
+      {usable.map((p) => (
+        <BoosterCard key={p.id} p={p} count={inv[p.id]} onUse={() => (p.target ? setPicking(p) : activate(p))} />
+      ))}
+      {guide && <BoosterGuide inventory={inv} onClose={() => setGuide(false)} />}
     </div>
   );
 }

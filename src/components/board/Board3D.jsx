@@ -132,7 +132,7 @@ function Decor({ item, theme }) {
 }
 
 /** Spielfeld-Scheibe. */
-function Tile({ X, Y, type, index, theme, highlight }) {
+function Tile({ X, Y, type, index, theme, highlight, fieldsTotal }) {
   const c = iso(X, Y, 0);
   const h = 6;
   const rx = 0.5 * ISO_SCALE * 1.2247;
@@ -147,7 +147,7 @@ function Tile({ X, Y, type, index, theme, highlight }) {
       <ellipse cx={c.x} cy={top} rx={rx * 0.78} ry={ry * 0.78} fill="none" stroke="#fff" strokeOpacity="0.45" strokeWidth="1.5" />
       {highlight && <ellipse cx={c.x} cy={top} rx={rx + 3} ry={ry + 2} fill="none" stroke="#fff" strokeWidth="2.5" className="tile-pulse" />}
       {f.icon && type !== 'goal' && <text x={c.x} y={top + 1} fontSize={type === 'start' ? 11 : 14} textAnchor="middle" dominantBaseline="central">{type === 'start' ? 'START' : f.icon}</text>}
-      {type === 'normal' && index % 5 === 0 && <text x={c.x} y={top + 1} fontSize="9" fontWeight="900" fill="#fff" textAnchor="middle" dominantBaseline="central">{index}</text>}
+      {type === 'normal' && index % (fieldsTotal > 60 ? 10 : 5) === 0 && <text x={c.x} y={top + 1} fontSize="9" fontWeight="900" fill="#fff" textAnchor="middle" dominantBaseline="central">{index}</text>}
       {type === 'goal' && (
         <g>
           <rect x={c.x - 1.5} y={top - 46} width="3" height="46" fill="#475569" />
@@ -264,7 +264,7 @@ export function Board3D({ fields, players, positions, theme = 'city', meId = nul
   const items = [];
   fields.forEach((type, i) => {
     const f = layout.fields[i];
-    items.push({ d: f.X + f.Y, key: `t${i}`, el: <Tile key={`t${i}`} X={f.X} Y={f.Y} type={type} index={i} theme={theme} highlight={i === leaderPos && i > 0} /> });
+    items.push({ d: f.X + f.Y, key: `t${i}`, el: <Tile key={`t${i}`} X={f.X} Y={f.Y} type={type} index={i} theme={theme} highlight={i === leaderPos && i > 0} fieldsTotal={fields.length} /> });
   });
   // Hohe Deko nur dort, wo sie kein Feld dahinter verdeckt
   const tall = DECOR_HEIGHT[th.decor];
