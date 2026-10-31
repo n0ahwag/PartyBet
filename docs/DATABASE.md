@@ -155,22 +155,15 @@ Ein Dokument pro Tag (UTC) über **alle** Partys: `{ counts: { gameId: n }, last
 - **Bei Ausfall:** Fehlt die Regel oder das Netz, wird ohne Statistik gewählt.
 
 
-## Automatisches Löschen nach 1 Tag (TTL)
+## Automatisches Löschen nach 1 Tag
 
-Jedes Dokument unter `rooms/{code}` (Raum, `players`, `duels`, `rounds`, `rescues`, `liveEvents`, `events`)
-bekommt beim Anlegen das Feld `expireAt` = jetzt + 24 h (`expiry()` in `src/firebase.js`).
-Firestore löscht Dokumente automatisch (meist innerhalb von 24 h nach Ablauf), sobald für jede
-Sammlungsgruppe eine TTL-Richtlinie auf `expireAt` aktiv ist. Einmalig einrichten – entweder in der
-Firebase-/Google-Cloud-Konsole (Firestore → TTL bzw. „Time-to-live“ → Richtlinie erstellen,
-Sammlungsgruppe + Feld `expireAt`) oder per Cloud Shell:
+Jedes Dokument unter `rooms/{code}` bekommt beim Anlegen `expireAt` = jetzt + 24 h (`expiry()` in
+`src/firebase.js`). Die App räumt beim Start selbst ein paar abgelaufene Räume samt Unter-Sammlungen
+auf (`src/lib/cleanup.js`); die Regeln erlauben dieses Löschen jedem Gerät, aber nur nach Ablauf
+(`roomExpired`). Es ist keine Einrichtung in Firebase nötig – nur die Regeln müssen veröffentlicht sein.
 
-```bash
-for g in rooms players duels rounds rescues liveEvents events; do
-  gcloud firestore fields ttls update expireAt --collection-group=$g --enable-ttl --project=partybe-d44b7 --async
-done
-```
-
-Ein Raum wird so einen Tag nach dem Erstellen gelöscht (auch wenn noch gespielt würde).
+Optional (zusätzlich, falls lange niemand die App öffnet): Firestore-TTL-Richtlinien auf `expireAt` für
+die Sammlungsgruppen rooms, players, duels, rounds, rescues, liveEvents, events.
 
 ## Kontaktformular
 

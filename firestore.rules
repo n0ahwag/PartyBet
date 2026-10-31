@@ -14,6 +14,14 @@ service cloud.firestore {
     function isPlayer(code) {
       return signedIn() && exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.auth.uid));
     }
+    // Abgelaufene Räume (expireAt, 1 Tag nach dem Erstellen) darf jedes Gerät aufräumen –
+    // die App löscht sie beim Start selbst (src/lib/cleanup.js), ganz ohne TTL-Einrichtung.
+    function roomExpired(code) {
+      return signedIn() && (
+        !exists(/databases/$(database)/documents/rooms/$(code))
+        || room(code).get('expireAt', request.time) < request.time
+      );
+    }
     function onlyChanged(keys) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
     }
@@ -59,7 +67,8 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.hostId == request.auth.uid
         && request.resource.data.status == 'lobby';
-      allow update, delete: if isHost(code);
+      allow update: if isHost(code);
+      allow delete: if isHost(code) || roomExpired(code);
 
       match /players/{uid} {
         allow read: if signedIn();
@@ -70,12 +79,13 @@ service cloud.firestore {
         // Spieler darf nur Name/Avatar/Geräte-Fähigkeiten ändern; Host alles
         allow update: if isHost(code)
           || (uid == request.auth.uid && onlyChanged(['name', 'avatar', 'caps']));
-        allow delete: if isHost(code) || uid == request.auth.uid;
+        allow delete: if isHost(code) || uid == request.auth.uid || roomExpired(code);
       }
 
       match /duels/{duelId} {
         allow read: if signedIn();
-        allow create, delete: if isHost(code);
+        allow create: if isHost(code);
+        allow delete: if isHost(code) || roomExpired(code);
         allow update: if isHost(code) || (
           isPlayer(code) && (
             (onlyChanged(['bets']) && onlyOwnKey('bets') && resource.data.stage == 'betting'
@@ -89,6 +99,7 @@ service cloud.firestore {
 
       match /rescues/{id} {
         allow read: if signedIn();
+        allow delete: if isHost(code) || roomExpired(code);
         allow create: if isPlayer(code) && request.resource.data.playerId == request.auth.uid
           && request.resource.data.status in ['pending', 'asked'];
         // Kreditgeber sagt zu/ab; alles andere entscheidet der Host
@@ -101,7 +112,8 @@ service cloud.firestore {
       // Spielfeld-Modus: Gruppen-Challenges – jeder Teilnehmer schreibt nur sein eigenes Ergebnis
       match /rounds/{roundId} {
         allow read: if signedIn();
-        allow create, delete: if isHost(code);
+        allow create: if isHost(code);
+        allow delete: if isHost(code) || roomExpired(code);
         allow update: if isHost(code) || (
           isPlayer(code) && request.auth.uid in resource.data.participants && (
             (resource.data.stage == 'playing' && onlyChanged(['results']) && onlyOwnKey('results'))
@@ -114,7 +126,8 @@ service cloud.firestore {
       // Live-Events: Host startet/entscheidet, Spieler melden nur ihre eigene Sensor-Reaktion
       match /liveEvents/{id} {
         allow read: if signedIn();
-        allow create, delete: if isHost(code);
+        allow create: if isHost(code);
+        allow delete: if isHost(code) || roomExpired(code);
         allow update: if isHost(code) || (
           isPlayer(code) && resource.data.status == 'active'
           && onlyChanged(['reactions']) && onlyOwnKey('reactions')
@@ -124,6 +137,7 @@ service cloud.firestore {
       match /events/{id} {
         allow read: if signedIn();
         allow write: if isHost(code);
+        allow delete: if roomExpired(code);
       }
     }
   }

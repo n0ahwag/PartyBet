@@ -3,6 +3,7 @@ import { useRoute } from './lib/router.js';
 import { useUid } from './hooks/useAuth.js';
 import { unlockAudio } from './lib/sound.js';
 import { startLiveSync } from './lib/liveSync.js';
+import { scheduleCleanup } from './lib/cleanup.js';
 import { Loading } from './components/ui.jsx';
 import { Home } from './screens/Home.jsx';
 import { CreateRoom } from './screens/CreateRoom.jsx';
@@ -20,6 +21,7 @@ export function App() {
   useLang(); // ganze App neu rendern, wenn die Sprache wechselt
 
   useEffect(() => startLiveSync(), []);
+  useEffect(() => scheduleCleanup(), []);
 
   useEffect(() => {
     const unlock = () => unlockAudio();
