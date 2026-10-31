@@ -7,7 +7,7 @@ import { t } from '../i18n/index.js';
 const TOLERANCE = 12;
 const angleDiff = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
 
-/** Spiel 7 – Kompass-Axt: Als Erster in die Zielrichtung ausrichten und kurz halten. */
+/** Spiel 7 – Kompass-Axt: Als Erster in die Zielrichtung ausrichten und kurz halten. Ein Pfeil zeigt den Weg. */
 function Play({ duel, submit }) {
   const [step, setStep] = useState('perm');
   const [heading, setHeading] = useState(null);
@@ -74,21 +74,27 @@ function Play({ duel, submit }) {
   if (step === 'count') return <CountdownView n={n} />;
   if (step === 'done') return <Waiting text={t('Erledigt! Warte auf dein Gegenüber…')} />;
 
-  const rel = heading == null ? 0 : target.deg - heading;
+  // Pfeil zeigt zur Zielrichtung (relativ zur Blickrichtung des Handys); oben = richtig ausgerichtet
+  const rel = heading == null ? 0 : ((target.deg - heading + 540) % 360) - 180;
+  const onTarget = heading != null && Math.abs(rel) <= TOLERANCE;
   return (
     <div className="stack center">
       <div className="kicker">{t('Richte dich aus nach')}</div>
       <div className="big-number">{t(target.label)}</div>
-      <div style={{ width: 220, height: 220, borderRadius: '50%', border: '6px solid var(--line)', position: 'relative', margin: '0 auto', background: 'var(--card)' }}>
-        <div style={{ position: 'absolute', inset: 0, transform: `rotate(${rel}deg)`, transition: 'transform 0.1s linear' }}>
-          <div style={{ position: 'absolute', left: '50%', top: 8, transform: 'translateX(-50%)', fontSize: 44 }}>🪓</div>
-        </div>
-        <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', fontWeight: 900, fontSize: 22 }}>
+      <div style={{ width: 230, height: 230, borderRadius: '50%', position: 'relative', margin: '0 auto', background: 'var(--card)',
+        border: `6px solid ${onTarget ? '#16A34A' : 'var(--line)'}`, boxShadow: onTarget ? '0 0 0 8px rgba(22,163,74,0.18)' : 'none', transition: 'border-color 0.2s, box-shadow 0.2s' }}>
+        {/* Markierung oben: hierhin muss der Pfeil zeigen */}
+        <div style={{ position: 'absolute', left: '50%', top: -16, transform: 'translateX(-50%)', width: 0, height: 0,
+          borderLeft: '12px solid transparent', borderRight: '12px solid transparent', borderTop: `16px solid ${onTarget ? '#16A34A' : 'var(--ink-faint)'}` }} />
+        <svg viewBox="-100 -100 200 200" width="100%" height="100%" style={{ position: 'absolute', inset: 0, transform: `rotate(${rel}deg)`, transition: 'transform 0.12s linear' }}>
+          <path d="M0 -82 L34 -22 L12 -22 L12 46 L-12 46 L-12 -22 L-34 -22 Z" fill={onTarget ? '#16A34A' : 'var(--accent)'} stroke="#fff" strokeWidth="5" strokeLinejoin="round" />
+        </svg>
+        <div style={{ position: 'absolute', left: '50%', bottom: 18, transform: 'translateX(-50%)', fontWeight: 900, fontSize: 18 }}>
           {heading == null ? '…' : `${Math.round(heading)}°`}
         </div>
       </div>
-      <div className="bar" style={{ width: '100%' }}><div style={{ width: `${holding * 100}%` }} /></div>
-      <p className="muted small" style={{ margin: 0 }}>{t('Axt nach oben zeigen lassen und still halten.')}</p>
+      <div className="bar" style={{ width: '100%' }}><div style={{ width: `${holding * 100}%`, background: onTarget ? '#16A34A' : undefined }} /></div>
+      <p className="muted small" style={{ margin: 0 }}>{onTarget ? `✅ ${t('Richtig! Jetzt still halten…')}` : t('Dreh dich, bis der Pfeil nach oben zeigt – dann still halten.')}</p>
       {noSensor && <button className="btn ghost sm" onClick={() => { st.current.done = true; submit({ ms: null }); setStep('done'); }}>{t('Kein Kompass – aufgeben')}</button>}
     </div>
   );

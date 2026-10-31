@@ -320,7 +320,6 @@ export const EN = {
   "Kompass freigeben & starten": "Allow compass & start",
   "Erledigt! Warte auf dein Gegenüber…": "Done! Waiting for your opponent…",
   "Richte dich aus nach": "Face towards",
-  "Axt nach oben zeigen lassen und still halten.": "Point the axe up and hold still.",
   "Kein Kompass – aufgeben": "No compass – give up",
   "sucht…": "searching…",
   "nicht geschafft": "failed",
@@ -1014,4 +1013,6 @@ export const EN = {
   "🥈 Silber-Würfel (2–4) + Würfel": "🥈 Silver die (2–4) + die",
   "🥉 Bronze-Würfel (1–3) + Würfel": "🥉 Bronze die (1–3) + die",
   "🎲 Würfel": "🎲 Die",
+  "Richtig! Jetzt still halten…": "Got it! Now hold still…",
+  "Dreh dich, bis der Pfeil nach oben zeigt – dann still halten.": "Turn until the arrow points up – then hold still.",
 };
