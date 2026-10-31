@@ -14,7 +14,7 @@ import { LibraryLobby } from '../components/library/LibraryLobby.jsx';
 import { navigate } from '../lib/router.js';
 import { t } from '../i18n/index.js';
 import { isMuted, setMuted } from '../lib/sound.js';
-import { Standings, useAnimatedPositions } from '../components/board/BoardView.jsx';
+import { Standings, useAnimatedPositions, FieldBanner } from '../components/board/BoardView.jsx';
 import { Board3D } from '../components/board/Board3D.jsx';
 import { BoardRound, RoundBanners, RankingList } from '../components/board/BoardRound.jsx';
 import { BoardHostControls } from '../components/board/BoardHostControls.jsx';
@@ -25,7 +25,7 @@ import { GroupHostControls } from '../components/group/GroupHostControls.jsx';
 export function PlayerController({ uid, code }) {
   const { room, players, byId, duel, round, rescues, online, loading } = useRoom(code);
   const overlay = usePhaseFx(room, duel ?? round);
-  const positions = useAnimatedPositions(players, round);
+  const { positions, banner } = useAnimatedPositions(players, round);
   const [toast, toastNode] = useToast();
   const [run, busy] = useAction(toast);
   const [showBoard, setShowBoard] = useState(false);
@@ -101,7 +101,8 @@ export function PlayerController({ uid, code }) {
           {boardMap ? (
             <>
               <RoundBanners round={round} byId={byId} />
-              <Board3D fields={room.board.fields} players={players} positions={positions} theme={room.board.theme} seed={code} meId={uid} compact
+              <FieldBanner banner={banner} byId={byId} />
+              <Board3D fields={room.board.fields} players={players} positions={positions} theme={room.board.theme} seed={code} meId={uid} focus={banner?.playerId} compact
                 reserve={(isHost ? 500 : 276) + (round?.winnerId || (round?.chaos && !round?.chaosDone) ? 90 : 0)} />
               {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />}
               {!round && !isHost && <div className="card center muted">{t("Gleich geht's los…")}</div>}

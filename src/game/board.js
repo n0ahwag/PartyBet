@@ -84,11 +84,12 @@ export function generateBoard(length, seed) {
   const fields = Array.from({ length }, () => 'normal');
   fields[0] = 'start';
   fields[length - 1] = 'goal';
+  // Sonderfelder sparsam: insgesamt ca. 12 % der Felder (bei 90 Feldern: 4 Raketen, 3 Chaos, 3 Stolpersteine, 2 Portale)
   const counts = {
-    rocket: Math.round(length * 0.1),
-    chaos: Math.round(length * 0.1),
-    stumble: Math.round(length * 0.1),
-    portal: Math.max(1, Math.round(length * 0.05)),
+    rocket: Math.max(1, Math.round(length * 0.045)),
+    chaos: Math.max(1, Math.round(length * 0.03)),
+    stumble: Math.max(1, Math.round(length * 0.03)),
+    portal: Math.max(1, Math.round(length * 0.02)),
   };
   const special = (t) => t !== 'normal' && t !== 'start' && t !== 'goal';
   // freie Felder ohne Sonderfeld-Nachbarn, nicht direkt an Start oder Ziel

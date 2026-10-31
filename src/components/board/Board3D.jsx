@@ -201,13 +201,16 @@ function Pawn({ player, x, y, step, me, label }) {
  * @param compact Handy: Karte in Originalgröße, Kamera folgt der eigenen Figur (wischbar)
  * @param reserve Handy: Platz in px, den die übrigen Elemente brauchen
  */
-export function Board3D({ fields, players, positions, theme = 'city', meId = null, compact = false, seed = 'board', reserve = 330 }) {
+export function Board3D({ fields, players, positions, theme = 'city', meId = null, compact = false, follow = false, seed = 'board', reserve = 330, focus = null }) {
   const th = THEME_STYLES[theme] ?? THEME_STYLES.city;
   const layout = useMemo(() => layoutBoard(fields.length, seed), [fields.length, seed]);
   const { view, bounds } = layout;
   const width = view.maxX - view.minX;
   const height = view.maxY - view.minY;
-  const [fit, setFit] = useState(!compact);
+  // Handy (compact) und TV (follow): herangezoomt, Kamera folgt; sonst (Lobby-Vorschau) ganze Karte
+  const zoomed = compact || follow;
+  const [fit, setFit] = useState(!zoomed);
+  const ZOOM = compact ? 1.5 : 1.7;
   const box = useRef(null);
   const steps = useRef({});
 
@@ -217,14 +220,15 @@ export function Board3D({ fields, players, positions, theme = 'city', meId = nul
   const leaderPos = Math.max(0, ...players.map((p) => positions[p.id] ?? 0));
 
   // Kamera folgt der eigenen Figur (bzw. dem Führenden)
-  const focusId = meId ?? players.find((p) => (positions[p.id] ?? 0) === leaderPos)?.id;
+  // Kamera: Sonderfeld-Figur (focus) > eigene Figur > Führender
+  const focusId = focus ?? meId ?? players.find((p) => (positions[p.id] ?? 0) === leaderPos)?.id;
   const focusPos = positions[focusId] ?? 0;
   useEffect(() => {
     if (fit || !box.current) return;
     const f = layout.fields[focusPos];
     const s = iso(f.X, f.Y);
     const el = box.current;
-    el.scrollTo({ left: s.x - view.minX - el.clientWidth / 2, top: s.y - view.minY - el.clientHeight / 2 - 20, behavior: 'smooth' });
+    el.scrollTo({ left: (s.x - view.minX) * ZOOM - el.clientWidth / 2, top: (s.y - view.minY) * ZOOM - el.clientHeight / 2 - 20, behavior: 'smooth' });
   }, [focusPos, fit, layout]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Insel (Prisma unter der Karte)
@@ -293,13 +297,13 @@ export function Board3D({ fields, players, positions, theme = 'city', meId = nul
 
   return (
     <div className={`board3d ${compact ? 'compact' : ''}`} style={{ background: `linear-gradient(180deg, ${th.sky[0]}, ${th.sky[1]})` }}>
-      {compact && (
+      {zoomed && (
         <button className="board3d-fit" onClick={() => setFit((v) => !v)}>{fit ? `🔍 ${t('Heranzoomen')}` : `🗺️ ${t('Ganzes Feld')}`}</button>
       )}
       {/* Handy: Karte füllt den freien Platz (reserve = Höhe der restlichen Elemente), damit nichts gescrollt werden muss */}
-      <div ref={box} className="board3d-scroll" style={{ overflow: fit ? 'hidden' : 'auto', ...(compact ? { height: `clamp(180px, calc(100dvh - ${reserve}px), 460px)` } : {}) }}>
-        <svg viewBox={`${view.minX} ${view.minY} ${width} ${height}`} width={fit ? '100%' : width * 1.15} height={fit ? undefined : height * 1.15}
-          style={{ display: 'block', maxHeight: fit && !compact ? '70vh' : undefined, margin: '0 auto' }} role="img" aria-label={t('Spielfeld')}>
+      <div ref={box} className="board3d-scroll" style={{ overflow: fit ? 'hidden' : 'auto', ...(compact ? { height: `clamp(180px, calc(100dvh - ${reserve}px), 460px)` } : follow ? { height: '66vh' } : {}) }}>
+        <svg viewBox={`${view.minX} ${view.minY} ${width} ${height}`} width={fit ? '100%' : width * ZOOM} height={fit ? undefined : height * ZOOM}
+          style={{ display: 'block', maxHeight: fit && zoomed ? (compact ? undefined : '66vh') : fit ? '70vh' : undefined, margin: '0 auto' }} role="img" aria-label={t('Spielfeld')}>
           {th.stars && Array.from({ length: 40 }, (_, i) => (
             <circle key={i} cx={view.minX + ((i * 97) % 100) / 100 * width} cy={view.minY + ((i * 53) % 100) / 100 * height * 0.6} r={(i % 3) * 0.6 + 0.6} fill="#fff" opacity={0.3 + (i % 4) * 0.15} />
           ))}
