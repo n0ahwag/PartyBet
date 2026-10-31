@@ -146,7 +146,7 @@ export function Library({ uid }) {
           {s.games.map((g) => <GameCard key={g.id} game={g} />)}
         </div>
       ))}
-      <AdSlot />
+      <AdSlot size="box" />
       <LegalLinks />
     </div>
   );
