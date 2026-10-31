@@ -3,6 +3,7 @@ import QRCodeLib from 'qrcode';
 import { POWERUPS } from '../game/constants.js';
 import { t, LANGS, useLang, setLang } from '../i18n/index.js';
 import { navigate } from '../lib/router.js';
+import { BoosterGuide } from './Boosters.jsx';
 
 export function Avatar({ player, size = '' }) {
   if (!player) return <div className={`avatar ${size}`} style={{ background: 'var(--bg-soft)' }}>?</div>;
@@ -32,17 +33,22 @@ export function PlayerRow({ player, me, right, children }) {
   );
 }
 
+/** Eigene Power-ups – antippen öffnet die Erklärung aller Booster. */
 export function Inventory({ inventory = {} }) {
+  const [open, setOpen] = useState(false);
   const items = Object.entries(inventory).filter(([, n]) => n > 0);
-  if (!items.length) return <span className="faint small">{t('keine Power-ups')}</span>;
   return (
-    <span className="small">
-      {items.map(([id, n]) => (
-        <span key={id} title={t(POWERUPS[id]?.label)} style={{ marginRight: 6 }}>
-          {POWERUPS[id]?.icon}{n > 1 ? `×${n}` : ''}
-        </span>
-      ))}
-    </span>
+    <>
+      <button type="button" className="inventory-btn small" onClick={(e) => { e.stopPropagation(); setOpen(true); }} title={t('Power-ups erklärt')}>
+        {items.length ? items.map(([id, n]) => (
+          <span key={id} style={{ marginRight: 8, fontWeight: 700 }}>
+            {POWERUPS[id]?.icon} {t(POWERUPS[id]?.label)}{n > 1 ? ` ×${n}` : ''}
+          </span>
+        )) : <span className="faint">{t('keine Power-ups')}</span>}
+        <span className="faint"> ⓘ</span>
+      </button>
+      {open && <BoosterGuide inventory={inventory} onClose={() => setOpen(false)} />}
+    </>
   );
 }
 

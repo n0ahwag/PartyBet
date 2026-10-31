@@ -6,10 +6,14 @@ import { makeRng } from '../lib/random.js';
  * bestimmt, welchen Spezialwürfel man zusätzlich bekommt. Wer zuerst das Ziel erreicht, gewinnt.
  */
 
+/**
+ * Spielfeld-Längen. Per Simulation so gewählt, dass eine Partie mindestens ~10 Challenges dauert
+ * (rounds = typische Anzahl Challenges bis zum Ziel, Median aus 900 simulierten Partien).
+ */
 export const BOARD_LENGTHS = {
-  short: { id: 'short', label: 'Kurz', fields: 20 },
-  normal: { id: 'normal', label: 'Normal', fields: 30 },
-  long: { id: 'long', label: 'Lang', fields: 40 },
+  short: { id: 'short', label: 'Kurz', fields: 90, rounds: 14 },
+  normal: { id: 'normal', label: 'Normal', fields: 120, rounds: 18 },
+  long: { id: 'long', label: 'Lang', fields: 150, rounds: 23 },
 };
 
 export const FIELD_TYPES = {

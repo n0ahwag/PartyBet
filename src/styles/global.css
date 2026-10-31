@@ -244,3 +244,12 @@ body.phase-suddenDeath .phase-strip { background: #dc2626; animation: pulse 0.8s
 /* Züge der Runde (eingeklappt unter der Karte) */
 .moves-details summary { cursor: pointer; font-weight: 800; list-style: none; }
 .moves-details summary::-webkit-details-marker { display: none; }
+
+/* Power-up-Karten */
+.booster-card { text-align: left; border-radius: var(--radius); padding: 14px; background: color-mix(in srgb, var(--b) 9%, var(--card)); border: 2px solid color-mix(in srgb, var(--b) 35%, transparent); }
+.booster-icon { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; font-size: 30px; flex-shrink: 0;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--b) 30%, #fff), color-mix(in srgb, var(--b) 60%, #fff)); box-shadow: inset 0 -3px 0 rgba(0,0,0,0.12); }
+.booster-how { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+.booster-example { background: var(--card); border-radius: 12px; padding: 8px 10px; border: 1px dashed color-mix(in srgb, var(--b) 45%, transparent); }
+.booster-guide { max-height: calc(100dvh - 40px); overflow-y: auto; }
+.inventory-btn { background: none; border: none; padding: 0; cursor: pointer; font: inherit; color: inherit; }

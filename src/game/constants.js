@@ -49,36 +49,73 @@ export const EQUIPMENT = [
   { id: 'cups', label: 'Becher', icon: '🥤' },
 ];
 
+/**
+ * Power-ups („Booster“). desc = Kurzfassung, how = So funktioniert's, when = wann einsetzbar,
+ * example = Rechenbeispiel. Alle Texte werden per t() übersetzt.
+ */
 export const POWERUPS = {
   shield: {
     id: 'shield',
     label: 'Schild',
     icon: '🛡️',
-    desc: 'Verlierst du dieses Duell bzw. deine Wette, bekommst du deinen Einsatz zurück.',
+    desc: 'Verlierst du, bekommst du deinen Einsatz zurück – du trinkst nichts.',
+    how: [
+      'Als Duellant: Verlierst du das Duell, bekommst du deinen Einsatz zurück.',
+      'Als Zuschauer: Geht deine Wette daneben, bekommst du den Wetteinsatz zurück.',
+      'Gewinnst du, passiert nichts Besonderes – das Schild ist trotzdem verbraucht.',
+    ],
+    when: 'Vor dem Duell (Intro oder Wettphase). Zuschauer müssen zuerst wetten.',
+    example: 'Du setzt 4 Schlücke und verlierst → mit Schild trinkst du 0 statt 4.',
     target: false,
   },
   doubleDown: {
     id: 'doubleDown',
     label: 'Double-Down',
     icon: '✌️',
-    desc: 'Gewinn UND Verlust in diesem Duell zählen doppelt.',
+    desc: 'Alles zählt doppelt – Gewinn wie Verlust.',
+    how: [
+      'Gewinnst du, darfst du doppelt so viele Schlücke verteilen.',
+      'Verlierst du, trinkst du deinen Einsatz doppelt.',
+      'Gilt für dein eigenes Duell oder – als Zuschauer – für deine Wette.',
+    ],
+    when: 'Vor dem Duell (Intro oder Wettphase). Zuschauer müssen zuerst wetten.',
+    example: 'Wette 3 Schlücke zu Quote ×2: gewonnen → 6 statt 3 verteilen, verloren → 6 statt 3 trinken.',
     target: false,
   },
   sabotage: {
     id: 'sabotage',
     label: 'Sabotage-Trank',
     icon: '🧪',
-    desc: 'Ein Duellant bekommt ein Handicap (digital: Zeitstrafe, real: Spezialregel).',
+    desc: 'Gib einem Duellanten ein Handicap.',
+    how: [
+      'Du wählst einen der beiden Duellanten (nicht dich selbst).',
+      'Digitale Spiele: Er bekommt eine Strafe, z. B. +1 bis +2 Sekunden oder einen 15 % schlechteren Wert.',
+      'Real-Life-Spiele: Er muss eine Spezialregel befolgen, z. B. auf einem Bein stehen.',
+      'Pro Duell zählt nur eine Sabotage – wer zuerst kommt.',
+    ],
+    when: 'Vor dem Duell (Intro oder Wettphase) – auch als Zuschauer ohne Wette.',
+    example: 'Kompass-Axt: Dein Ziel braucht 3,2 s → mit Sabotage zählen 4,2 s.',
     target: 'duelist',
   },
   joker: {
     id: 'joker',
     label: 'Joker-Tausch',
     icon: '🔄',
-    desc: 'Nur für Ausgeloste: Tausche deinen Duellplatz mit einem Zuschauer.',
+    desc: 'Tausche deinen Duellplatz mit einem Zuschauer.',
+    how: [
+      'Nur für die beiden Ausgelosten – direkt nach der Auslosung.',
+      'Du wählst einen Zuschauer mit Schlücken: Er übernimmt deinen Platz im Duell, du schaust zu.',
+      'Praktisch, wenn dir das Spiel nicht liegt.',
+    ],
+    when: 'Nur in der Intro-Phase, bevor die Wetten öffnen.',
+    example: 'Du wirst fürs Starr-Duell ausgelost, blinzelst aber ständig → Joker auf Ben, Ben muss ran.',
     target: 'spectator',
   },
 };
+
+/** Woher die Power-ups kommen (Info-Fenster). */
+export const POWERUP_SOURCE = 'Jeder startet mit einem zufälligen Power-up. Wer ein Duell gewinnt, bekommt ein neues dazu. Pro Duell kannst du eins einsetzen.';
+
 
 export const POWERUP_IDS = Object.keys(POWERUPS);
 

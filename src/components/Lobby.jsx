@@ -6,7 +6,6 @@ import { startGame, updateLobby, kickPlayer, setBoardTheme } from '../game/engin
 import { Board3D, ThemePicker } from './board/Board3D.jsx';
 import { startBoardGame } from '../game/boardEngine.js';
 import { startGroupGame } from '../game/groupEngine.js';
-import { BOARD_LENGTHS } from '../game/board.js';
 import { t } from '../i18n/index.js';
 import { PlayerRow, QRCode } from './ui.jsx';
 
@@ -39,7 +38,7 @@ export function Lobby({ code, room, players, meId, isHost, run, busy, big }) {
             {room.library.map((id) => <span key={id} className="pill" style={{ paddingLeft: 4 }}><GameArt game={GAMES[id]} size={20} /> {t(GAMES[id].name)}</span>)}
           </div>
           <p className="small muted" style={{ margin: 0 }}>
-            {board ? `🎲 ${t('Spielfeld-Modus ({n} Felder, alkoholfrei)', { n: BOARD_LENGTHS[room.board.length].fields })}`
+            {board ? `🎲 ${t('Spielfeld-Modus ({n} Felder, alkoholfrei)', { n: room.board.fields.length })}`
               : group ? `👥 ${t('Gruppen-Modus · {n} Runden, alle gleichzeitig', { n: room.totalRounds })}`
                 : `🍻 ${t('Party-Modus · {n} Duelle', { n: room.totalRounds })}`}
             {' · '}{t('Utensilien')}: {equipment.length ? equipment.map((e) => `${e.icon} ${t(e.label)}`).join(', ') : t('keine')} · {room.mode === 'screen' ? t('Hauptbildschirm') : t('Nur Handys')}

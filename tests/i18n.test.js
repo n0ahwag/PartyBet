@@ -46,6 +46,8 @@ function dataKeys() {
   c.EQUIPMENT.forEach((x) => add(x.label));
   [c.POWERUPS, c.RESCUE_OPTIONS, b.FIELD_TYPES].forEach((m) => Object.values(m).forEach((x) => { add(x.label); add(x.desc); }));
   Object.values(b.BOARD_LENGTHS).forEach((x) => add(x.label));
+  Object.values(c.POWERUPS).forEach((x) => { x.how.forEach(add); add(x.when); add(x.example); });
+  add(c.POWERUP_SOURCE);
   Object.values(b.BOARD_THEMES).forEach((x) => add(x.label));
   for (let r = 1; r <= 5; r++) add(b.moveRule(r).label);
   [b.BOARD_PHASES, g.GROUP_PHASES].forEach((m) => Object.values(m).forEach((x) => { add(x.label); add(x.title); add(x.tagline); }));
