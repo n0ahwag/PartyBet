@@ -24,6 +24,22 @@ service cloud.firestore {
         : request.resource.data[field].diff(resource.data[field]).affectedKeys().hasOnly([request.auth.uid]);
     }
 
+    // Universelle Spiel-Statistik (ein Dokument pro Tag): jeder darf lesen und
+    // genau einen Zähler um 1 erhöhen – sonst nichts.
+    match /gameStats/{day} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['counts', 'last', 'day'])
+        && request.resource.data.day == day
+        && request.resource.data.counts.keys().hasOnly([request.resource.data.last])
+        && request.resource.data.counts[request.resource.data.last] == 1;
+      allow update: if signedIn()
+        && onlyChanged(['counts', 'last', 'day'])
+        && request.resource.data.day == day
+        && request.resource.data.counts.diff(resource.data.counts).affectedKeys().hasOnly([request.resource.data.last])
+        && request.resource.data.counts[request.resource.data.last] == resource.data.counts.get(request.resource.data.last, 0) + 1;
+    }
+
     match /rooms/{code} {
       allow read: if signedIn();
       allow create: if signedIn()

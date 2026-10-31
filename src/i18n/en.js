@@ -1015,4 +1015,8 @@ export const EN = {
   "🎲 Würfel": "🎲 Die",
   "Richtig! Jetzt still halten…": "Got it! Now hold still…",
   "Dreh dich, bis der Pfeil nach oben zeigt – dann still halten.": "Turn until the arrow points up – then hold still.",
+  "Diese Woche in allen Partys": "This week across all parties",
+  "Die App wählt bevorzugt die Spiele, die zuletzt am wenigsten gespielt wurden.": "The app prefers the games that have been played least recently.",
+  "Am häufigsten": "Most played",
+  "Am seltensten": "Least played",
 };

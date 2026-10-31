@@ -144,3 +144,13 @@ Sabotage). Grundlage für Statistiken im Wrapped.
   gekappt – Spieler können also nicht mehr setzen als sie haben.
 * **Produktions-Ausbau:** Die Host-Transaktionen (`src/game/engine.js`) lassen sich
   1:1 in Cloud Functions verschieben, dann ist auch ein manipulierter Host-Client kein Problem.
+
+## `gameStats/{YYYY-MM-DD}` (universelle Spiel-Statistik)
+
+Ein Dokument pro Tag (UTC) über **alle** Partys: `{ counts: { gameId: n }, last, day }`.
+
+- **Wer schreibt:** jedes Host-Gerät beim Start einer Runde bzw. eines Duells, dazu frei gewählte Spiele in der Bibliotheks-Lobby.
+- **Was die Regeln erlauben:** jeder angemeldete Nutzer darf lesen. Pro Schreibvorgang darf nur **ein** Zähler um genau **1** steigen (`last` = dieses Spiel).
+- **Wofür:** Die Spielauswahl (`pickGame` → `leastPlayed`) summiert die letzten 7 Tage und wählt nur unter den am wenigsten gespielten Kandidaten. Die Regel „jedes Spiel nur einmal pro Party“ gilt weiter.
+- **Bei Ausfall:** Fehlt die Regel oder das Netz, wird ohne Statistik gewählt.
+

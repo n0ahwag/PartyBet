@@ -33,6 +33,10 @@ Das Spielfeld ist eine **isometrische 3D-Karte** im Party-Brettspiel-Stil (reine
 - **Würfeln:** Nach jeder Challenge würfelt **jeder** und **tippt dafür auf seinem Handy auf seine Würfel** (2D-Würfel mit Dreh-Effekt). Platz 1 bekommt zusätzlich einen Gold-Würfel (4–6), Platz 2 einen Silber-Würfel (2–4) und Platz 3 einen Bronze-Würfel (1–3). Die Augen sind pro Runde, Spieler und Würfel fest (`diceFor`), sodass alle Geräte dasselbe sehen. Wer aussetzen muss, würfelt nicht. Sind alle fertig, ziehen die Figuren automatisch. Nach 25 s würfelt die App für Säumige.
 - **Handy:** Die Karte folgt der eigenen Figur, man kann wischen. „Ganzes Feld“ zeigt die Übersicht.
 
+## Abwechslung über alle Partys
+
+Die App zählt in Firestore (`gameStats`, ein Dokument pro Tag), wie oft jedes Spiel **in allen Partys** gespielt wurde. Bei jeder Auswahl gewinnen die Spiele, die in den **letzten 7 Tagen am wenigsten** gespielt wurden. Party, Spielfeld und Gruppe werten das automatisch aus. Die Bibliothek zeigt die meist- und wenigstgespielten Spiele der Woche.
+
 ## Sprachen
 
 **Deutsch** und **Englisch**, umschaltbar auf der Startseite und über den 🌐-Knopf auf jedem Bildschirm. Die Sprache gilt **pro Gerät**: In einer Party kann jeder Spieler seine eigene Sprache nutzen, Spielinhalte wie Fragen und Rätsel erscheinen auf jedem Handy in dessen Sprache. Beim ersten Start wird die Browser-Sprache übernommen.

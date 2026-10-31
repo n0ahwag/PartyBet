@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { weeklyCounts } from '../game/gameStats.js';
 import { AdSlot } from '../components/AdSlot.jsx';
 import { LegalLinks } from './Legal.jsx';
 import { GameArt } from '../components/GameArt.jsx';
@@ -76,6 +77,33 @@ function CreateLibraryLobby({ uid }) {
   );
 }
 
+/** Wochen-Statistik über alle Partys: meist- und wenigstgespielte Spiele. */
+function WeeklyStats({ uid }) {
+  const [counts, setCounts] = useState(null);
+  useEffect(() => { if (uid) weeklyCounts().then(setCounts); }, [uid]);
+  if (!counts) return null;
+  const games = Object.values(GAMES);
+  const sorted = [...games].sort((a, b) => (counts[b.id] ?? 0) - (counts[a.id] ?? 0));
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  if (!total) return null;
+  const row = (g) => (
+    <div key={g.id} className="row between" style={{ gap: 8 }}>
+      <span className="row" style={{ gap: 8 }}><GameArt game={g} size={24} /> {t(g.name)}</span>
+      <span className="pill">{counts[g.id] ?? 0}×</span>
+    </div>
+  );
+  return (
+    <div className="card stack" style={{ gap: 10 }}>
+      <h3>📊 {t('Diese Woche in allen Partys')}</h3>
+      <p className="small muted" style={{ margin: 0 }}>{t('Die App wählt bevorzugt die Spiele, die zuletzt am wenigsten gespielt wurden.')}</p>
+      <div className="grid-2" style={{ alignItems: 'start' }}>
+        <div className="stack" style={{ gap: 6 }}><b className="small">🔥 {t('Am häufigsten')}</b>{sorted.slice(0, 3).map(row)}</div>
+        <div className="stack" style={{ gap: 6 }}><b className="small">💤 {t('Am seltensten')}</b>{sorted.slice(-3).reverse().map(row)}</div>
+      </div>
+    </div>
+  );
+}
+
 /** Spielebibliothek: Lobby erstellen + alle Spiele nach Kategorie oder Spieleranzahl, mit Übungsmodus. */
 export function Library({ uid }) {
   const [groupBy, setGroupBy] = useState('category');
@@ -101,6 +129,7 @@ export function Library({ uid }) {
         <LangSwitch />
       </div>
       <CreateLibraryLobby uid={uid} />
+      <WeeklyStats uid={uid} />
       <h3 style={{ marginTop: 8 }}>{t('Alle Spiele')}</h3>
       <div className="grid-2">
         <button className={`chip ${groupBy === 'category' ? 'on' : ''}`} style={{ justifyContent: 'center' }} onClick={() => setGroupBy('category')}>{t('Nach Kategorie')}</button>
