@@ -199,8 +199,9 @@ function Pawn({ player, x, y, step, me, label }) {
 /**
  * @param positions { uid: Feld } (animiert)  @param theme city|jungle|arcade
  * @param compact Handy: Karte in Originalgröße, Kamera folgt der eigenen Figur (wischbar)
+ * @param reserve Handy: Platz in px, den die übrigen Elemente brauchen
  */
-export function Board3D({ fields, players, positions, theme = 'city', meId = null, compact = false, seed = 'board' }) {
+export function Board3D({ fields, players, positions, theme = 'city', meId = null, compact = false, seed = 'board', reserve = 330 }) {
   const th = THEME_STYLES[theme] ?? THEME_STYLES.city;
   const layout = useMemo(() => layoutBoard(fields.length, seed), [fields.length, seed]);
   const { view, bounds } = layout;
@@ -295,7 +296,8 @@ export function Board3D({ fields, players, positions, theme = 'city', meId = nul
       {compact && (
         <button className="board3d-fit" onClick={() => setFit((v) => !v)}>{fit ? `🔍 ${t('Heranzoomen')}` : `🗺️ ${t('Ganzes Feld')}`}</button>
       )}
-      <div ref={box} className="board3d-scroll" style={{ overflow: fit ? 'hidden' : 'auto' }}>
+      {/* Handy: Karte füllt den freien Platz (reserve = Höhe der restlichen Elemente), damit nichts gescrollt werden muss */}
+      <div ref={box} className="board3d-scroll" style={{ overflow: fit ? 'hidden' : 'auto', ...(compact ? { height: `clamp(180px, calc(100dvh - ${reserve}px), 460px)` } : {}) }}>
         <svg viewBox={`${view.minX} ${view.minY} ${width} ${height}`} width={fit ? '100%' : width * 1.15} height={fit ? undefined : height * 1.15}
           style={{ display: 'block', maxHeight: fit && !compact ? '70vh' : undefined, margin: '0 auto' }} role="img" aria-label={t('Spielfeld')}>
           {th.stars && Array.from({ length: 40 }, (_, i) => (

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRoom } from '../hooks/useRoom.js';
 import { usePhaseFx } from '../hooks/usePhaseFx.js';
 import { Lobby } from '../components/Lobby.jsx';
@@ -16,7 +16,7 @@ import { t } from '../i18n/index.js';
 import { isMuted, setMuted } from '../lib/sound.js';
 import { Standings, useAnimatedPositions } from '../components/board/BoardView.jsx';
 import { Board3D } from '../components/board/Board3D.jsx';
-import { BoardRound } from '../components/board/BoardRound.jsx';
+import { BoardRound, RoundBanners, RankingList } from '../components/board/BoardRound.jsx';
 import { BoardHostControls } from '../components/board/BoardHostControls.jsx';
 import { GroupRound, PointsBoard } from '../components/group/GroupRound.jsx';
 import { GroupHostControls } from '../components/group/GroupHostControls.jsx';
@@ -30,6 +30,11 @@ export function PlayerController({ uid, code }) {
   const [run, busy] = useAction(toast);
   const [showBoard, setShowBoard] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
+  // Spielfeld: Karte erst nach dem Ziehen (bzw. vor der ersten Challenge), sonst nur Spiel/Würfel
+  const boardMap = room?.gameMode === 'board' && (!round || round.stage === 'resolved');
+  useEffect(() => {
+    if (room?.gameMode === 'board') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [room?.gameMode, round?.id, round?.stage]);
 
   if (loading) return <Loading />;
   if (!room) return <div className="page center"><h2>{t('Raum {code} nicht gefunden', { code })}</h2><button className="btn" onClick={() => navigate('/')}>{t('Zur Startseite')}</button></div>;
@@ -92,13 +97,28 @@ export function PlayerController({ uid, code }) {
         <>
           <PhaseBadge room={room} />
           <div className="phase-strip" />
-          {/* Beim Würfeln steht der Würfel oben, sonst die Karte */}
-          {round?.stage === 'review' && <BoardRound code={code} round={round} byId={byId} me={me} run={run} />}
-          <Board3D fields={room.board.fields} players={players} positions={positions} theme={room.board.theme} seed={code} meId={uid} compact />
-          {round?.stage !== 'review' && (round ? <BoardRound code={code} round={round} byId={byId} me={me} run={run} /> : <div className="card center muted">{t("Gleich geht's los…")}</div>)}
-          {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />}
-          <button className="btn ghost sm" onClick={() => setShowBoard((s) => !s)}>{showBoard ? t('Rangliste ausblenden') : `🏆 ${t('Wer führt?')}`}</button>
-          {showBoard && <Standings players={players} fields={room.board.fields} meId={uid} />}
+          {/* Immer nur eine Ansicht: Challenge/Würfel ODER (nach dem Ziehen) die Karte */}
+          {boardMap ? (
+            <>
+              <RoundBanners round={round} byId={byId} />
+              <Board3D fields={room.board.fields} players={players} positions={positions} theme={room.board.theme} seed={code} meId={uid} compact
+                reserve={(isHost ? 500 : 276) + (round?.winnerId || (round?.chaos && !round?.chaosDone) ? 90 : 0)} />
+              {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />}
+              {!round && !isHost && <div className="card center muted">{t("Gleich geht's los…")}</div>}
+              <div className="grid-2">
+                <button className={`btn ghost sm ${showBoard === 'moves' ? 'on' : ''}`} disabled={round?.stage !== 'resolved'}
+                  onClick={() => setShowBoard((s) => (s === 'moves' ? false : 'moves'))}>📋 {t('Züge dieser Runde')}</button>
+                <button className="btn ghost sm" onClick={() => setShowBoard((s) => (s === 'standings' ? false : 'standings'))}>🏆 {t('Wer führt?')}</button>
+              </div>
+              {showBoard === 'moves' && round?.stage === 'resolved' && <RankingList round={round} byId={byId} meId={uid} />}
+              {showBoard === 'standings' && <Standings players={players} fields={room.board.fields} meId={uid} />}
+            </>
+          ) : (
+            <>
+              <BoardRound code={code} round={round} byId={byId} me={me} run={run} />
+              {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />}
+            </>
+          )}
         </>
       ) : (
         <>
