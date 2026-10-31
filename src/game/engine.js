@@ -14,6 +14,7 @@ import { generateBoard, stepBack, EVENT_PENALTY, BOARD_LENGTHS } from './board.j
 import { startChallenge } from './boardEngine.js';
 import { startGroupRound } from './groupEngine.js';
 import { libraryFor } from './group.js';
+import { weeklyCounts, recordPlay } from './gameStats.js';
 import { makeRng, makeRoomCode } from '../lib/random.js';
 
 /*
@@ -144,7 +145,9 @@ async function playerRefs(code) {
 /** Lost die nächsten Duellanten + Spiel aus und legt das Duell-Dokument an. */
 export async function drawDuel(code) {
   const refs = await playerRefs(code);
-  return runTransaction(db, async (tx) => {
+  const counts = await weeklyCounts();
+  let chosen = null;
+  const result = await runTransaction(db, async (tx) => {
     const roomSnap = await tx.get(roomRef(code));
     const room = roomSnap.data();
     const snaps = await Promise.all(refs.map((r) => tx.get(r)));
@@ -172,7 +175,7 @@ export async function drawDuel(code) {
         ...rng.shuffle(solvent.filter((p) => room.lastDuelists.includes(p.id))),
       ];
     const playedGames = room.playedGames || [];
-    const plan = planDuel({ orderedPlayers: ordered, libraryIds: room.library, playedIds: playedGames, seed });
+    const plan = planDuel({ orderedPlayers: ordered, libraryIds: room.library, playedIds: playedGames, seed, counts });
     if (!plan) {
       // Alle passenden Spiele wurden schon gespielt → Party ist vorbei
       tx.update(roomRef(code), { status: 'finished', finishedAt: serverTimestamp(), endedEarly: 'noGamesLeft' });
@@ -206,8 +209,11 @@ export async function drawDuel(code) {
       lastDuelists: duelists.map((d) => d.id),
       ...(phase !== room.phase ? { phaseChangedAt: Date.now() } : {}),
     });
+    chosen = game.id;
     return duelId;
   });
+  recordPlay(chosen);
+  return result;
 }
 
 /** Host öffnet die Wetten. Vorher wird ein evtl. Joker-Tausch verarbeitet. */

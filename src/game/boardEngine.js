@@ -6,6 +6,7 @@ import { GAMES, groupPlayable, pickGame } from './gameLibrary.js';
 import { applyRound, boardPhase, CHAOS_PENALTY } from './board.js';
 import { triggerLiveEvent } from './engine.js';
 import { makeRng } from '../lib/random.js';
+import { weeklyCounts, recordPlay } from './gameStats.js';
 
 /*
  * Spielfeld-Modus: Firestore-Schreibvorgänge. Wie im Party-Modus gilt:
@@ -31,7 +32,9 @@ export async function startBoardGame(code) {
 /** Neue Gruppen-Challenge für alle Spieler. Jedes Spiel erst wieder, wenn alle durch sind. */
 export async function startChallenge(code) {
   const refs = await playerRefs(code);
-  return runTransaction(db, async (tx) => {
+  const counts = await weeklyCounts();
+  let chosen = null;
+  const result = await runTransaction(db, async (tx) => {
     const room = (await tx.get(roomRef(code))).data();
     const snaps = await Promise.all(refs.map((r) => tx.get(r)));
     const players = snaps.filter((s) => s.exists()).map((s) => ({ id: s.id, ...s.data() }));
@@ -46,8 +49,9 @@ export async function startChallenge(code) {
       played = []; // alle Spiele durch → Pool neu mischen
       candidates = playable;
     }
-    const game = pickGame(candidates, room.lastGameId, seed);
+    const game = pickGame(candidates, room.lastGameId, seed, counts);
     if (!game) throw new Error('Keine Gruppen-Spiele für diese Runde verfügbar.');
+    chosen = game.id;
 
     const id = `r${String(round).padStart(2, '0')}`;
     tx.set(roundRef(code, id), {
@@ -77,6 +81,8 @@ export async function startChallenge(code) {
     });
     return id;
   });
+  recordPlay(chosen);
+  return result;
 }
 
 export async function beginChallenge(code, id) {

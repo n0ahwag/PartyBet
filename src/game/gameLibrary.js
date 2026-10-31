@@ -466,11 +466,19 @@ export function requirementsOf(game) {
 }
 
 /** Wählt ein Spiel; vermeidet direkte Wiederholung, wenn möglich. */
-export function pickGame(candidates, lastGameId, seed) {
+export function pickGame(candidates, lastGameId, seed, counts = null) {
   if (!candidates.length) return null;
   const rng = makeRng(seed);
   const fresh = candidates.filter((g) => g.id !== lastGameId);
-  return rng.pick(fresh.length ? fresh : candidates);
+  // Universell am wenigsten gespielte Spiele der letzten Woche zuerst (counts = { gameId: n })
+  return rng.pick(leastPlayed(fresh.length ? fresh : candidates, counts));
+}
+
+/** Nur die Kandidaten mit der niedrigsten Wochen-Anzahl (ohne Zähler = alle). */
+export function leastPlayed(candidates, counts) {
+  if (!counts || !candidates.length) return candidates;
+  const min = Math.min(...candidates.map((g) => counts[g.id] ?? 0));
+  return candidates.filter((g) => (counts[g.id] ?? 0) === min);
 }
 
 /**
@@ -479,12 +487,12 @@ export function pickGame(candidates, lastGameId, seed) {
  * genommen wird das erste Paar, für das noch ein ungespieltes, passendes Spiel existiert.
  * @returns { duelists, game } oder null, wenn kein ungespieltes Spiel mehr passt
  */
-export function planDuel({ orderedPlayers, libraryIds = [], playedIds = [], seed }) {
+export function planDuel({ orderedPlayers, libraryIds = [], playedIds = [], seed, counts = null }) {
   const unplayed = libraryIds.filter((id) => !playedIds.includes(id)).map((id) => GAMES[id]).filter(Boolean);
   for (let i = 0; i < orderedPlayers.length; i++) {
     for (let j = i + 1; j < orderedPlayers.length; j++) {
       const duelists = [orderedPlayers[i], orderedPlayers[j]];
-      const game = pickGame(playableFor(unplayed, duelists), null, seed);
+      const game = pickGame(playableFor(unplayed, duelists), null, seed, counts);
       if (game) return { duelists, game };
     }
   }

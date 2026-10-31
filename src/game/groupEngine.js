@@ -6,6 +6,7 @@ import { GAMES, groupPlayable, pickGame } from './gameLibrary.js';
 import { phaseForRound } from './constants.js';
 import { FINAL_MULTIPLIER, confessionOrder } from './group.js';
 import { makeRng } from '../lib/random.js';
+import { weeklyCounts, recordPlay } from './gameStats.js';
 
 /*
  * Gruppen-Modus: Firestore-Ablauf. Nutzt dieselbe rounds-Sammlung (und damit
@@ -25,7 +26,9 @@ export async function startGroupGame(code) {
 
 export async function startGroupRound(code) {
   const refs = (await getDocs(collection(db, 'rooms', code, 'players'))).docs.map((d) => d.ref);
-  return runTransaction(db, async (tx) => {
+  const counts = await weeklyCounts();
+  let chosen = null;
+  const result = await runTransaction(db, async (tx) => {
     const room = (await tx.get(roomRef(code))).data();
     const snaps = await Promise.all(refs.map((r) => tx.get(r)));
     const players = snaps.filter((s) => s.exists()).map((s) => ({ id: s.id, ...s.data() }));
@@ -44,11 +47,13 @@ export async function startGroupRound(code) {
     if (!candidates.length) { played = []; candidates = playable; }
     // Die sozialen Gruppen-Spiele bevorzugen, solange noch welche offen sind
     const social = candidates.filter((g) => g.groupOnly);
-    const game = pickGame(social.length && rng.next() < 0.6 ? social : candidates, room.lastGameId, seed);
+    const game = pickGame(social.length && rng.next() < 0.6 ? social : candidates, room.lastGameId, seed, counts);
     if (!game) throw new Error('Keine Gruppen-Spiele verfügbar.');
-
+    chosen = game.id;
     return writeRound(tx, code, room, players, game, rng, round, phase, [...played, game.id]);
   });
+  recordPlay(chosen);
+  return result;
 }
 
 /** Legt das Runden-Dokument an und setzt es als aktuelle Runde. */
@@ -91,7 +96,7 @@ function writeRound(tx, code, room, players, game, rng, round, phase, playedGame
  */
 export async function startLibraryRound(code, gameId) {
   const refs = (await getDocs(collection(db, 'rooms', code, 'players'))).docs.map((d) => d.ref);
-  return runTransaction(db, async (tx) => {
+  const id = await runTransaction(db, async (tx) => {
     const room = (await tx.get(roomRef(code))).data();
     const snaps = await Promise.all(refs.map((r) => tx.get(r)));
     const players = snaps.filter((s) => s.exists()).map((s) => ({ id: s.id, ...s.data() }));
@@ -104,6 +109,8 @@ export async function startLibraryRound(code, gameId) {
     return writeRound(tx, code, room, players, game, rng, round, 'warmup',
       played.includes(game.id) ? played : [...played, game.id], { introEndsAt: Date.now() + LIBRARY_INTRO_MS });
   });
+  recordPlay(gameId); // auch frei gewählte Spiele zählen für die Wochen-Statistik
+  return id;
 }
 
 /** Regeln lesen, dann startet die Runde von selbst. */
