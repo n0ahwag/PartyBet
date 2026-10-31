@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { AdSlot } from '../components/AdSlot.jsx';
+import { LegalLinks } from './Legal.jsx';
 import { navigate } from '../lib/router.js';
 import { t } from '../i18n/index.js';
 import { LangSwitch } from '../components/ui.jsx';
@@ -23,7 +25,9 @@ export function Home() {
         <button className="btn block" disabled={code.length !== 4} onClick={() => navigate(`/join/${code}`)}>{t('Beitreten')}</button>
       </div>
       {last && <button className="btn ghost sm" onClick={() => navigate(last)}>↩︎ {t('Zurück zur letzten Party')}</button>}
+      <AdSlot />
       <p className="faint small center">{t('Bitte verantwortungsvoll trinken. Schlücke können auch Wasser sein 💧')}</p>
+      <LegalLinks />
     </div>
   );
 }

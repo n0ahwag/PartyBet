@@ -11,6 +11,7 @@ import { HostScreen } from './screens/HostScreen.jsx';
 import { PlayerController } from './screens/PlayerController.jsx';
 import { Library } from './screens/Library.jsx';
 import { Practice } from './screens/Practice.jsx';
+import { Legal } from './screens/Legal.jsx';
 import { t, useLang } from './i18n/index.js';
 
 export function App() {
@@ -27,6 +28,7 @@ export function App() {
   }, []);
 
   // Bibliothek & Übungsmodus laufen ohne Raum (die Anmeldung braucht nur „Lobby erstellen“)
+  if (name === 'impressum' || name === 'datenschutz') return <Legal page={name} />;
   if (name === 'library') return params[0] ? <Practice key={params[0]} gameId={params[0]} /> : <Library uid={uid} />;
 
   if (error) {

@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { createReadStream, cpSync, mkdirSync } from 'node:fs';
+import { createReadStream, cpSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 // MediaPipe-WASM (Face-Tracking fürs Starr-Duell) selbst ausliefern statt vom CDN
@@ -27,8 +27,29 @@ function mediapipeWasm() {
   };
 }
 
+/**
+ * AdSense: Bestätigungs-Tag im <head> (für die Website-Prüfung) und ads.txt (Pflicht).
+ * Beides nur, wenn eine Publisher-ID gesetzt ist.
+ */
+function adsTxt() {
+  let outDir;
+  const client = process.env.VITE_ADSENSE_CLIENT || '';
+  const valid = /^ca-pub-\d+$/.test(client);
+  return {
+    name: 'ads-txt',
+    configResolved(cfg) { outDir = resolve(cfg.root, cfg.build.outDir); },
+    transformIndexHtml() {
+      return valid ? [{ tag: 'meta', attrs: { name: 'google-adsense-account', content: client }, injectTo: 'head' }] : [];
+    },
+    closeBundle() {
+      if (!valid) return;
+      writeFileSync(resolve(outDir, 'ads.txt'), `google.com, ${client.replace('ca-', '')}, DIRECT, f08c47fec0942fa0\n`);
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), mediapipeWasm()],
+  plugins: [react(), mediapipeWasm(), adsTxt()],
   // Relative Pfade: läuft unter github.io/PartyBet/ genauso wie auf Firebase Hosting
   base: './',
   build: {

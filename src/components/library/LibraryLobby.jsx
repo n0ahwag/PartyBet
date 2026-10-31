@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { AdSlot } from '../AdSlot.jsx';
 import { GAMES, CATEGORIES, playableFor } from '../../game/gameLibrary.js';
 import { startLibraryRound, backToPicker } from '../../game/groupEngine.js';
 import { kickPlayer, finishGame } from '../../game/engine.js';
@@ -159,6 +160,7 @@ export function LibraryLobby({ code, room, players, byId, round, me, isHost, run
   return (
     <div className="stack">
       {!round && <LobbyInfo code={code} players={players} meId={meId} isHost={isHost} run={run} />}
+      {!round && !isHost && <AdSlot />}
       {main}
       {host}
       {round && !active && <LobbyInfo code={code} players={players} meId={meId} isHost={isHost} run={run} />}

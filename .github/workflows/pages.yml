@@ -26,6 +26,15 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+        env:
+          # Werbung & Impressum: GitHub → Settings → Secrets and variables → Actions → Variables
+          VITE_ADSENSE_CLIENT: ${{ vars.ADSENSE_CLIENT }}
+          VITE_ADSENSE_SLOT: ${{ vars.ADSENSE_SLOT }}
+          VITE_OWNER_NAME: ${{ vars.OWNER_NAME }}
+          VITE_OWNER_STREET: ${{ vars.OWNER_STREET }}
+          VITE_OWNER_CITY: ${{ vars.OWNER_CITY }}
+          VITE_OWNER_COUNTRY: ${{ vars.OWNER_COUNTRY }}
+          VITE_OWNER_EMAIL: ${{ vars.OWNER_EMAIL }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

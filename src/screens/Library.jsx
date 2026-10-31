@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { AdSlot } from '../components/AdSlot.jsx';
+import { LegalLinks } from './Legal.jsx';
 import { GameArt } from '../components/GameArt.jsx';
 import { GAMES, CATEGORIES, requirementsOf } from '../game/gameLibrary.js';
 import '../game/group.js';
@@ -111,6 +113,8 @@ export function Library({ uid }) {
           {s.games.map((g) => <GameCard key={g.id} game={g} />)}
         </div>
       ))}
+      <AdSlot />
+      <LegalLinks />
     </div>
   );
 }

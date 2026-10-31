@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AdSlot } from '../components/AdSlot.jsx';
 import { GameArt } from '../components/GameArt.jsx';
 import { GAMES, CATEGORIES, requirementsOf } from '../game/gameLibrary.js';
 import { EQUIPMENT } from '../game/constants.js';
@@ -111,6 +112,7 @@ export function Practice({ gameId }) {
             ? <p className="muted" style={{ margin: 0, fontWeight: 700 }}>👥 {t('Dieses Spiel lebt von der ganzen Gruppe – erstelle in der Bibliothek eine Lobby und wähle es dort aus.')}</p>
             : <button className="btn primary lg block" onClick={start}>▶️ {t('Spielen')}</button>}
         </div>
+        <AdSlot />
       </div>
     );
   }
