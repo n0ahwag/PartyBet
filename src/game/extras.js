@@ -108,6 +108,7 @@ export function makeWire(seed) {
 export function wireProgress(path, x, y) {
   let bestD = Infinity;
   let bestS = 0;
+  let near = path[0];
   let total = 0;
   const lens = [];
   for (let i = 1; i < path.length; i++) { const l = Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]); lens.push(l); total += l; }
@@ -119,11 +120,33 @@ export function wireProgress(path, x, y) {
     const dy = y2 - y1;
     const l2 = dx * dx + dy * dy;
     const t = l2 ? clamp(((x - x1) * dx + (y - y1) * dy) / l2, 0, 1) : 0;
-    const d = Math.hypot(x - (x1 + t * dx), y - (y1 + t * dy));
-    if (d < bestD) { bestD = d; bestS = acc + t * lens[i - 1]; }
+    const nx = x1 + t * dx; const ny = y1 + t * dy;
+    const d = Math.hypot(x - nx, y - ny);
+    if (d < bestD) { bestD = d; bestS = acc + t * lens[i - 1]; near = [nx, ny]; }
     acc += lens[i - 1];
   }
-  return { dist: bestD, progress: total ? bestS / total : 0, point: pointAt(path, total ? bestS / total : 0) };
+  return { dist: bestD, progress: total ? bestS / total : 0, point: pointAt(path, total ? bestS / total : 0), near };
+}
+
+/**
+ * Ein Bewegungsschritt der Kugel im Draht. Die Wand ist eine echte Begrenzung: Die Kugel
+ * gleitet an ihr entlang (wird auf den erlaubten Abstand geschoben), statt zurückgesetzt zu werden.
+ * Gleiche Hitbox wie die Zeichnung: Berührung, sobald der Kugelrand den sichtbaren Rand erreicht.
+ * @returns { x, y, touching, progress }
+ */
+export function wireStep(path, ball, dx, dy) {
+  const limit = WIRE.half - WIRE.ball; // Mittelpunkt darf so weit von der Mittellinie weg
+  let x = clamp(ball.x + dx, 0, WIRE.w);
+  let y = clamp(ball.y + dy, 0, WIRE.h);
+  const pr = wireProgress(path, x, y);
+  let touching = false;
+  if (pr.dist > limit) {
+    touching = true;
+    const [nx, ny] = pr.near;
+    const k = limit / pr.dist;
+    x = nx + (x - nx) * k; y = ny + (y - ny) * k;
+  }
+  return { x, y, touching, progress: pr.progress, dist: Math.min(pr.dist, limit) };
 }
 
 /** Punkt auf der Mittellinie bei Fortschritt p (0…1). */

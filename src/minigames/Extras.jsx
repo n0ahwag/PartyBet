@@ -3,7 +3,7 @@ import { CountdownView, Waiting } from './shared.jsx';
 import { setupCanvas, canvasWidth, useArcade, ReadyView, auto } from './Arcade.jsx';
 import {
   levelFromRms, LEVEL, BALLOON, balloonGrowth, shapePoints, traceScore, traceAccuracy, SHAPE_LABELS,
-  WIRE, makeWire, wireProgress, HIGHER_LOWER_SETS, higherLowerCorrect, PRICE_ITEMS, parsePrice,
+  WIRE, makeWire, wireStep, HIGHER_LOWER_SETS, higherLowerCorrect, PRICE_ITEMS, parsePrice,
 } from '../game/extras.js';
 import { priceTagError } from '../game/gameLibrary.js';
 import { requestOrientationPermission } from '../lib/device.js';
@@ -300,7 +300,14 @@ function HotWire({ duel, submit }) {
   useEffect(() => {
     if (step !== 'run') return undefined;
     const ctx = setupCanvas(canvasRef.current, W, H);
-    const onTilt = (e) => { if (e.gamma != null) tilt.current = { x: clamp(e.gamma / 25, -1, 1), y: clamp((e.beta - 20) / 25, -1, 1) }; };
+    // Neigung relativ zur Haltung beim Start (so driftet die Kugel bei normaler Handhaltung nicht weg)
+    let base = null;
+    const onTilt = (e) => {
+      if (e.gamma == null || e.beta == null) return;
+      base ??= { b: e.beta, g: e.gamma };
+      const dead = (v) => (Math.abs(v) < 0.06 ? 0 : v);
+      tilt.current = { x: dead(clamp((e.gamma - base.g) / 22, -1, 1)), y: dead(clamp((e.beta - base.b) / 22, -1, 1)) };
+    };
     const keyMap = { ArrowLeft: ['x', -1], ArrowRight: ['x', 1], ArrowUp: ['y', -1], ArrowDown: ['y', 1] };
     const kd = (e) => { const k = keyMap[e.key]; if (k) { e.preventDefault(); keys.current[k[0]] = k[1]; } };
     const ku = (e) => { const k = keyMap[e.key]; if (k && keys.current[k[0]] === k[1]) keys.current[k[0]] = 0; };
@@ -310,6 +317,7 @@ function HotWire({ duel, submit }) {
     const ball = { x: path[0][0], y: path[0][1] };
     let touches = 0;
     let safeUntil = 0;
+    let wasTouching = false;
     let best = 0;
     const t0 = performance.now();
     let last = t0;
@@ -339,21 +347,20 @@ function HotWire({ duel, submit }) {
       const elapsed = now - t0;
       const cx = keys.current.x || tilt.current.x;
       const cy = keys.current.y || tilt.current.y;
-      ball.x += cx * WIRE.speed * 14 * dt;
-      ball.y += cy * WIRE.speed * 14 * dt;
-      ball.x = clamp(ball.x, 0, WIRE.w);
-      ball.y = clamp(ball.y, 0, WIRE.h);
-      const pr = wireProgress(path, ball.x, ball.y);
-      best = Math.max(best, pr.progress);
+      const st = wireStep(path, ball, cx * WIRE.speed * 14 * dt, cy * WIRE.speed * 14 * dt);
+      ball.x = st.x; ball.y = st.y;
+      best = Math.max(best, st.progress);
+      // Berührung zählt einmal pro Kontakt (erst wieder, wenn die Kugel kurz frei war)
       let hit = false;
-      if (pr.dist > WIRE.half - WIRE.ball && now > safeUntil) {
+      if (st.touching && !wasTouching && now > safeUntil) {
         touches += 1;
         hit = true;
-        safeUntil = now + 700;
+        safeUntil = now + 400;
         sfx.fail(); vibrate(120);
-        ball.x = pr.point[0]; ball.y = pr.point[1];
-      } else if (pr.dist > WIRE.half - WIRE.ball) { ball.x = pr.point[0]; ball.y = pr.point[1]; }
-      draw(hit || now < safeUntil);
+      }
+      // erst wieder „frei“, wenn die Kugel deutlich von der Wand weg ist (kein Doppelzählen beim Entlangrollen)
+      wasTouching = st.touching || (wasTouching && st.dist > WIRE.half - WIRE.ball - 1.5);
+      draw(hit || wasTouching || now < safeUntil);
       ctx.fillStyle = '#2D3047'; ctx.font = '900 15px Outfit, system-ui'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
       ctx.fillText(`⏱ ${num(elapsed / 1000, 1)} s  ·  ⚡ ${touches}`, 8, 6);
       if (Math.hypot(ball.x - end[0], ball.y - end[1]) < 12) {

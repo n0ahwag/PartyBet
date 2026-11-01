@@ -118,7 +118,7 @@ export async function startLibraryRound(code, gameId, { replay = false } = {}) {
 }
 
 /** Regeln lesen, dann startet die Runde von selbst. */
-export const LIBRARY_INTRO_MS = 10000;
+export const LIBRARY_INTRO_MS = 7000;
 
 /** Zurück zur Spielauswahl. */
 export async function backToPicker(code) {

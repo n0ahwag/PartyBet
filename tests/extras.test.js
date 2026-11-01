@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   levelFromRms, balloonGrowth, BALLOON, SHAPES, shapePoints, traceScore, traceAccuracy, makeWire, wireProgress, WIRE,
-  HIGHER_LOWER_SETS, makeHigherLower, higherLowerCorrect, PRICE_ITEMS, parsePrice, priceError, teamsOf, tugResult,
+  wireStep, HIGHER_LOWER_SETS, makeHigherLower, higherLowerCorrect, PRICE_ITEMS, parsePrice, priceError, teamsOf, tugResult,
   teamEstimateResult, encodeSketch, decodeSketch, sketchResult,
 } from '../src/game/extras.js';
 import { GAMES, priceTagError, playableFor } from '../src/game/gameLibrary.js';
@@ -37,6 +37,26 @@ describe('Erweiterungs-Spiele', () => {
       expect(wireProgress(path, ...path[0]).progress).toBe(0);
       expect(wireProgress(path, ...path[path.length - 1]).progress).toBeCloseTo(1);
     }
+  });
+
+  it('Heißer Draht: Wand bremst statt zurückzusetzen, Berührung erst am sichtbaren Rand', () => {
+    const path = makeWire(3);
+    const [a, b] = path;
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const dir = [(b[0] - a[0]) / len, (b[1] - a[1]) / len]; const side = [-dir[1], dir[0]];
+    // entlang der Mittellinie: nie Berührung
+    let ball = { x: a[0], y: a[1] };
+    for (let i = 0; i < 20; i++) { const s1 = wireStep(path, ball, dir[0] * 2, dir[1] * 2); expect(s1.touching).toBe(false); ball = s1; }
+    // knapp vor dem Rand (Kugelrand 1 px innen): noch keine Berührung
+    const mid = { x: a[0] + dir[0] * len * 0.5, y: a[1] + dir[1] * len * 0.5 };
+    const inner = WIRE.half - WIRE.ball - 1;
+    expect(wireStep(path, mid, side[0] * inner, side[1] * inner).touching).toBe(false);
+    // gegen die Wand drücken: Berührung, aber die Kugel bleibt am Rand (nicht zurück zur Mitte)
+    let push = mid; let touched = false;
+    for (let i = 0; i < 20; i++) { push = wireStep(path, push, side[0] * 2, side[1] * 2); touched ||= push.touching; }
+    expect(touched).toBe(true);
+    const off = Math.hypot(push.x - mid.x, push.y - mid.y);
+    expect(off).toBeCloseTo(WIRE.half - WIRE.ball, 1);
   });
 
   it('Höher oder Tiefer: keine gleichen Werte, Antworten stimmen', () => {
