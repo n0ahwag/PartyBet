@@ -58,11 +58,11 @@ export function PowerupPanel({ code, duel, me, players, run }) {
   return (
     <div className="card stack">
       <div className="row between">
-        <h3>⚡ {t('Power-ups (1 pro Duell)')}</h3>
-        <button className="btn ghost sm" onClick={() => setGuide(true)}>ℹ️ {t('Alle erklärt')}</button>
+        <h3 style={{ whiteSpace: 'nowrap' }}>⚡ {t('Power-ups')}</h3>
+        <button className="btn ghost sm" style={{ whiteSpace: 'nowrap' }} onClick={() => setGuide(true)}>ℹ️ {t('Alle erklärt')}</button>
       </div>
       {usable.map((p) => (
-        <BoosterCard key={p.id} p={p} count={inv[p.id]} onUse={() => (p.target ? setPicking(p) : activate(p))} />
+        <BoosterCard key={p.id} p={p} count={inv[p.id]} open={false} onUse={() => (p.target ? setPicking(p) : activate(p))} />
       ))}
       {guide && <BoosterGuide inventory={inv} onClose={() => setGuide(false)} />}
     </div>

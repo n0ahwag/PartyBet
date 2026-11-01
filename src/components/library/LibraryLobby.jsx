@@ -5,7 +5,8 @@ import { startLibraryRound, backToPicker } from '../../game/groupEngine.js';
 import { kickPlayer, finishGame } from '../../game/engine.js';
 import { GroupRound } from '../group/GroupRound.jsx';
 import { GroupHostControls } from '../group/GroupHostControls.jsx';
-import { GameCard } from '../../screens/Library.jsx';
+import { categoryOrder } from '../../screens/Library.jsx';
+import { GameTile, GameMetaLegend } from '../GameTile.jsx';
 import { Avatar, QRCode } from '../ui.jsx';
 import { t, useLang } from '../../i18n/index.js';
 
@@ -28,7 +29,7 @@ function GamePicker({ code, players, room, isHost, run, busy }) {
     const all = Object.values(GAMES).filter((g) => g.group !== false && (!noEquipment || !g.equipment.length) && (!quiet || g.quiet));
     const capsOk = new Set(playableFor(all, players).map((g) => g.id));
     const fits = (g) => n >= g.minPlayers && capsOk.has(g.id);
-    const order = ['group', 'anywhere', ...Object.keys(CATEGORIES).filter((k) => k !== 'anywhere' && k !== 'group')];
+    const order = categoryOrder();
     const playable = all.filter(fits);
     return {
       count: playable.length,
@@ -46,34 +47,37 @@ function GamePicker({ code, players, room, isHost, run, busy }) {
 
   return (
     <div className="stack">
-      <div className="card stack" style={{ gap: 8 }}>
+      <div className="stack" style={{ gap: 6 }}>
         <h3>🎮 {isHost ? t('Spiel auswählen') : t('Der Host wählt gleich ein Spiel aus…')}</h3>
         <p className="small muted" style={{ margin: 0 }}>
           {n < 2 ? t('Warte auf mindestens 2 Spieler…') : t('{count} Spiele passen zu {n} Spielern.', { count, n })}
         </p>
-        <div className="grid-3">
-          <button className={`chip ${!noEquipment && !quiet ? 'on' : ''}`} style={{ justifyContent: 'center' }} onClick={() => { setNoEquipment(false); setQuiet(false); }}>{t('Alle Spiele')}</button>
-          <button className={`chip ${noEquipment ? 'on' : ''}`} style={{ justifyContent: 'center' }} onClick={() => setNoEquipment((v) => !v)}>🙅 {t('Ohne Utensilien')}</button>
-          <button className={`chip ${quiet ? 'on' : ''}`} style={{ justifyContent: 'center' }} onClick={() => setQuiet((v) => !v)}>🤫 {t('Leise')}</button>
+        <div className="chip-scroll">
+          <button className={`chip ${!noEquipment && !quiet ? 'on' : ''}`} onClick={() => { setNoEquipment(false); setQuiet(false); }}>{t('Alle Spiele')}</button>
+          <button className={`chip ${noEquipment ? 'on' : ''}`} onClick={() => setNoEquipment((v) => !v)}>🙅 {t('Ohne Utensilien')}</button>
+          <button className={`chip ${quiet ? 'on' : ''}`} onClick={() => setQuiet((v) => !v)}>🤫 {t('Leise')}</button>
         </div>
       </div>
       {sections.map((s) => (
         <div key={s.id} className="stack" style={{ gap: 8 }}>
           <h3>{s.cat.icon} {t(s.cat.label)} <span className="faint">({s.games.length})</span></h3>
-          {s.games.map((g) => (
-            <GameCard key={g.id} game={g} disabled={!isHost || busy} onClick={() => pick(g.id)}
-              note={played.includes(g.id) ? <span className="pill good">✓ {t('schon gespielt')}</span> : null} />
-          ))}
+          <div className="tile-grid">
+            {s.games.map((g) => (
+              <GameTile key={g.id} game={g} disabled={!isHost || busy} onClick={() => pick(g.id)}
+                badge={played.includes(g.id) ? `✓ ${t('schon gespielt')}` : null} badgeTone="good" />
+            ))}
+          </div>
         </div>
       ))}
       {locked.length > 0 && (
-        <div className="stack" style={{ gap: 8 }}>
-          <h3 className="muted">🔒 {t('Noch nicht spielbar')} <span className="faint">({locked.length})</span></h3>
-          {locked.map(({ game, reason }) => (
-            <GameCard key={game.id} game={game} disabled note={<span className="pill bad">{reason}</span>} />
-          ))}
-        </div>
+        <details className="fold">
+          <summary>🔒 {t('Noch nicht spielbar')} ({locked.length})</summary>
+          <div className="tile-grid">
+            {locked.map(({ game, reason }) => <GameTile key={game.id} game={game} disabled badge={reason} badgeTone="bad" />)}
+          </div>
+        </details>
       )}
+      <GameMetaLegend />
     </div>
   );
 }
@@ -88,7 +92,7 @@ function LobbyInfo({ code, players, meId, isHost, run, big }) {
         <div className="kicker">{t('Raumcode – jederzeit beitreten')}</div>
         <div style={{ fontSize: big ? 96 : 48, fontWeight: 900, letterSpacing: '0.12em', lineHeight: 1 }}>{code}</div>
         {big && <QRCode text={joinUrl} size={180} />}
-        <p className="muted small" style={{ margin: 0, wordBreak: 'break-all' }}>{joinUrl}</p>
+        <p className="muted small" style={{ margin: 0, wordBreak: 'break-all' }}>{big ? joinUrl : t('Freunde öffnen die App und geben diesen Code ein.')}</p>
       </div>
       <div className="card stack">
         <div className="row between">
