@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef, useId } from 'react';
 import QRCodeLib from 'qrcode';
 import { POWERUPS } from '../game/constants.js';
 import { t, LANGS, useLang, setLang } from '../i18n/index.js';
@@ -158,21 +158,64 @@ export function HomeButton({ confirm = false, isHost = false }) {
   );
 }
 
-export function LangSwitch({ full = false }) {
-  const lang = useLang();
-  if (full) {
+/** Flaggen als SVG – Flaggen-Emojis zeigt Windows nur als Buchstaben an. */
+export function Flag({ id, size = 22 }) {
+  const uid = useId().replace(/:/g, '');
+  const h = Math.round(size * 0.7);
+  const common = { width: size, height: h, style: { borderRadius: 3, boxShadow: '0 0 0 1px rgba(0,0,0,0.12)', flexShrink: 0, display: 'block' }, 'aria-hidden': true };
+  if (id === 'de') {
     return (
-      <div className="row" style={{ gap: 6 }}>
-        {LANGS.map((l) => (
-          <button key={l.id} className={`chip ${lang === l.id ? 'on' : ''}`} onClick={() => setLang(l.id)}>{l.flag} {l.label}</button>
-        ))}
-      </div>
+      <svg viewBox="0 0 5 3" {...common}>
+        <rect width="5" height="1" y="0" fill="#000" /><rect width="5" height="1" y="1" fill="#DD0000" /><rect width="5" height="1" y="2" fill="#FFCE00" />
+      </svg>
     );
   }
-  const next = LANGS.find((l) => l.id !== lang);
   return (
-    <button className="btn ghost sm" title={next.label} onClick={() => setLang(next.id)}>
-      🌐 {LANGS.find((l) => l.id === lang).id.toUpperCase()}
-    </button>
+    <svg viewBox="0 0 60 30" {...common} preserveAspectRatio="none">
+      <clipPath id={`c${uid}`}><path d="M0,0 v30 h60 v-30 z" /></clipPath>
+      <clipPath id={`t${uid}`}><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z" /></clipPath>
+      <g clipPath={`url(#c${uid})`}>
+        <path d="M0,0 v30 h60 v-30 z" fill="#012169" />
+        <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6" />
+        <path d="M0,0 L60,30 M60,0 L0,30" clipPath={`url(#t${uid})`} stroke="#C8102E" strokeWidth="4" />
+        <path d="M30,0 v30 M0,15 h60" stroke="#fff" strokeWidth="10" />
+        <path d="M30,0 v30 M0,15 h60" stroke="#C8102E" strokeWidth="6" />
+      </g>
+    </svg>
+  );
+}
+
+/** Sprachauswahl als Dropdown (überall gleich). full = mit ausgeschriebenem Namen. */
+export function LangSwitch({ full = false }) {
+  const lang = useLang();
+  const [open, setOpen] = useState(false);
+  const box = useRef(null);
+  const cur = LANGS.find((l) => l.id === lang) ?? LANGS[0];
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (e) => { if (!box.current?.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', close);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', esc); };
+  }, [open]);
+  return (
+    <div className="lang-switch" ref={box}>
+      <button type="button" className="btn ghost sm lang-btn" aria-haspopup="listbox" aria-expanded={open} aria-label={t('Sprache')} onClick={() => setOpen((v) => !v)}>
+        <Flag id={cur.id} /> <span>{full ? cur.label : cur.id.toUpperCase()}</span> <span className="lang-caret">▾</span>
+      </button>
+      {open && (
+        <ul className="lang-menu" role="listbox">
+          {LANGS.map((l) => (
+            <li key={l.id}>
+              <button type="button" role="option" aria-selected={l.id === lang} className={l.id === lang ? 'on' : ''}
+                onClick={() => { setLang(l.id); setOpen(false); }}>
+                <Flag id={l.id} /> <span className="grow">{l.label}</span> {l.id === lang && <span>✓</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

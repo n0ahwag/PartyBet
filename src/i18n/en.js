@@ -1375,4 +1375,5 @@ export const EN = {
   "Himmelsinseln": "Sky Islands",
   "Vulkan-Festung": "Volcano Fortress",
   "Kristall-Canyon": "Crystal Canyon",
+  "Sprache": "Language",
 };
