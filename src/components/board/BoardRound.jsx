@@ -1,13 +1,14 @@
 import { GAMES, CATEGORIES, resultComplete } from '../../game/gameLibrary.js';
 import { GameArt } from '../GameArt.jsx';
 import { useState } from 'react';
-import { moveRule, FIELD_TYPES, rollDiceFor, rollersOf, challengesFor, obstaclesOnPath, BOULDER_MIN } from '../../game/board.js';
+import { moveRule, FIELD_TYPES, rollDiceFor, rollersOf, challengesFor } from '../../game/board.js';
 import { submitRoundResult, rollDice } from '../../game/boardEngine.js';
 import { Dice, ROLL_MS } from './Dice.jsx';
-import { DuckChallenge, JumpChallenge } from './Obstacles.jsx';
+import { DuckChallenge, JumpChallenge, BoulderChallenge } from './Obstacles.jsx';
 import { MINIGAMES } from '../../minigames/index.js';
 import { FORMAT_RESULT, revealOf } from '../../minigames/format.js';
 import { Rules, Waiting } from '../../minigames/shared.jsx';
+import { useSecondsLeft } from '../../hooks/useCountdown.js';
 import { t } from '../../i18n/index.js';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
@@ -120,27 +121,23 @@ function DiceStage({ code, round, byId, me, big, run, fields }) {
     const sum = d.reduce((a, x) => a + x.value, 0);
     return <b className="pop">🎲 {d.length > 1 ? `${d.map((x) => x.value).join(' + ')} = ` : ''}{t('{n} Felder', { n: sum })}</b>;
   };
-  // Was liegt auf meinem Weg? (Felsen zeigen sich direkt, Ducken/Brücke als Probe)
+  // Hindernisse auf meinem Weg: man bleibt davor stehen und muss sie eigens bewältigen
   const myDice = mine ? diceOf(me.id) : [];
   const from = me?.position ?? 0;
-  const roll = myDice.reduce((a, d) => a + d.value, 0);
-  const onPath = mine && fields ? obstaclesOnPath(fields, from, Math.min(fields.length - 1, from + roll)) : [];
-  const boulder = onPath.find((o) => o.type === 'boulder');
-  const best = myDice.length ? Math.max(...myDice.map((d) => d.value)) : 0;
 
   const tap = () => {
     setTapped(true);
-    const ch = fields ? challengesFor(fields, from, myDice) : [];
+    const ch = fields ? challengesFor(fields, from, myDice, seed, me.id) : [];
     if (!ch.length) { run(() => rollDice(code, round.id, me.id)); return; }
     setTimeout(() => setQueue(ch), ROLL_MS + 900); // erst die Würfel landen lassen, dann ankommen
   };
   const challengeDone = (ok) => {
     const [cur, ...rest] = queue;
-    const next = { ...results, [cur.idx]: ok };
+    const next = cur.type === 'boulder' ? results : { ...results, [cur.idx]: ok };
     setResults(next);
     if (ok && rest.length) { setQueue(rest); return; }
     setQueue([]);
-    run(() => rollDice(code, round.id, me.id, next));
+    run(() => rollDice(code, round.id, me.id, Object.keys(next).length ? next : null));
   };
   const current = queue?.[0];
   const kindText = (id) => t(moveRule(round.ranks[id] ?? n).label);
@@ -154,13 +151,10 @@ function DiceStage({ code, round, byId, me, big, run, fields }) {
           <Dice key={`${round.id}:${me.id}`} size={big ? 130 : diceOf(me.id).length > 1 ? 84 : 96} dice={diceOf(me.id)} rolled={rolled(me.id)}
             onRoll={tap}
             label={!rolled(me.id) && <b style={{ fontSize: 20 }}>👆 {t('Tippen zum Würfeln!')}</b>}
-            result={<>{resultText(me.id)}{boulder && (
-              <div className="small" style={{ fontWeight: 800, marginTop: 4 }}>
-                🪨 {best >= BOULDER_MIN ? t('Ein Felsbrocken liegt im Weg – mit deiner {n} brichst du durch!', { n: best }) : t('Ein Felsbrocken liegt im Weg – du brauchst eine 4, 5 oder 6 und bleibst davor stehen.')}
-              </div>
-            )}</>} />
+            result={resultText(me.id)} />
         </div>
       )}
+      {current?.type === 'boulder' && <BoulderChallenge key={`b${current.idx}`} roll={current.roll} onDone={challengeDone} />}
       {current?.type === 'duck' && <DuckChallenge key={`d${current.idx}`} onDone={challengeDone} />}
       {current?.type === 'jump' && <JumpChallenge key={`j${current.idx}`} onDone={challengeDone} />}
       {rollers.filter((id) => id !== me?.id).length > 0 && (
@@ -193,6 +187,7 @@ export function BoardRound({ code, round, byId, me, big = false, run, fields = n
   const shownGame = { ...game, rules: game.groupRules ?? game.rules };
   const done = (id) => resultComplete(round.gameId, round.results?.[id]);
   const submitted = round.participants.filter(done);
+  const startsIn = useSecondsLeft(round.stage === 'intro' ? round.introEndsAt : null);
 
   const header = (
     <div className="game-title">
@@ -210,7 +205,9 @@ export function BoardRound({ code, round, byId, me, big = false, run, fields = n
       <>
         <Rules game={shownGame} />
         <MoveTable count={round.participants.length} />
-        {!big && <Waiting text={t("Gleich geht's los…")} />}
+        {round.introEndsAt
+          ? <div className="card tinted center"><b style={{ fontSize: big ? 28 : 20 }}>⏳ {startsIn > 0 ? t('Start in {n} s', { n: startsIn }) : t("Los geht's!")}</b></div>
+          : !big && <Waiting text={t("Gleich geht's los…")} />}
       </>
     );
   } else if (round.stage === 'playing') {

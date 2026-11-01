@@ -315,10 +315,11 @@ export function ropeBridge(parent, a, b, { width = 0.9, sag = 0.35, broken = fal
   const len = crv.getLength(); const count = Math.round(len / 0.24);
   const R = rng(11);
   const plankGeo = new THREE.BoxGeometry(0.18, 0.06, width);
+  const gapPlanks = []; // bei kaputter Brücke: unsichtbar, bis jemand rüber ist (dann „repariert“)
   const pm = std({ color: plank, roughness: 0.8 });
   for (let i = 0; i < count; i++) {
     const t = (i + 0.5) / count;
-    if (broken && t > 0.4 && t < 0.62) continue;
+    const inGap = broken && t > 0.4 && t < 0.62;
     const p = crv.getPointAt(t); const tan = crv.getTangentAt(t);
     const m = addMesh(parent, plankGeo, stone ? std({ color: plank, roughness: 0.9, flatShading: true }) : pm);
     m.position.copy(p);
@@ -326,6 +327,7 @@ export function ropeBridge(parent, a, b, { width = 0.9, sag = 0.35, broken = fal
     m.rotateZ((R.next() - 0.5) * 0.12);
     m.rotateX((R.next() - 0.5) * 0.06);
     m.material = pm.clone(); m.material.color.offsetHSL(0, 0, (R.next() - 0.5) * 0.08);
+    if (inGap) { m.visible = false; gapPlanks.push(m); }
   }
   if (broken) {
     // herabfallende Bretter
@@ -355,6 +357,7 @@ export function ropeBridge(parent, a, b, { width = 0.9, sag = 0.35, broken = fal
       m.position.set(q.x, q.y + 0.16, q.z);
     }
   }
+  crv.gapPlanks = gapPlanks;
   return crv;
 }
 
@@ -430,10 +433,13 @@ export function rock(parent, p, { size = 0.5, color = '#8C8580', seed = 1, squas
 /** Hindernis: Felsblockade – nur mit 4–6 durch. */
 export function boulderBlock(parent, p, tan, { color = '#8D8378' } = {}) {
   const side = new THREE.Vector3(-tan.z, 0, tan.x).normalize();
-  rock(parent, p.clone().addScaledVector(side, 0.0), { size: 0.46, color, seed: 3 });
-  rock(parent, p.clone().addScaledVector(side, 0.42).addScaledVector(tan, 0.1), { size: 0.32, color: '#7E766C', seed: 8 });
-  rock(parent, p.clone().addScaledVector(side, -0.4).addScaledVector(tan, -0.08), { size: 0.3, color: '#9A9187', seed: 13 });
-  for (let i = 0; i < 6; i++) rock(parent, p.clone().addScaledVector(side, (i - 2.5) * 0.18).addScaledVector(tan, 0.45 + (i % 2) * 0.1), { size: 0.07, color: '#867D73', seed: 20 + i });
+  const g = new THREE.Group(); g.position.copy(p); parent.add(g);
+  const o = new THREE.Vector3(0, 0, 0);
+  rock(g, o.clone(), { size: 0.46, color, seed: 3 });
+  rock(g, o.clone().addScaledVector(side, 0.42).addScaledVector(tan, 0.1), { size: 0.32, color: '#7E766C', seed: 8 });
+  rock(g, o.clone().addScaledVector(side, -0.4).addScaledVector(tan, -0.08), { size: 0.3, color: '#9A9187', seed: 13 });
+  for (let i = 0; i < 6; i++) rock(g, o.clone().addScaledVector(side, (i - 2.5) * 0.18).addScaledVector(tan, 0.45 + (i % 2) * 0.1), { size: 0.07, color: '#867D73', seed: 20 + i });
+  return g;
 }
 
 /** Hindernis: niedriger Holzbalken mit Ranken – ducken. */

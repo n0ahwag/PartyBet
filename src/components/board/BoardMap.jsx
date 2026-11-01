@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Board3D as BoardSvg } from './Board3D.jsx';
 import { MAP_INFO, mapIdOf } from '../../game/maps/defs.js';
+import { effectiveFields } from '../../game/board.js';
 import { t } from '../../i18n/index.js';
 
 /*
@@ -12,7 +13,7 @@ import { t } from '../../i18n/index.js';
  */
 const lowPowerDevice = () => (navigator.hardwareConcurrency ?? 8) <= 4 || (navigator.deviceMemory ?? 8) <= 3;
 
-export function BoardMap({ fields, players, positions, theme, meId = null, compact = false, follow = false, reserve = 330, focus = null }) {
+export function BoardMap({ fields, cleared = [], players, positions, theme, meId = null, compact = false, follow = false, reserve = 330, focus = null }) {
   const wrap = useRef(null);
   const canvas = useRef(null);
   const ctl = useRef(null);
@@ -25,7 +26,7 @@ export function BoardMap({ fields, players, positions, theme, meId = null, compa
   const focusId = focus ?? meId ?? players.find((p) => (positions[p.id] ?? 0) === leaderPos)?.id;
   const focusField = positions[focusId] ?? 0;
   const latest = useRef({});
-  latest.current = { players, positions, meId, focusField, fit };
+  latest.current = { players, positions, meId, focusField, fit, cleared };
 
   useEffect(() => {
     let dead = false;
@@ -38,6 +39,7 @@ export function BoardMap({ fields, players, positions, theme, meId = null, compa
         ctl.current = c;
         const L = latest.current;
         c.setPlayers(L.players, L.positions, L.meId);
+        c.setCleared(L.cleared);
         c.setFocus(L.focusField);
         c.setMode(L.fit ? 'overview' : 'follow');
         setState('ready');
@@ -52,11 +54,12 @@ export function BoardMap({ fields, players, positions, theme, meId = null, compa
   }, [sig]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { ctl.current?.setPlayers(players, positions, meId); }, [players, positions, meId, state]);
+  useEffect(() => { ctl.current?.setCleared(cleared); }, [cleared.join(','), state]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { ctl.current?.setFocus(focusField); }, [focusField, state]);
   useEffect(() => { ctl.current?.setMode(fit ? 'overview' : 'follow'); }, [fit, state]);
 
   if (state === 'failed') {
-    return <BoardSvg fields={fields} players={players} positions={positions} meId={meId} compact={compact} follow={follow} reserve={reserve} focus={focus} seed={theme} />;
+    return <BoardSvg fields={effectiveFields(fields, cleared)} players={players} positions={positions} meId={meId} compact={compact} follow={follow} reserve={reserve} focus={focus} seed={theme} />;
   }
   const height = compact ? `clamp(300px, calc(100dvh - ${reserve}px), 560px)` : follow ? '68vh' : undefined;
   return (

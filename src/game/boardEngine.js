@@ -24,6 +24,9 @@ async function playerRefs(code) {
   return (await getDocs(collection(db, 'rooms', code, 'players'))).docs.map((d) => d.ref);
 }
 
+/** So lange stehen die Regeln, bevor die Challenge automatisch startet. */
+export const BOARD_INTRO_MS = 10000;
+
 export async function startBoardGame(code) {
   await updateDoc(roomRef(code), { status: 'playing', startedAt: serverTimestamp() });
   return startChallenge(code);
@@ -65,6 +68,7 @@ export async function startChallenge(code) {
       playerB: null,
       sabotage: null,
       stage: 'intro',
+      introEndsAt: Date.now() + BOARD_INTRO_MS, // Regeln lesen, dann startet die Challenge von selbst
       results: {},
       ranks: null,
       rolls: {}, // Spieler tippen zum Würfeln: rolls[uid] = true (Wert: diceFor)
@@ -117,7 +121,7 @@ export async function moveTokens(code, id) {
     const players = snaps.filter((s) => s.exists()).map((s) => ({ id: s.id, ...s.data() }));
 
     const challenges = Object.fromEntries(Object.entries(round.rolls || {}).map(([uid, r]) => [uid, (r && typeof r === 'object' && r.ch) || {}]));
-    const result = applyRound({ players, ranks: round.ranks, fields: room.board.fields, seed: `${code}:${id}`, challenges });
+    const result = applyRound({ players, ranks: round.ranks, fields: room.board.fields, seed: `${code}:${id}`, challenges, cleared: room.board.cleared || [] });
 
     for (const p of players) {
       const st = result.stats[p.id] || {};
@@ -139,8 +143,11 @@ export async function moveTokens(code, id) {
       moves: result.moves,
       chaos: result.chaos && !result.winnerId,
       winnerId: result.winnerId,
+      cleared: result.cleared,
+      resolvedAt: Date.now(),
     });
     tx.update(roomRef(code), {
+      'board.cleared': [...(room.board.cleared || []), ...result.cleared],
       phase,
       ...(phase !== room.phase ? { phaseChangedAt: Date.now() } : {}),
       ...(result.winnerId ? { winnerId: result.winnerId } : {}),

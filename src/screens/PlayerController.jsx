@@ -6,6 +6,7 @@ import { PlayerDuelView } from '../components/DuelViews.jsx';
 import { HostControls } from '../components/HostControls.jsx';
 import { BankruptPanel, LoanInbox, RescueAdmin } from '../components/Rescue.jsx';
 import { Scoreboard } from '../components/Scoreboard.jsx';
+import { effectiveFields } from '../game/board.js';
 import { PhaseOverlay, PhaseBadge } from '../components/PhaseOverlay.jsx';
 import { LiveEventOverlay } from '../components/LiveEventOverlay.jsx';
 import { Avatar, Inventory, OfflineBanner, Loading, Sips, useToast, useAction, LangSwitch, HomeButton } from '../components/ui.jsx';
@@ -25,7 +26,9 @@ import { GroupHostControls } from '../components/group/GroupHostControls.jsx';
 export function PlayerController({ uid, code }) {
   const { room, players, byId, duel, round, rescues, online, loading } = useRoom(code);
   const overlay = usePhaseFx(room, duel ?? round);
-  const { positions, banner } = useAnimatedPositions(players, round);
+  const { positions, banner, finished: animDone } = useAnimatedPositions(players, round);
+  // Neu geräumte Felder erst nach der Zug-Animation von der Karte nehmen
+  const shownCleared = (room?.board?.cleared || []).filter((i) => animDone || round?.stage !== 'resolved' || !(round?.cleared || []).includes(i));
   const [toast, toastNode] = useToast();
   const [run, busy] = useAction(toast);
   const [showBoard, setShowBoard] = useState(false);
@@ -104,9 +107,9 @@ export function PlayerController({ uid, code }) {
             <>
               <RoundBanners round={round} byId={byId} />
               <FieldBanner banner={banner} byId={byId} />
-              <BoardMap fields={room.board.fields} players={players} positions={positions} theme={room.board.theme} meId={uid} focus={banner?.playerId} compact
+              <BoardMap fields={room.board.fields} cleared={shownCleared} players={players} positions={positions} theme={room.board.theme} meId={uid} focus={banner?.playerId} compact
                 reserve={(isHost ? 430 : 250) + (round?.winnerId || (round?.chaos && !round?.chaosDone) ? 90 : 0)} />
-              {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />}
+              {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} animDone={animDone} />}
               {!round && !isHost && <div className="card center muted">{t("Gleich geht's los…")}</div>}
               <div className="grid-2">
                 <button className={`btn ghost sm ${showBoard === 'moves' ? 'on' : ''}`} disabled={round?.stage !== 'resolved'}
@@ -118,8 +121,8 @@ export function PlayerController({ uid, code }) {
             </>
           ) : (
             <>
-              <BoardRound code={code} round={round} byId={byId} me={me} run={run} fields={room.board.fields} />
-              {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />}
+              <BoardRound code={code} round={round} byId={byId} me={me} run={run} fields={effectiveFields(room.board.fields, room.board.cleared)} />
+              {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} animDone={animDone} />}
             </>
           )}
         </>
