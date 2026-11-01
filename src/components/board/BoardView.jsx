@@ -35,10 +35,14 @@ export function useAnimatedPositions(players, round) {
     const moves = round.moves;
     const paths = Object.fromEntries(Object.entries(moves).map(([id, m]) => [id, walkOf(m)]));
     const len = Math.max(...Object.values(paths).map((p) => p.length));
-    // Sonderfelder in Zug-Reihenfolge (bester Platz zuerst, wie in applyRound)
+    // Hindernisse & Sonderfelder in Zug-Reihenfolge (bester Platz zuerst, wie in applyRound)
     const effects = Object.entries(moves)
-      .filter(([, m]) => m.effect && !m.skipped)
-      .sort(([, a], [, b]) => (a.rank ?? 99) - (b.rank ?? 99));
+      .filter(([, m]) => !m.skipped)
+      .sort(([, a], [, b]) => (a.rank ?? 99) - (b.rank ?? 99))
+      .flatMap(([id, m]) => [
+        ...(m.obstacles || []).map((o) => ({ id, m, obstacle: o })),
+        ...(m.effect ? [{ id, m }] : []),
+      ]);
     const timers = [];
     let pos = Object.fromEntries(Object.entries(paths).map(([id, p]) => [id, p[0]]));
     let step = 0;
@@ -47,13 +51,16 @@ export function useAnimatedPositions(players, round) {
 
     const runEffects = (i) => {
       if (i >= effects.length) { setBanner(null); setAnim(null); return; }
-      const [id, m] = effects[i];
-      setBanner({ playerId: id, move: m });
-      const snd = EFFECT_SOUND[m.effect.type];
-      if (snd) sfx[snd]?.();
+      const { id, m, obstacle } = effects[i];
+      setBanner({ playerId: id, move: m, obstacle });
+      if (obstacle) { if (obstacle.ok) sfx.tusch(); else sfx.fail(); } else { const snd = EFFECT_SOUND[m.effect.type]; if (snd) sfx[snd]?.(); }
       timers.push(setTimeout(() => {
-        pos = { ...pos, [id]: m.to };
-        if (m.effect.type === 'portal' && m.effect.with) pos[m.effect.with] = m.landed;
+        if (obstacle) {
+          if (!obstacle.ok && obstacle.type === 'jump') pos = { ...pos, [id]: m.to };
+        } else {
+          pos = { ...pos, [id]: m.to };
+          if (m.effect.type === 'portal' && m.effect.with) pos[m.effect.with] = m.landed;
+        }
         setAnim(pos);
         setBanner(null);
         timers.push(setTimeout(() => runEffects(i + 1), 650));
@@ -77,23 +84,38 @@ export function useAnimatedPositions(players, round) {
   return { positions: anim ? { ...actual, ...anim } : actual, banner };
 }
 
-/** Große Vollbild-Einblendung, wenn jemand auf einem Sonderfeld landet (auf allen Geräten). */
+/** Große Vollbild-Einblendung, wenn jemand auf einem Sonderfeld landet oder an ein Hindernis kommt (auf allen Geräten). */
 export function FieldBanner({ banner, byId }) {
   if (!banner) return null;
-  const { move: m, playerId } = banner;
+  const { move: m, playerId, obstacle: o } = banner;
   const p = byId[playerId];
-  const type = FIELD_TYPES[m.effect.type];
   const name = p?.name ?? '?';
-  const e = m.effect;
-  const text = e.type === 'rocket' ? t('{name} fliegt {n} Felder nach vorne!', { name, n: e.delta })
-    : e.type === 'portal' ? (e.with ? t('{name} tauscht den Platz mit {other}!', { name, other: byId[e.with]?.name ?? '?' }) : t('{name} ist schon vorne – das Portal bleibt zu.', { name }))
-      : e.type === 'stumble' ? (e.kind === 'back' ? t('{name} stolpert 1 Feld zurück.', { name }) : t('{name} muss nächste Runde aussetzen.', { name }))
-        : t('{name} löst eine Challenge für alle aus – der Letzte geht 2 Felder zurück!', { name });
-  const title = { rocket: 'RAKETE!', portal: 'PORTAL!', stumble: 'STOLPERSTEIN!', chaos: 'CHAOS-FELD!' }[e.type];
+  let type; let title; let text;
+  if (o) {
+    type = FIELD_TYPES[o.type];
+    if (o.type === 'boulder') {
+      title = o.ok ? 'FELS ZERTRÜMMERT!' : 'FELSBROCKEN!';
+      text = o.ok ? t('{name} würfelt eine {n} und bricht durch!', { name, n: o.best }) : t('{name} braucht eine 4, 5 oder 6 – und bleibt vor dem Felsen stehen.', { name });
+    } else if (o.type === 'duck') {
+      title = o.ok ? 'GEDUCKT!' : 'AUTSCH!';
+      text = o.ok ? t('{name} duckt sich rechtzeitig unter dem Balken durch.', { name }) : t('{name} war zu langsam und bleibt vor dem Balken stehen.', { name });
+    } else {
+      title = o.ok ? 'GESPRUNGEN!' : 'ABGESTÜRZT!';
+      text = o.ok ? t('{name} springt über die Lücke in der Brücke!', { name }) : t('{name} fällt durch die Lücke – 3 Felder zurück.', { name });
+    }
+  } else {
+    type = FIELD_TYPES[m.effect.type];
+    const e = m.effect;
+    text = e.type === 'rocket' ? t('{name} fliegt {n} Felder nach vorne!', { name, n: e.delta })
+      : e.type === 'portal' ? (e.with ? t('{name} tauscht den Platz mit {other}!', { name, other: byId[e.with]?.name ?? '?' }) : t('{name} ist schon vorne – das Portal bleibt zu.', { name }))
+        : e.type === 'stumble' ? (e.kind === 'back' ? t('{name} stolpert 1 Feld zurück.', { name }) : t('{name} muss nächste Runde aussetzen.', { name }))
+          : t('{name} löst eine Challenge für alle aus – der Letzte geht 2 Felder zurück!', { name });
+    title = { rocket: 'RAKETE!', portal: 'PORTAL!', stumble: 'STOLPERSTEIN!', chaos: 'CHAOS-FELD!' }[e.type];
+  }
   return (
-    <div className="overlay field-banner" style={{ '--f': type.color }}>
+    <div className="overlay field-banner" style={{ '--f': o ? (o.ok ? '#16A34A' : '#DC2626') : type.color }}>
       <div className="stack center pop" style={{ gap: 10 }}>
-        <div className="field-banner-icon">{type.icon}</div>
+        <div className="field-banner-icon">{o?.ok === false ? '💢' : type.icon}</div>
         <div className="field-banner-title">{t(title)}</div>
         <div className="row" style={{ justifyContent: 'center', gap: 10 }}>
           <span className="avatar" style={{ width: 54, height: 54, fontSize: 30, background: `color-mix(in srgb, ${p?.color ?? '#999'} 30%, #fff)` }}>{p?.avatar}</span>
@@ -107,7 +129,7 @@ export function FieldBanner({ banner, byId }) {
 export function FieldLegend() {
   return (
     <div className="row wrap small" style={{ gap: 6 }}>
-      {['rocket', 'portal', 'chaos', 'stumble'].map((type) => (
+      {['rocket', 'portal', 'chaos', 'stumble', 'boulder', 'duck', 'jump'].map((type) => (
         <span key={type} className="pill" title={t(FIELD_TYPES[type].desc)}>{FIELD_TYPES[type].icon} {t(FIELD_TYPES[type].label)}: {t(FIELD_TYPES[type].desc)}</span>
       ))}
     </div>

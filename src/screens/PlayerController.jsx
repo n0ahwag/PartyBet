@@ -15,7 +15,7 @@ import { navigate } from '../lib/router.js';
 import { t } from '../i18n/index.js';
 import { isMuted, setMuted, setStealth } from '../lib/sound.js';
 import { Standings, useAnimatedPositions, FieldBanner } from '../components/board/BoardView.jsx';
-import { Board3D } from '../components/board/Board3D.jsx';
+import { BoardMap } from '../components/board/BoardMap.jsx';
 import { BoardRound, RoundBanners, RankingList } from '../components/board/BoardRound.jsx';
 import { BoardHostControls } from '../components/board/BoardHostControls.jsx';
 import { GroupRound, PointsBoard } from '../components/group/GroupRound.jsx';
@@ -104,8 +104,8 @@ export function PlayerController({ uid, code }) {
             <>
               <RoundBanners round={round} byId={byId} />
               <FieldBanner banner={banner} byId={byId} />
-              <Board3D fields={room.board.fields} players={players} positions={positions} theme={room.board.theme} seed={code} meId={uid} focus={banner?.playerId} compact
-                reserve={(isHost ? 500 : 276) + (round?.winnerId || (round?.chaos && !round?.chaosDone) ? 90 : 0)} />
+              <BoardMap fields={room.board.fields} players={players} positions={positions} theme={room.board.theme} meId={uid} focus={banner?.playerId} compact
+                reserve={(isHost ? 430 : 250) + (round?.winnerId || (round?.chaos && !round?.chaosDone) ? 90 : 0)} />
               {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />}
               {!round && !isHost && <div className="card center muted">{t("Gleich geht's los…")}</div>}
               <div className="grid-2">
@@ -118,7 +118,7 @@ export function PlayerController({ uid, code }) {
             </>
           ) : (
             <>
-              <BoardRound code={code} round={round} byId={byId} me={me} run={run} />
+              <BoardRound code={code} round={round} byId={byId} me={me} run={run} fields={room.board.fields} />
               {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />}
             </>
           )}

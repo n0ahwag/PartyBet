@@ -2,8 +2,8 @@ import { EQUIPMENT } from '../game/constants.js';
 import { AdSlot } from './AdSlot.jsx';
 import { GameArt } from './GameArt.jsx';
 import { GAMES } from '../game/gameLibrary.js';
-import { startGame, updateLobby, kickPlayer, setBoardTheme } from '../game/engine.js';
-import { Board3D, ThemePicker } from './board/Board3D.jsx';
+import { startGame, updateLobby, kickPlayer } from '../game/engine.js';
+import { BoardMap } from './board/BoardMap.jsx';
 import { startBoardGame } from '../game/boardEngine.js';
 import { startGroupGame } from '../game/groupEngine.js';
 import { t } from '../i18n/index.js';
@@ -80,9 +80,8 @@ export function Lobby({ code, room, players, meId, isHost, run, busy, big }) {
   ) : <p className="center muted" style={{ fontWeight: 700, margin: 0 }}>⏳ {t('Warte, bis der Host startet…')}</p>;
   const boardCard = board && (
     <div className="card stack">
-      <h3>🗺️ {t('Themen-Welt')}</h3>
-      <ThemePicker value={room.board.theme ?? 'city'} disabled={!isHost} onChange={(id) => isHost && run(() => setBoardTheme(code, id))} />
-      <Board3D fields={room.board.fields} players={players} positions={{}} theme={room.board.theme ?? 'city'} seed={code} meId={meId} />
+      <h3>🗺️ {t('Eure Map (zufällig ausgewählt)')}</h3>
+      <BoardMap fields={room.board.fields} players={players} positions={{}} theme={room.board.theme} meId={meId} />
     </div>
   );
 

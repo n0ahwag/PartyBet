@@ -1,9 +1,10 @@
 import { GAMES, CATEGORIES, resultComplete } from '../../game/gameLibrary.js';
 import { GameArt } from '../GameArt.jsx';
 import { useState } from 'react';
-import { moveRule, FIELD_TYPES, rollDiceFor, rollersOf } from '../../game/board.js';
+import { moveRule, FIELD_TYPES, rollDiceFor, rollersOf, challengesFor, obstaclesOnPath, BOULDER_MIN } from '../../game/board.js';
 import { submitRoundResult, rollDice } from '../../game/boardEngine.js';
-import { Dice } from './Dice.jsx';
+import { Dice, ROLL_MS } from './Dice.jsx';
+import { DuckChallenge, JumpChallenge } from './Obstacles.jsx';
 import { MINIGAMES } from '../../minigames/index.js';
 import { FORMAT_RESULT, revealOf } from '../../minigames/format.js';
 import { Rules, Waiting } from '../../minigames/shared.jsx';
@@ -30,6 +31,11 @@ function moveText(m, byId) {
   if (m.dice?.length) parts.push(`🎲 ${m.dice.map((d) => d.value).join(' + ')}${m.dice.length > 1 ? ` = ${m.roll}` : ''}`);
   else if (m.roll != null) parts.push(`🎲 ${m.roll}`);
   parts.push(`→ ${m.landed ?? m.to}`);
+  (m.obstacles || []).forEach((o) => {
+    if (o.type === 'boulder') parts.push(o.ok ? `🪨 ${t('durchgebrochen')}` : `🪨 ${t('vom Felsen gestoppt')}`);
+    if (o.type === 'duck') parts.push(o.ok ? `⬇️ ${t('geduckt')}` : `⬇️ ${t('am Balken hängen geblieben')}`);
+    if (o.type === 'jump') parts.push(o.ok ? `🦘 ${t('gesprungen')}` : `🦘 ${t('abgestürzt')} → ${m.to}`);
+  });
   const e = m.effect;
   if (e?.type === 'rocket') parts.push(`🚀 +${e.delta} → ${m.to}`);
   if (e?.type === 'portal') parts.push(e.with ? `🌀 ${t('Tausch mit {name}', { name: byId[e.with]?.name })} → ${m.to}` : `🌀 ${t('(schon vorne)')}`);
@@ -98,8 +104,10 @@ export function RoundMoves({ round, byId, meId }) {
  * Würfel-Phase: Wer würfeln darf, tippt auf seinem Handy auf den Würfel. Alle anderen
  * (und der Hauptbildschirm) sehen die Würfel der Mitspieler rollen.
  */
-function DiceStage({ code, round, byId, me, big, run }) {
+function DiceStage({ code, round, byId, me, big, run, fields }) {
   const [tapped, setTapped] = useState(false);
+  const [queue, setQueue] = useState(null); // offene Proben [{ idx, type }]
+  const [results, setResults] = useState({});
   const seed = `${code}:${round.id}`;
   const n = round.participants.length;
   const rollers = rollersOf(round, Object.values(byId));
@@ -112,6 +120,29 @@ function DiceStage({ code, round, byId, me, big, run }) {
     const sum = d.reduce((a, x) => a + x.value, 0);
     return <b className="pop">🎲 {d.length > 1 ? `${d.map((x) => x.value).join(' + ')} = ` : ''}{t('{n} Felder', { n: sum })}</b>;
   };
+  // Was liegt auf meinem Weg? (Felsen zeigen sich direkt, Ducken/Brücke als Probe)
+  const myDice = mine ? diceOf(me.id) : [];
+  const from = me?.position ?? 0;
+  const roll = myDice.reduce((a, d) => a + d.value, 0);
+  const onPath = mine && fields ? obstaclesOnPath(fields, from, Math.min(fields.length - 1, from + roll)) : [];
+  const boulder = onPath.find((o) => o.type === 'boulder');
+  const best = myDice.length ? Math.max(...myDice.map((d) => d.value)) : 0;
+
+  const tap = () => {
+    setTapped(true);
+    const ch = fields ? challengesFor(fields, from, myDice) : [];
+    if (!ch.length) { run(() => rollDice(code, round.id, me.id)); return; }
+    setTimeout(() => setQueue(ch), ROLL_MS + 900); // erst die Würfel landen lassen, dann ankommen
+  };
+  const challengeDone = (ok) => {
+    const [cur, ...rest] = queue;
+    const next = { ...results, [cur.idx]: ok };
+    setResults(next);
+    if (ok && rest.length) { setQueue(rest); return; }
+    setQueue([]);
+    run(() => rollDice(code, round.id, me.id, next));
+  };
+  const current = queue?.[0];
   const kindText = (id) => t(moveRule(round.ranks[id] ?? n).label);
 
   return (
@@ -121,11 +152,17 @@ function DiceStage({ code, round, byId, me, big, run }) {
           <div className="kicker">{rolled(me.id) ? t('Dein Wurf') : t('Du darfst würfeln!')}</div>
           <div className="small muted" style={{ fontWeight: 700 }}>{kindText(me.id)}</div>
           <Dice key={`${round.id}:${me.id}`} size={big ? 130 : diceOf(me.id).length > 1 ? 84 : 96} dice={diceOf(me.id)} rolled={rolled(me.id)}
-            onRoll={() => { setTapped(true); run(() => rollDice(code, round.id, me.id)); }}
+            onRoll={tap}
             label={!rolled(me.id) && <b style={{ fontSize: 20 }}>👆 {t('Tippen zum Würfeln!')}</b>}
-            result={resultText(me.id)} />
+            result={<>{resultText(me.id)}{boulder && (
+              <div className="small" style={{ fontWeight: 800, marginTop: 4 }}>
+                🪨 {best >= BOULDER_MIN ? t('Ein Felsbrocken liegt im Weg – mit deiner {n} brichst du durch!', { n: best }) : t('Ein Felsbrocken liegt im Weg – du brauchst eine 4, 5 oder 6 und bleibst davor stehen.')}
+              </div>
+            )}</>} />
         </div>
       )}
+      {current?.type === 'duck' && <DuckChallenge key={`d${current.idx}`} onDone={challengeDone} />}
+      {current?.type === 'jump' && <JumpChallenge key={`j${current.idx}`} onDone={challengeDone} />}
       {rollers.filter((id) => id !== me?.id).length > 0 && (
         <div className="card stack" style={{ gap: 10 }}>
           <h3>🎲 {t('Würfel der anderen')}</h3>
@@ -150,7 +187,7 @@ function DiceStage({ code, round, byId, me, big, run }) {
  * Eine Gruppen-Challenge im Spielfeld-Modus.
  * me = Spieler auf diesem Handy (null auf dem Hauptbildschirm).
  */
-export function BoardRound({ code, round, byId, me, big = false, run }) {
+export function BoardRound({ code, round, byId, me, big = false, run, fields = null }) {
   const game = GAMES[round.gameId];
   const mg = MINIGAMES[round.gameId];
   const shownGame = { ...game, rules: game.groupRules ?? game.rules };
@@ -202,7 +239,7 @@ export function BoardRound({ code, round, byId, me, big = false, run }) {
   } else if (round.stage === 'review') {
     body = (
       <>
-        <DiceStage code={code} round={round} byId={byId} me={me} big={big} run={run} />
+        <DiceStage code={code} round={round} byId={byId} me={me} big={big} run={run} fields={fields} />
         {big && <RankingList round={round} byId={byId} meId={me?.id} />}
       </>
     );

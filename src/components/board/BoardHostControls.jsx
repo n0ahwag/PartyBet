@@ -4,7 +4,7 @@ import { beginChallenge, setRanks, moveTokens, triggerChaos, setBracketWinner } 
 import { rollersOf } from '../../game/board.js';
 import { ROLL_MS } from './Dice.jsx';
 
-const AUTO_ROLL_MS = 25000;
+const AUTO_ROLL_MS = 40000;
 import { nextStep, triggerLiveEvent, finishGame } from '../../game/engine.js';
 import { sfx } from '../../lib/sound.js';
 import { t } from '../../i18n/index.js';
@@ -157,7 +157,7 @@ export function BoardHostControls({ code, room, round, byId, run, busy }) {
     const open = rollersOf(round, Object.values(byId)).filter((id) => !round.rolls?.[id]).length;
     main = (
       <>
-        <p className="muted small" style={{ margin: 0 }}>{open ? t('Die Würfler tippen auf ihren Handys – nach 25 s würfelt die App für sie.') : t('Alle haben gewürfelt – die Figuren ziehen gleich.')}</p>
+        <p className="muted small" style={{ margin: 0 }}>{open ? t('Die Würfler tippen auf ihren Handys – nach 40 s würfelt die App für sie.') : t('Alle haben gewürfelt – die Figuren ziehen gleich.')}</p>
         <button className="btn ghost sm" disabled={busy} onClick={() => { fired.current[`${round.id}:move`] = true; run(() => moveTokens(code, round.id)); }}>🎲 {t('Für alle würfeln & sofort ziehen')}</button>
       </>
     );

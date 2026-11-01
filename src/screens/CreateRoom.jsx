@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { GameArt } from '../components/GameArt.jsx';
-import { ThemePicker } from '../components/board/Board3D.jsx';
 import { EQUIPMENT } from '../game/constants.js';
 import { libraryFor } from '../game/group.js';
 import { BOARD_LENGTHS } from '../game/board.js';
@@ -12,9 +11,8 @@ import { useToast, useAction, LangSwitch } from '../components/ui.jsx';
 import { t } from '../i18n/index.js';
 
 export function CreateRoom({ uid }) {
-  const [gameMode, setGameMode] = useState('party');
+  const [gameMode, setGameMode] = useState('board');
   const [boardLength, setBoardLength] = useState('normal');
-  const [boardTheme, setBoardTheme] = useState('city');
   const [mode, setMode] = useState('screen');
   const [count, setCount] = useState(4);
   const [equipment, setEquipment] = useState([]);
@@ -34,7 +32,7 @@ export function CreateRoom({ uid }) {
   const toggle = (id) => setEquipment((eq) => (eq.includes(id) ? eq.filter((e) => e !== id) : [...eq, id]));
 
   const create = () => run(async () => {
-    const code = await createRoom({ hostId: uid, mode, expectedPlayers: count, equipment, totalRounds: rounds, liveEvents: liveEvents && !stealth, gameMode, boardLength, boardTheme, stealth });
+    const code = await createRoom({ hostId: uid, mode, expectedPlayers: count, equipment, totalRounds: rounds, liveEvents: liveEvents && !stealth, gameMode, boardLength, stealth });
     if (mode === 'mobile') {
       localStorage.setItem('fo_name', name);
       await joinRoom(code, uid, { name, avatar: AVATARS[0], caps: detectCaps() });
@@ -47,8 +45,8 @@ export function CreateRoom({ uid }) {
   });
 
   const MODES = [
-    { id: 'party', icon: '🍻', title: t('Party-Modus'), sub: t('1-gegen-1-Duelle mit Wetten & Schlücken') },
     { id: 'board', icon: '🎲', title: t('Spielfeld-Modus'), sub: t('Brettspiel ohne Alkohol – wer zuerst im Ziel ist') },
+    { id: 'party', icon: '🍻', title: t('Party-Modus'), sub: t('1-gegen-1-Duelle mit Wetten & Schlücken') },
     { id: 'group', icon: '👥', title: t('Gruppen-Modus'), sub: t('Alle spielen gleichzeitig, für Punkte') },
   ];
   const Stepper = ({ label, value, dec, inc }) => (
@@ -89,8 +87,7 @@ export function CreateRoom({ uid }) {
                 </button>
               ))}
             </div>
-            <span className="small muted" style={{ fontWeight: 700 }}>{t('Themen-Welt')}</span>
-            <ThemePicker value={boardTheme} onChange={setBoardTheme} />
+            <span className="small muted">🗺️ {t('Die Map wird zufällig ausgewählt: Himmelsinseln, Vulkan-Festung oder Kristall-Canyon.')}</span>
           </div>
         )}
       </div>

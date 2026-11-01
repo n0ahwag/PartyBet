@@ -27,11 +27,11 @@ Im Spielfeld-Modus läuft jedes Minispiel als **Gruppen-Challenge**:
 - **Wahrheit oder Bluff:** Ein Erzähler gegen alle.
 - **Real-Life- und Utensil-Spiele:** Der Host tippt die Reihenfolge an.
 
-Das Spielfeld ist eine **isometrische 3D-Karte** im Party-Brettspiel-Stil (reines SVG, keine 3D-Bibliothek):
+Das Spielfeld ist eine **lebendige 3D-Map** (Three.js, wird nur im Spielfeld-Modus nachgeladen; ohne WebGL greift eine einfache SVG-Karte):
 - **Länge:** Kurz 90 / Normal 120 / Lang 150 Felder, das sind ca. 14 / 18 / 23 Challenges (per Simulation gewählt, mindestens ~10).
-- **Karte:** Eine geschwungene Straße führt über eine Insel. Die Felder sind runde Scheiben, die Spielfiguren 3D-Figuren in Spielerfarbe mit Avatar. Sie hüpfen Feld für Feld.
-- **Themen-Welten:** *Party-Stadt*, *Dschungel-Pfad* oder *Retro-Arcade*, wählbar beim Erstellen und in der Lobby (Host). Jede Welt hat eigene Farben, eigenen Himmel und eigene Deko.
-- **Würfeln:** Nach jeder Challenge würfelt **jeder** und **tippt dafür auf seinem Handy auf seine Würfel** (2D-Würfel mit Dreh-Effekt). Platz 1 bekommt zusätzlich einen Gold-Würfel (4–6), Platz 2 einen Silber-Würfel (2–4) und Platz 3 einen Bronze-Würfel (1–3). Die Augen sind pro Runde, Spieler und Würfel fest (`diceFor`), sodass alle Geräte dasselbe sehen. Wer aussetzen muss, würfelt nicht. Sind alle fertig, ziehen die Figuren automatisch. Nach 25 s würfelt die App für Säumige.
+- **Maps (zufällig gewählt):** ☁️ *Himmelsinseln* (schwebende Inseln, Hängebrücken, Trittsteine zum Leuchtturm), 🌋 *Vulkan-Festung* (Burgplattformen im Lavasee, Krater-Gipfel), 💎 *Kristall-Canyon* (Felsterrassen, Leitern, Wasserfall, Schatztruhe). Mehrere Ebenen, Licht & Schatten, animierte Deko (Vögel, Schafe, Schmetterlinge, Ballon, Fledermäuse, Glut, Rauch, springende Fische, Glühwürmchen …). Die Maps wachsen mit der Feldzahl (`src/game/maps/defs.js`).
+- **Hindernisse (ohne Schild – sie zeigen sich erst, wenn man dort ankommt):** 🪨 *Felsbrocken* – nur mit einer 4, 5 oder 6 (höchster Würfel) kommt man durch, sonst bleibt man davor stehen. ⬇️ *Ducken* – Reaktionsprobe am Handy, wer zu langsam ist, bleibt stehen. 🦘 *Kaputte Brücke* – Sprung-Timing am Handy, wer fällt, muss 3 Felder zurück. Auf allen Geräten erscheint dazu eine große Einblendung.
+- **Würfeln:** Nach jeder Challenge würfelt **jeder** und **tippt dafür auf seinem Handy auf seine Würfel** (2D-Würfel mit Dreh-Effekt). Platz 1 bekommt zusätzlich einen Gold-Würfel (4–6), Platz 2 einen Silber-Würfel (2–4) und Platz 3 einen Bronze-Würfel (1–3). Die Augen sind pro Runde, Spieler und Würfel fest (`diceFor`), sodass alle Geräte dasselbe sehen. Wer aussetzen muss, würfelt nicht. Sind alle fertig, ziehen die Figuren automatisch. Nach 40 s würfelt die App für Säumige.
 - **Handy:** Die Karte folgt der eigenen Figur, man kann wischen. „Ganzes Feld“ zeigt die Übersicht.
 
 ## 🆕 Erweiterung: Mikrofon, Teams & Zeichnen

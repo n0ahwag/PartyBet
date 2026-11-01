@@ -98,9 +98,12 @@ export async function setRanks(code, id, ranks) {
   await updateDoc(roundRef(code, id), { stage: 'review', ranks, rolls: {}, reviewAt: Date.now() });
 }
 
-/** Spieler tippt auf den Würfel (nur der eigene Eintrag; die Zahl steht über diceFor fest). */
-export async function rollDice(code, id, uid) {
-  await updateDoc(roundRef(code, id), { [`rolls.${uid}`]: true });
+/**
+ * Spieler hat gewürfelt (nur der eigene Eintrag; die Zahl steht über diceFor fest).
+ * ch = Ergebnisse der Proben unterwegs: { [Feld]: true/false } (Ducken, Brücken-Sprung).
+ */
+export async function rollDice(code, id, uid, ch = null) {
+  await updateDoc(roundRef(code, id), { [`rolls.${uid}`]: ch ? { ch } : true });
 }
 
 /** Würfeln & ziehen: Bewegung + Sonderfelder für alle, Phase und Sieger bestimmen. */
@@ -113,7 +116,8 @@ export async function moveTokens(code, id) {
     const snaps = await Promise.all(refs.map((r) => tx.get(r)));
     const players = snaps.filter((s) => s.exists()).map((s) => ({ id: s.id, ...s.data() }));
 
-    const result = applyRound({ players, ranks: round.ranks, fields: room.board.fields, seed: `${code}:${id}` });
+    const challenges = Object.fromEntries(Object.entries(round.rolls || {}).map(([uid, r]) => [uid, (r && typeof r === 'object' && r.ch) || {}]));
+    const result = applyRound({ players, ranks: round.ranks, fields: room.board.fields, seed: `${code}:${id}`, challenges });
 
     for (const p of players) {
       const st = result.stats[p.id] || {};
@@ -121,7 +125,7 @@ export async function moveTokens(code, id) {
         position: result.positions[p.id],
         skipNext: result.skipNext[p.id],
       };
-      for (const key of ['firstPlaces', 'rockets', 'portals', 'stumbles', 'fieldsLost', 'fieldsMoved']) {
+      for (const key of ['firstPlaces', 'rockets', 'portals', 'stumbles', 'fieldsLost', 'fieldsMoved', 'obstaclesPassed', 'obstaclesFailed']) {
         if (st[key]) patch[`stats.${key}`] = increment(st[key]);
       }
       if (st.biggestMove > (p.stats?.biggestMove ?? 0)) patch['stats.biggestMove'] = st.biggestMove;
