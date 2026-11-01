@@ -17,7 +17,9 @@
     "firebase": "^13.1.0",
     "qrcode": "^1.5.4",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "simplex-noise": "^4.0.3",
+    "three": "^0.170.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.2",

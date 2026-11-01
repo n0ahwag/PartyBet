@@ -12,7 +12,7 @@ import { LiveEventOverlay } from '../components/LiveEventOverlay.jsx';
 import { OfflineBanner, Loading, useToast, useAction, LangSwitch, HomeButton } from '../components/ui.jsx';
 import { Wrapped } from './Wrapped.jsx';
 import { Standings, FieldLegend, useAnimatedPositions, FieldBanner } from '../components/board/BoardView.jsx';
-import { Board3D } from '../components/board/Board3D.jsx';
+import { BoardMap } from '../components/board/BoardMap.jsx';
 import { BoardRound, RoundBanners, RoundMoves } from '../components/board/BoardRound.jsx';
 import { BoardHostControls } from '../components/board/BoardHostControls.jsx';
 import { GroupRound, PointsBoard } from '../components/group/GroupRound.jsx';
@@ -83,10 +83,10 @@ export function HostScreen({ uid, code }) {
               <>
                 <RoundBanners round={round} byId={byId} />
                 <FieldBanner banner={banner} byId={byId} />
-                <Board3D fields={room.board.fields} players={players} positions={positions} theme={room.board.theme} seed={code} follow focus={banner?.playerId} />
+                <BoardMap fields={room.board.fields} players={players} positions={positions} theme={room.board.theme} follow focus={banner?.playerId} />
                 <FieldLegend />
               </>
-            ) : <div className="card"><BoardRound code={code} round={round} byId={byId} me={null} big run={run} /></div>}
+            ) : <div className="card"><BoardRound code={code} round={round} byId={byId} me={null} big run={run} fields={room.board.fields} /></div>}
           </div>
           <div className="stack">
             <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />

@@ -10,7 +10,7 @@ import {
 import { filterLibrary, planDuel } from './gameLibrary.js';
 import { lockDuel, settleDuel, applyRepayments } from './economy.js';
 import { createLiveEvent, shouldTriggerLiveEvent } from './liveEvents.js';
-import { generateBoard, stepBack, EVENT_PENALTY, BOARD_LENGTHS } from './board.js';
+import { generateBoard, stepBack, EVENT_PENALTY, BOARD_LENGTHS, pickMap } from './board.js';
 import { startChallenge } from './boardEngine.js';
 import { startGroupRound } from './groupEngine.js';
 import { libraryFor } from './group.js';
@@ -46,7 +46,7 @@ const stripNulls = (obj = {}) => Object.fromEntries(Object.entries(obj).filter((
 
 export async function createRoom({
   hostId, mode, expectedPlayers, equipment, totalRounds, liveEvents = true, gameMode = 'party', boardLength = 'normal',
-  boardTheme = 'city', stealth = false,
+  boardTheme = null, stealth = false,
 }) {
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = makeRoomCode();
@@ -74,7 +74,7 @@ export async function createRoom({
         liveEvent: null,
         gameMode, // 'party' (Schlücke & Wetten) | 'board' (Spielfeld) | 'group' | 'library' (Host wählt Spiele frei)
         ...(gameMode === 'board'
-          ? { board: { length: boardLength, theme: boardTheme, fields: generateBoard(BOARD_LENGTHS[boardLength].fields, code) }, winnerId: null }
+          ? (() => { const map = boardTheme || pickMap(code); return { board: { length: boardLength, theme: map, fields: generateBoard(BOARD_LENGTHS[boardLength].fields, code, map) }, winnerId: null }; })()
           : {}),
         lastEventRound: -1,
         createdAt: serverTimestamp(),

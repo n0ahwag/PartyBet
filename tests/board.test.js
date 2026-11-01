@@ -148,3 +148,59 @@ describe('3D-Spielfeld & Würfel', () => {
     expect(rollersOf(round, [{ id: 'a' }, { id: 'b', skipNext: true }, { id: 'c' }])).toEqual(['a', 'c']);
   });
 });
+
+describe('3D-Maps & Hindernisse', async () => {
+  const { buildMap, MAP_IDS } = await import('../src/game/maps/defs.js');
+  const { generateBoard, applyRound, obstaclesOnPath, challengesFor, pickMap } = await import('../src/game/board.js');
+
+  it('jede Map liefert genau so viele Felder wie das Spielfeld hat – ohne Lücken außer an der Brücke', () => {
+    for (const id of MAP_IDS) {
+      for (const n of [90, 120, 150]) {
+        const m = buildMap(id, n);
+        expect(m.fields).toHaveLength(n);
+        expect(m.jumps.length).toBe(1);
+        expect(Object.keys(m.obstacles).length).toBe(3);
+        m.fields.forEach((f) => f.p.forEach((v) => expect(Number.isFinite(v)).toBe(true)));
+        for (let i = 1; i < n; i++) {
+          const a = m.fields[i - 1].p; const b = m.fields[i].p;
+          const d = Math.hypot(b[0] - a[0], b[2] - a[2]);
+          if (!m.jumps.includes(i - 1)) expect(d).toBeLessThan(1.25);
+        }
+      }
+    }
+  });
+
+  it('Spielfeld enthält die Hindernisse der Map an den richtigen Stellen', () => {
+    const fields = generateBoard(120, 'ABCD', 'canyon');
+    const m = buildMap('canyon', 120);
+    expect(fields[m.jumps[0]]).toBe('jump');
+    Object.entries(m.obstacles).forEach(([i, k]) => expect(fields[Number(i)]).toBe(k));
+    expect(['sky', 'volcano', 'canyon']).toContain(pickMap('XYZ'));
+  });
+
+  it('Felsen: nur mit 4–6 kommt man durch', () => {
+    const fields = Array(30).fill('normal'); fields[0] = 'start'; fields[29] = 'goal'; fields[10] = 'boulder';
+    const players = [{ id: 'a', position: 7 }, { id: 'b', position: 7 }];
+    const r = applyRound({ players, ranks: { a: 4, b: 5 }, fields, seed: 's', fixedRolls: { a: [5], b: [3] } });
+    expect(r.positions.a).toBe(12);
+    expect(r.moves.a.obstacles[0]).toMatchObject({ type: 'boulder', ok: true });
+    expect(r.positions.b).toBe(9); // bleibt vor dem Felsen stehen
+    expect(r.moves.b.obstacles[0]).toMatchObject({ type: 'boulder', ok: false });
+  });
+
+  it('Ducken & Brücke hängen am Ergebnis der Probe am Handy', () => {
+    const fields = Array(40).fill('normal'); fields[0] = 'start'; fields[39] = 'goal'; fields[10] = 'duck'; fields[20] = 'jump';
+    const players = [{ id: 'a', position: 8 }, { id: 'b', position: 8 }, { id: 'c', position: 18 }, { id: 'd', position: 18 }];
+    const r = applyRound({
+      players, ranks: { a: 4, b: 4, c: 4, d: 4 }, fields, seed: 's',
+      fixedRolls: { a: [4], b: [4], c: [5], d: [5] },
+      challenges: { a: { 10: true }, b: { 10: false }, c: { 20: true }, d: { 20: false } },
+    });
+    expect(r.positions.a).toBe(12);
+    expect(r.positions.b).toBe(9);
+    expect(r.positions.c).toBe(23);
+    expect(r.positions.d).toBe(17); // abgestürzt: 3 Felder vor der Brücke
+    expect(obstaclesOnPath(fields, 18, 20)).toEqual([]); // genau auf dem Sprungfeld landen = noch kein Sprung
+    expect(challengesFor(fields, 8, [{ value: 2 }, { value: 1 }])).toEqual([{ idx: 10, type: 'duck' }]);
+  });
+});
