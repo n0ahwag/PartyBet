@@ -151,7 +151,7 @@ describe('3D-Spielfeld & Würfel', () => {
 
 describe('3D-Maps & Hindernisse', async () => {
   const { buildMap, MAP_IDS } = await import('../src/game/maps/defs.js');
-  const { generateBoard, applyRound, obstaclesOnPath, challengesFor, pickMap } = await import('../src/game/board.js');
+  const { generateBoard, applyRound, obstaclesOnPath, challengesFor, pickMap, boulderRoll } = await import('../src/game/board.js');
 
   it('jede Map liefert genau so viele Felder wie das Spielfeld hat – ohne Lücken außer an der Brücke', () => {
     for (const id of MAP_IDS) {
@@ -178,28 +178,42 @@ describe('3D-Maps & Hindernisse', async () => {
     expect(['sky', 'volcano', 'canyon']).toContain(pickMap('XYZ'));
   });
 
-  it('Felsen: nur mit 4–6 kommt man durch', () => {
+  it('Felsen: man bleibt davor stehen und braucht einen eigenen Wurf 4–6 – danach ist er für alle weg', () => {
     const fields = Array(30).fill('normal'); fields[0] = 'start'; fields[29] = 'goal'; fields[10] = 'boulder';
-    const players = [{ id: 'a', position: 7 }, { id: 'b', position: 7 }];
-    const r = applyRound({ players, ranks: { a: 4, b: 5 }, fields, seed: 's', fixedRolls: { a: [5], b: [3] } });
-    expect(r.positions.a).toBe(12);
-    expect(r.moves.a.obstacles[0]).toMatchObject({ type: 'boulder', ok: true });
-    expect(r.positions.b).toBe(9); // bleibt vor dem Felsen stehen
-    expect(r.moves.b.obstacles[0]).toMatchObject({ type: 'boulder', ok: false });
+    // Spieler-IDs suchen, deren Felsen-Wurf durchbricht bzw. scheitert
+    const ids = Array.from({ length: 40 }, (_, i) => `p${i}`);
+    const win = ids.find((id) => boulderRoll('s', id, 10) >= 4);
+    const lose = ids.find((id) => boulderRoll('s', id, 10) < 4);
+    const fail = applyRound({ players: [{ id: lose, position: 7 }], ranks: { [lose]: 4 }, fields, seed: 's', fixedRolls: { [lose]: [5] } });
+    expect(fail.positions[lose]).toBe(9);
+    expect(fail.moves[lose].obstacles[0]).toMatchObject({ type: 'boulder', ok: false, roll: boulderRoll('s', lose, 10) });
+    expect(fail.cleared).toEqual([]);
+    const ok = applyRound({ players: [{ id: win, position: 7 }, { id: lose, position: 6 }], ranks: { [win]: 1, [lose]: 2 }, fields, seed: 's', fixedRolls: { [win]: [5], [lose]: [6] } });
+    expect(ok.positions[win]).toBe(12); // durch und Rest weitergelaufen
+    expect(ok.cleared).toEqual([10]);
+    expect(ok.positions[lose]).toBe(12); // Fels schon weg → läuft einfach durch
+    expect(ok.moves[lose].obstacles).toEqual([]);
+    expect(challengesFor(fields, 7, [{ value: 5 }], 's', win)[0]).toMatchObject({ type: 'boulder', ok: true });
+  });
+
+  it('Sonderfelder sind nach dem ersten Betreten weg', () => {
+    const fields = Array(30).fill('normal'); fields[0] = 'start'; fields[29] = 'goal'; fields[8] = 'rocket';
+    const r = applyRound({ players: [{ id: 'a', position: 5 }, { id: 'b', position: 5 }], ranks: { a: 1, b: 2 }, fields, seed: 's', fixedRolls: { a: [3], b: [3] } });
+    expect(r.positions.a).toBe(11);
+    expect(r.positions.b).toBe(8); // Rakete schon verbraucht
+    expect(r.cleared).toEqual([8]);
+    const again = applyRound({ players: [{ id: 'c', position: 5 }], ranks: { c: 1 }, fields, seed: 's', fixedRolls: { c: [3] }, cleared: [8] });
+    expect(again.positions.c).toBe(8);
   });
 
   it('Ducken & Brücke hängen am Ergebnis der Probe am Handy', () => {
     const fields = Array(40).fill('normal'); fields[0] = 'start'; fields[39] = 'goal'; fields[10] = 'duck'; fields[20] = 'jump';
-    const players = [{ id: 'a', position: 8 }, { id: 'b', position: 8 }, { id: 'c', position: 18 }, { id: 'd', position: 18 }];
-    const r = applyRound({
-      players, ranks: { a: 4, b: 4, c: 4, d: 4 }, fields, seed: 's',
-      fixedRolls: { a: [4], b: [4], c: [5], d: [5] },
-      challenges: { a: { 10: true }, b: { 10: false }, c: { 20: true }, d: { 20: false } },
-    });
-    expect(r.positions.a).toBe(12);
-    expect(r.positions.b).toBe(9);
-    expect(r.positions.c).toBe(23);
-    expect(r.positions.d).toBe(17); // abgestürzt: 3 Felder vor der Brücke
+    const run1 = (id, pos, roll, ch) => applyRound({ players: [{ id, position: pos }], ranks: { [id]: 4 }, fields, seed: 's', fixedRolls: { [id]: [roll] }, challenges: { [id]: ch } });
+    expect(run1('a', 8, 4, { 10: true }).positions.a).toBe(12);
+    expect(run1('a', 8, 4, { 10: true }).cleared).toEqual([10]); // Balken danach weg
+    expect(run1('b', 8, 4, { 10: false }).positions.b).toBe(9);
+    expect(run1('c', 18, 5, { 20: true }).positions.c).toBe(23);
+    expect(run1('d', 18, 5, { 20: false }).positions.d).toBe(17); // abgestürzt: 3 Felder vor der Brücke
     expect(obstaclesOnPath(fields, 18, 20)).toEqual([]); // genau auf dem Sprungfeld landen = noch kein Sprung
     expect(challengesFor(fields, 8, [{ value: 2 }, { value: 1 }])).toEqual([{ idx: 10, type: 'duck' }]);
   });

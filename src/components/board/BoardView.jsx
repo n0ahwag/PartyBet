@@ -21,12 +21,13 @@ const EFFECT_SOUND = { rocket: 'rocket', portal: 'portal', chaos: 'alarm', stumb
  *  1. alle Figuren laufen Feld für Feld bis zu ihrem Landefeld,
  *  2. für jedes Sonderfeld erscheint nacheinander eine große Einblendung (banner),
  *     danach springt die Figur (Rakete vor, Portal-Tausch, Stolperstein zurück).
- * @returns { positions, banner } – banner = { playerId, move } oder null
+ * @returns { positions, banner, finished } – banner = { playerId, move } oder null; finished = Zug fertig animiert
  */
 export function useAnimatedPositions(players, round) {
   const actual = Object.fromEntries(players.map((p) => [p.id, p.position ?? 0]));
   const [anim, setAnim] = useState(null);
   const [banner, setBanner] = useState(null);
+  const [finished, setFinished] = useState(null); // Runde, deren Zug-Animation fertig ist
   const done = useRef(null);
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export function useAnimatedPositions(players, round) {
     setAnim(pos);
 
     const runEffects = (i) => {
-      if (i >= effects.length) { setBanner(null); setAnim(null); return; }
+      if (i >= effects.length) { setBanner(null); setAnim(null); setFinished(round.id); return; }
       const { id, m, obstacle } = effects[i];
       setBanner({ playerId: id, move: m, obstacle });
       if (obstacle) { if (obstacle.ok) sfx.tusch(); else sfx.fail(); } else { const snd = EFFECT_SOUND[m.effect.type]; if (snd) sfx[snd]?.(); }
@@ -81,7 +82,9 @@ export function useAnimatedPositions(players, round) {
     return () => { clearInterval(walk); timers.forEach(clearTimeout); setBanner(null); };
   }, [round?.id, round?.stage]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { positions: anim ? { ...actual, ...anim } : actual, banner };
+  // Ohne Zug (oder schon gesehen) gilt die Runde sofort als fertig animiert
+  useEffect(() => { if (round?.stage === 'resolved' && !round.moves) setFinished(round.id); }, [round?.id, round?.stage]); // eslint-disable-line react-hooks/exhaustive-deps
+  return { positions: anim ? { ...actual, ...anim } : actual, banner, finished: round?.stage === 'resolved' && finished === round.id };
 }
 
 /** Große Vollbild-Einblendung, wenn jemand auf einem Sonderfeld landet oder an ein Hindernis kommt (auf allen Geräten). */
@@ -95,7 +98,7 @@ export function FieldBanner({ banner, byId }) {
     type = FIELD_TYPES[o.type];
     if (o.type === 'boulder') {
       title = o.ok ? 'FELS ZERTRÜMMERT!' : 'FELSBROCKEN!';
-      text = o.ok ? t('{name} würfelt eine {n} und bricht durch!', { name, n: o.best }) : t('{name} braucht eine 4, 5 oder 6 – und bleibt vor dem Felsen stehen.', { name });
+      text = o.ok ? t('{name} würfelt eine {n} und bricht durch – der Fels ist weg!', { name, n: o.roll }) : t('{name} würfelt eine {n} – zu wenig! Bleibt vor dem Felsen stehen.', { name, n: o.roll });
     } else if (o.type === 'duck') {
       title = o.ok ? 'GEDUCKT!' : 'AUTSCH!';
       text = o.ok ? t('{name} duckt sich rechtzeitig unter dem Balken durch.', { name }) : t('{name} war zu langsam und bleibt vor dem Balken stehen.', { name });

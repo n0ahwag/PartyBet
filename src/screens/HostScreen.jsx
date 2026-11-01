@@ -7,6 +7,7 @@ import { DuelStage } from '../components/DuelViews.jsx';
 import { HostControls } from '../components/HostControls.jsx';
 import { RescueAdmin } from '../components/Rescue.jsx';
 import { Scoreboard } from '../components/Scoreboard.jsx';
+import { effectiveFields } from '../game/board.js';
 import { PhaseOverlay, PhaseBadge } from '../components/PhaseOverlay.jsx';
 import { LiveEventOverlay } from '../components/LiveEventOverlay.jsx';
 import { OfflineBanner, Loading, useToast, useAction, LangSwitch, HomeButton } from '../components/ui.jsx';
@@ -25,7 +26,9 @@ import { t } from '../i18n/index.js';
 export function HostScreen({ uid, code }) {
   const { room, players, byId, duel, round, rescues, online, loading } = useRoom(code);
   const overlay = usePhaseFx(room, duel ?? round);
-  const { positions, banner } = useAnimatedPositions(players, round);
+  const { positions, banner, finished: animDone } = useAnimatedPositions(players, round);
+  // Neu geräumte Felder erst nach der Zug-Animation von der Karte nehmen
+  const shownCleared = (room?.board?.cleared || []).filter((i) => animDone || round?.stage !== 'resolved' || !(round?.cleared || []).includes(i));
   const [toast, toastNode] = useToast();
   const [run, busy] = useAction(toast);
   // Spielfeld: Karte erst nach dem Ziehen (bzw. vor der ersten Challenge), sonst nur Spiel/Würfel
@@ -83,17 +86,17 @@ export function HostScreen({ uid, code }) {
               <>
                 <RoundBanners round={round} byId={byId} />
                 <FieldBanner banner={banner} byId={byId} />
-                <BoardMap fields={room.board.fields} players={players} positions={positions} theme={room.board.theme} follow focus={banner?.playerId} />
+                <BoardMap fields={room.board.fields} cleared={shownCleared} players={players} positions={positions} theme={room.board.theme} follow focus={banner?.playerId} />
                 <FieldLegend />
               </>
-            ) : <div className="card"><BoardRound code={code} round={round} byId={byId} me={null} big run={run} fields={room.board.fields} /></div>}
+            ) : <div className="card"><BoardRound code={code} round={round} byId={byId} me={null} big run={run} fields={effectiveFields(room.board.fields, room.board.cleared)} /></div>}
           </div>
           <div className="stack">
-            <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />
+            <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} animDone={animDone} />
             <RoundMoves round={round} byId={byId} />
             <div className="card stack">
               <h3>{t('Wer führt?')}</h3>
-              <Standings players={players} fields={room.board.fields} />
+              <Standings players={players} fields={effectiveFields(room.board.fields, room.board.cleared)} />
             </div>
           </div>
         </div>

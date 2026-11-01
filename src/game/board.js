@@ -26,7 +26,7 @@ export const FIELD_TYPES = {
   stumble: { id: 'stumble', label: 'Stolperstein', icon: '🪨', color: '#78716C', desc: '1 Feld zurück oder einmal aussetzen' },
   goal: { id: 'goal', label: 'Zielfeld', icon: '🏆', color: '#EAB308' },
   // Hindernisse der 3D-Maps (ohne Schild – passiert erst, wenn man dort ankommt)
-  boulder: { id: 'boulder', label: 'Felsbrocken', icon: '🪨', color: '#78716C', desc: 'Nur mit einer 4, 5 oder 6 kommst du durch' },
+  boulder: { id: 'boulder', label: 'Felsbrocken', icon: '🪨', color: '#78716C', desc: 'Davor stehen bleiben – ein neuer Wurf mit 4, 5 oder 6 bricht durch' },
   duck: { id: 'duck', label: 'Ducken', icon: '⬇️', color: '#0EA5E9', desc: 'Rechtzeitig ducken – sonst bleibst du stehen' },
   jump: { id: 'jump', label: 'Kaputte Brücke', icon: '🦘', color: '#DC2626', desc: 'Rüberspringen – wer fällt, muss 3 Felder zurück' },
 };
@@ -142,14 +142,31 @@ export function obstaclesOnPath(fields, from, landed) {
   return out;
 }
 
-/** Braucht dieser Wurf eine Geschicklichkeits-Probe am Handy (Ducken/Springen)? Felsen davor blocken. */
-export function challengesFor(fields, from, dice) {
+/** Felsen: eigener Einzelwurf, sobald man davor steht (für alle Geräte gleich). */
+export const boulderRoll = (seed, uid, idx) => diceFor(seed, uid, 100 + idx);
+
+/** Bereits benutzte Sonderfelder / bewältigte Hindernisse sind wieder normale Felder. */
+export function effectiveFields(fields, cleared = []) {
+  if (!cleared?.length) return fields;
+  const set = new Set(cleared);
+  return fields.map((f, i) => (set.has(i) ? 'normal' : f));
+}
+
+/**
+ * Proben unterwegs, in Zugreihenfolge: Felsen (eigener Wurf 4–6), Ducken, Brücke.
+ * Felsen-Ergebnis steht fest (boulderRoll); scheitert ein Felsen, endet die Liste.
+ */
+export function challengesFor(fields, from, dice, seed = '', uid = '') {
   const goal = fields.length - 1;
   const roll = dice.reduce((s, d) => s + d.value, 0);
-  const best = Math.max(...dice.map((d) => d.value));
   const res = [];
   for (const o of obstaclesOnPath(fields, from, Math.min(goal, from + roll))) {
-    if (o.type === 'boulder') { if (best < BOULDER_MIN) break; continue; }
+    if (o.type === 'boulder') {
+      const r = boulderRoll(seed, uid, o.idx);
+      res.push({ ...o, roll: r, ok: r >= BOULDER_MIN });
+      if (r < BOULDER_MIN) break;
+      continue;
+    }
     res.push(o);
   }
   return res;
@@ -174,7 +191,10 @@ export function boardPhase(leaderPos, length) {
  * @param challenges { uid: { [Feld]: true/false } } – Ergebnis der Proben (Ducken/Springen) am Handy
  * @returns { moves, positions, skipNext, winnerId, chaos, stats }
  */
-export function applyRound({ players, ranks, fields, seed, fixedRolls = null, challenges = {} }) {
+export function applyRound({ players, ranks, fields: rawFields, seed, fixedRolls = null, challenges = {}, cleared = [] }) {
+  const fields = [...effectiveFields(rawFields, cleared)];
+  const newCleared = [];
+  const clear = (i) => { if (fields[i] !== 'normal' && fields[i] !== 'start' && fields[i] !== 'goal') { fields[i] = 'normal'; newCleared.push(i); } };
   const rng = makeRng(`move:${seed}`);
   const goal = fields.length - 1;
   const positions = Object.fromEntries(players.map((p) => [p.id, p.position ?? 0]));
@@ -208,12 +228,12 @@ export function applyRound({ players, ranks, fields, seed, fixedRolls = null, ch
     m.landed = Math.min(goal, from + m.steps);
     let to = m.landed;
     // Hindernisse unterwegs: Felsen (4–6 nötig), Ducken, kaputte Brücke
-    const best = Math.max(...m.dice.map((d) => d.value));
     let blocked = false;
     for (const o of obstaclesOnPath(fields, from, m.landed)) {
-      const ok = o.type === 'boulder' ? best >= BOULDER_MIN : !!challenges[p.id]?.[o.idx];
-      m.obstacles.push({ type: o.type, idx: o.idx, ok, best });
-      if (ok) { stat(p.id, 'obstaclesPassed'); continue; }
+      const roll = o.type === 'boulder' ? boulderRoll(seed, p.id, o.idx) : null;
+      const ok = o.type === 'boulder' ? roll >= BOULDER_MIN : !!challenges[p.id]?.[o.idx];
+      m.obstacles.push({ type: o.type, idx: o.idx, ok, ...(roll != null ? { roll } : {}) });
+      if (ok) { stat(p.id, 'obstaclesPassed'); clear(o.idx); continue; }
       blocked = true;
       to = o.type === 'jump' ? Math.max(0, o.idx - JUMP_FALL) : o.idx - 1;
       m.landed = o.type === 'jump' ? o.idx : o.idx - 1;
@@ -222,6 +242,7 @@ export function applyRound({ players, ranks, fields, seed, fixedRolls = null, ch
     }
     const field = fields[to];
     m.field = field;
+    const landedOn = to;
 
     // Sonderfelder wirken nur, wenn man in dieser Runde darauf gezogen ist
     if (!blocked && to !== goal && m.steps > 0) {
@@ -258,6 +279,8 @@ export function applyRound({ players, ranks, fields, seed, fixedRolls = null, ch
       }
     }
 
+    // Sonderfeld benutzt → für alle anderen weg
+    if (!blocked && m.steps > 0 && landedOn !== goal && ['rocket', 'portal', 'stumble', 'chaos'].includes(field)) clear(landedOn);
     positions[p.id] = to;
     m.to = to;
     stat(p.id, 'fieldsMoved', Math.max(0, to - from));
@@ -265,7 +288,7 @@ export function applyRound({ players, ranks, fields, seed, fixedRolls = null, ch
     if (to >= goal && !winnerId) winnerId = p.id;
   }
 
-  return { moves, positions, skipNext, winnerId, chaos, stats };
+  return { moves, positions, skipNext, winnerId, chaos, stats, cleared: newCleared };
 }
 
 /** Rückwärts (Live-Events, Chaos): nie hinter den Start. */

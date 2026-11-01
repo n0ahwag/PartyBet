@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { sfx, vibrate } from '../../lib/sound.js';
+import { Dice, ROLL_MS } from './Dice.jsx';
 import { t } from '../../i18n/index.js';
 
 /*
@@ -114,6 +115,30 @@ export function JumpChallenge({ onDone }) {
           <b>{phase === 'run' ? `👆 ${t('Tippen zum Springen!')}` : t('Gleich geht’s los …')}</b>
         </div>
       )}
+    </Shell>
+  );
+}
+
+/** 🪨 Felsbrocken: Man steht davor und würfelt einmal neu – 4, 5 oder 6 bricht durch. */
+export function BoulderChallenge({ roll, onDone }) {
+  const [rolled, setRolled] = useState(false);
+  const [shown, setShown] = useState(false);
+  const ok = roll >= 4;
+  useEffect(() => {
+    if (!rolled) return undefined;
+    const t1 = setTimeout(() => { setShown(true); if (ok) { sfx.tusch(); vibrate(60); } else { sfx.fail(); vibrate([200, 80, 200]); } }, ROLL_MS + 200);
+    const t2 = setTimeout(() => onDone(ok), ROLL_MS + 2000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [rolled]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <Shell color={shown ? (ok ? '#16A34A' : '#57534E') : '#78716C'} icon={shown ? (ok ? '💥' : '🪨') : '🪨'}
+      title={shown ? (ok ? t('Durchgebrochen!') : t('Der Fels hält!')) : t('Ein Felsbrocken versperrt den Weg!')}
+      text={shown ? (ok ? t('Du zertrümmerst den Felsen – er ist jetzt für alle weg.') : t('Du bleibst davor stehen und versuchst es nächste Runde nochmal.'))
+        : t('Würfle neu: Mit einer 4, 5 oder 6 brichst du durch.')}>
+      <div style={{ background: 'rgba(255,255,255,0.16)', borderRadius: 28, padding: 22 }}>
+        <Dice dice={[{ kind: 'normal', value: roll }]} rolled={rolled} size={110} onRoll={() => setRolled(true)}
+          label={!rolled && <b style={{ fontSize: 20 }}>👆 {t('Tippen zum Würfeln!')}</b>} />
+      </div>
     </Shell>
   );
 }

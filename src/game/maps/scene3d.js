@@ -203,9 +203,10 @@ export function createMapScene({ canvas, width, height, mapId, fields, pixelRati
 
   // Weg-Abschnitte
   const [roadC, roadE] = world.road;
+  const gapPlanksByPart = {};
   map.parts.forEach((part, i) => {
     if (part.type === 'path') pathStrip(scene, fromPolyline(part.line), { color: roadC, edge: roadE, seed: i + 3 });
-    if (part.type === 'bridge') ropeBridge(scene, V(...part.a), V(...part.b), { sag: part.sag, broken: part.broken, stone: part.stone, ...(part.stone ? { plank: '#6B625A' } : {}) });
+    if (part.type === 'bridge') gapPlanksByPart[i] = ropeBridge(scene, V(...part.a), V(...part.b), { sag: part.sag, broken: part.broken, stone: part.stone, ...(part.stone ? { plank: '#6B625A' } : {}) }).gapPlanks;
     if (part.type === 'stairs') stairs(scene, V(...part.a), V(...part.b), { color: '#C2B39B', steps: 8 });
     if (part.type === 'ladder') ladder(scene, V(...part.a), V(...part.b));
     if (part.type === 'steps') {
@@ -214,20 +215,52 @@ export function createMapScene({ canvas, width, height, mapId, fields, pixelRati
     }
   });
 
-  // Felder (Hindernisse ohne Schild – sie zeigen sich erst, wenn man dort ankommt)
+  // Felder (Hindernisse ohne Schild – sie zeigen sich erst, wenn man dort ankommt).
+  // Pro Feld merken, was weg kann: benutzte Sonderfelder & bewältigte Hindernisse verschwinden.
   const fieldScale = Math.min(1, map.spacing / 0.8);
   const fieldPos = map.fields.map((f) => V(...f.p));
+  const fieldObjs = [];
   map.fields.forEach((f, i) => {
     const type = fields[i] ?? 'normal';
     const p = fieldPos[i]; const tan = V(...f.tan);
     const side = V(-tan.z, 0, tan.x).normalize();
-    if (type === 'boulder') { fieldDisc(scene, p, 'normal', fieldScale); boulderBlock(scene, p.clone().addScaledVector(tan, 0.05), tan); return; }
-    if (type === 'duck') { fieldDisc(scene, p, 'normal', fieldScale); duckGate(scene, p, tan); return; }
-    if (type === 'jump') { fieldDisc(scene, p, 'normal', fieldScale); return; }
+    const o = { type, extra: [] };
+    fieldObjs[i] = o;
+    if (type === 'boulder') { o.disc = fieldDisc(scene, p, 'normal', fieldScale); o.extra.push(boulderBlock(scene, p.clone().addScaledVector(tan, 0.05), tan)); return; }
+    if (type === 'duck') { o.disc = fieldDisc(scene, p, 'normal', fieldScale); o.extra.push(duckGate(scene, p, tan)); return; }
+    if (type === 'jump') { o.disc = fieldDisc(scene, p, 'normal', fieldScale); o.planks = gapPlanksByPart[f.part] || []; return; }
     const info = FIELD[type] ?? FIELD.normal;
-    fieldDisc(scene, p, FIELD[type] ? type : 'normal', fieldScale);
+    o.disc = fieldDisc(scene, p, FIELD[type] ? type : 'normal', fieldScale);
     if (type !== 'normal' && info.icon) {
-      sign(scene, p.clone().addScaledVector(side, 0.62 * Math.max(0.8, fieldScale)), { icon: info.icon, color: info.ring ?? info.c, height: type === 'goal' || type === 'start' ? 1.25 : 0.95, size: type === 'goal' ? 0.95 : 0.72 });
+      o.extra.push(sign(scene, p.clone().addScaledVector(side, 0.62 * Math.max(0.8, fieldScale)), { icon: info.icon, color: info.ring ?? info.c, height: type === 'goal' || type === 'start' ? 1.25 : 0.95, size: type === 'goal' ? 0.95 : 0.72 }));
+    }
+  });
+  const removing = [];
+  const clearedSet = new Set();
+  function setCleared(list) {
+    const now = performance.now();
+    for (const i of list || []) {
+      const o = fieldObjs[i];
+      if (!o || clearedSet.has(i) || o.type === 'normal' || o.type === 'start' || o.type === 'goal') continue;
+      clearedSet.add(i);
+      // weg-schrumpfen (Fels zerbröselt, Balken & Schild verschwinden), Feld wird normal
+      o.extra.forEach((g) => removing.push({ g, t0: now, s0: g.scale.clone() }));
+      if (o.type !== 'boulder' && o.type !== 'duck' && o.type !== 'jump') {
+        const p = o.disc.position.clone(); p.y -= 0.05;
+        removing.push({ g: o.disc, t0: now, s0: o.disc.scale.clone() });
+        const n = fieldDisc(scene, p, 'normal', fieldScale); n.scale.setScalar(0.01); removing.push({ g: n, t0: now, grow: true });
+      }
+      (o.planks || []).forEach((m, j) => { m.visible = true; m.scale.setScalar(0.01); removing.push({ g: m, t0: now + j * 70, grow: true }); });
+    }
+  }
+  anim(() => {
+    const now = performance.now();
+    for (let k2 = removing.length - 1; k2 >= 0; k2--) {
+      const r = removing[k2]; const u = Math.min(1, Math.max(0, (now - r.t0) / 600));
+      if (r.grow) { r.g.scale.setScalar(Math.max(0.01, u)); if (u >= 1) removing.splice(k2, 1); continue; }
+      r.g.scale.copy(r.s0).multiplyScalar(Math.max(0.001, 1 - u));
+      r.g.rotation.y += 0.08;
+      if (u >= 1) { r.g.visible = false; removing.splice(k2, 1); }
     }
   });
 
@@ -325,6 +358,7 @@ export function createMapScene({ canvas, width, height, mapId, fields, pixelRati
   return {
     map,
     setPlayers: (players, positions, meId) => placeTokens(players, positions, meId),
+    setCleared,
     setFocus: (field) => { if (field != null) { focusField = Math.max(0, Math.min(fieldPos.length - 1, field)); pan.set(0, 0, 0); } },
     setMode: (m) => { mode = m; pan.set(0, 0, 0); },
     resize: (w, h) => S.setSize(w, h),

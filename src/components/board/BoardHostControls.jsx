@@ -83,8 +83,12 @@ export function BracketInput({ code, round, byId, run, busy, onConfirm }) {
   );
 }
 
-export function BoardHostControls({ code, room, round, byId, run, busy }) {
+const AUTO_NEXT_MS = 4000;
+
+export function BoardHostControls({ code, room, round, byId, run, busy, animDone = true }) {
   const fired = useRef({});
+  const [paused, setPaused] = useState(false);
+  const [countdown, setCountdown] = useState(null);
   const game = round && GAMES[round.gameId];
 
   // Auto-Spiele: sobald alle abgegeben haben, Platzierung berechnen
@@ -112,6 +116,37 @@ export function BoardHostControls({ code, room, round, byId, run, busy }) {
     return () => clearTimeout(tm);
   }, [round, byId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Challenge startet nach dem Regel-Countdown von selbst
+  useEffect(() => {
+    if (round?.stage !== 'intro' || !round.introEndsAt || paused) return undefined;
+    const tm = setTimeout(() => {
+      if (fired.current[`${round.id}:begin`]) return;
+      fired.current[`${round.id}:begin`] = true;
+      run(() => beginChallenge(code, round.id));
+    }, Math.max(0, round.introEndsAt - Date.now()));
+    return () => clearTimeout(tm);
+  }, [round?.id, round?.stage, paused]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Nach dem Ziehen (und allen Einblendungen) startet die nächste Challenge von selbst
+  const chaosPending = !!(round?.chaos && !round.chaosDone);
+  useEffect(() => {
+    if (paused || round?.stage !== 'resolved' || !animDone || room.winnerId || room.liveEvent) { setCountdown(null); return undefined; }
+    const key = `${round.id}:${chaosPending ? 'chaos' : 'next'}`;
+    if (fired.current[key]) return undefined;
+    const end = Date.now() + AUTO_NEXT_MS;
+    setCountdown(Math.ceil(AUTO_NEXT_MS / 1000));
+    const iv = setInterval(() => {
+      const left = Math.ceil((end - Date.now()) / 1000);
+      setCountdown(left);
+      if (left > 0) return;
+      clearInterval(iv);
+      fired.current[key] = true;
+      setCountdown(null);
+      run(() => (chaosPending ? triggerChaos(code, round.id) : nextStep(code)));
+    }, 250);
+    return () => clearInterval(iv);
+  }, [round?.id, round?.stage, chaosPending, animDone, room.winnerId, !!room.liveEvent, paused]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (round?.stage === 'intro') sfx.gong();
     if (round?.stage === 'review') sfx.tusch();
@@ -121,7 +156,15 @@ export function BoardHostControls({ code, room, round, byId, run, busy }) {
   if (room.winnerId && round?.stage === 'resolved') {
     main = <button className="btn primary lg block" disabled={busy} onClick={() => run(() => finishGame(code))}>🏆 {t('Siegerehrung & Wrapped')}</button>;
   } else if (!round || round.stage === 'resolved') {
-    main = round?.chaos && !round.chaosDone ? (
+    const auto = round && (
+      <div className="row between" style={{ gap: 8 }}>
+        <span className="small" style={{ fontWeight: 800 }}>
+          {paused ? `⏸ ${t('Automatik pausiert')}` : !animDone ? `🎲 ${t('Die Figuren ziehen …')}` : room.liveEvent ? '⚡ Live-Event' : countdown != null ? `⏭️ ${chaosPending ? t('Chaos-Challenge in {n} s', { n: countdown }) : t('Nächste Challenge in {n} s', { n: countdown })}` : ''}
+        </span>
+        <button className="btn ghost sm" onClick={() => setPaused((v) => !v)}>{paused ? `▶️ ${t('Weiter automatisch')}` : `⏸ ${t('Pause')}`}</button>
+      </div>
+    );
+    main = <>{auto}{round?.chaos && !round.chaosDone ? (
       <button className="btn primary lg block" style={{ background: '#F97316' }} disabled={busy || !!room.liveEvent}
         onClick={() => run(() => triggerChaos(code, round.id))}>💥 {t('Chaos-Challenge starten')}</button>
     ) : (
@@ -131,9 +174,9 @@ export function BoardHostControls({ code, room, round, byId, run, busy }) {
           <button className="btn soft sm block" disabled={busy || !!room.liveEvent} onClick={() => run(() => triggerLiveEvent(code))}>⚡ {t('Live-Event jetzt auslösen')}</button>
         )}
       </>
-    );
+    )}</>;
   } else if (round.stage === 'intro') {
-    main = <button className="btn primary lg block" disabled={busy} onClick={() => run(() => beginChallenge(code, round.id))}>🚦 {t("Los geht's!")}</button>;
+    main = <button className="btn primary lg block" disabled={busy} onClick={() => { fired.current[`${round.id}:begin`] = true; run(() => beginChallenge(code, round.id)); }}>🚦 {t('Sofort starten')}</button>;
   } else if (round.stage === 'playing') {
     if (game.bracket) {
       main = <BracketInput code={code} round={round} byId={byId} run={run} busy={busy} />;
