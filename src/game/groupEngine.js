@@ -195,3 +195,8 @@ export async function submitGroupResult(code, id, uid, data) {
 export async function submitResultField(code, id, uid, field, value) {
   await updateDoc(roundRef(code, id), { [`results.${uid}.${field}`]: value });
 }
+
+/** Mathe-Staffel: Aufgabe k gelöst (Server-Zeit entscheidet, welches Team zuerst fertig ist). */
+export async function submitRelay(code, id, uid, k) {
+  await updateDoc(roundRef(code, id), { [`results.${uid}.t${k}`]: serverTimestamp() });
+}

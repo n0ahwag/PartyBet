@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { GAMES, rankGroupRound, resultComplete, ESTIMATE_QUESTIONS } from '../../game/gameLibrary.js';
 import { tugResult, teamEstimateResult, sketchResult } from '../../game/extras.js';
 import {
+  shakeResult, seesawResult, wheelResult, flashResult, relayResult, relayState, teamHivemindResult, teamsOfRound, RELAY_MS,
+} from '../../game/teams.js';
+import { useHostSim, SIM_GAMES } from './useHostSim.js';
+import {
   pointsForRanks, tallyVotes, syncResult, hivemindResult, confessionResult, storyState, storyResult,
 } from '../../game/group.js';
 import { beginGroupRound, finishGroupRound, setRoundState, startConfessionQuiz } from '../../game/groupEngine.js';
@@ -41,6 +45,8 @@ function extraResult(round) {
   if (round.gameId === 'tugOfWar') return tugResult(round);
   if (round.gameId === 'teamEstimate') return teamEstimateResult(round, ESTIMATE_QUESTIONS[round.game.qIdx].a);
   if (round.gameId === 'blindSketch') { const r = sketchResult(round); return { points: r.points, stats: r.stats, ranks: r.ranks, extra: r.extra }; }
+  const team = { shakeMarathon: shakeResult, teamSeesaw: seesawResult, compassWheel: wheelResult, teamFlash: flashResult, mathRelay: relayResult, teamHivemind: teamHivemindResult }[round.gameId];
+  if (team) return team(round);
   return null;
 }
 
@@ -78,10 +84,30 @@ export function GroupHostControls({ code, room, round, byId, run, busy, children
       once(`${round.id}:vote`, () => run(() => setRoundState(code, round.id, { step: 'vote' })));
     } else if (id === 'blindSketch' && round.step === 'vote' && all((u) => round.results?.[u]?.vote)) {
       once(`${round.id}:sketch`, () => finish(extraResult(round)));
+    } else if (['shakeMarathon', 'teamSeesaw', 'compassWheel'].includes(id) && all((u) => round.results?.[u]?.done)) {
+      once(`${round.id}:team`, () => finish(extraResult(round)));
+    } else if (id === 'teamFlash' && all((u) => round.results?.[u])) {
+      once(`${round.id}:team`, () => finish(extraResult(round)));
+    } else if (id === 'teamHivemind' && all((u) => round.results?.[u]?.word)) {
+      once(`${round.id}:team`, () => finish(extraResult(round)));
+    } else if (id === 'mathRelay' && teamsOfRound(round).every((ids) => relayState(round, ids).done)) {
+      once(`${round.id}:team`, () => finish(extraResult(round)));
     } else if (!game.groupOnly && game.judge === 'auto' && all((u) => resultComplete(id, round.results?.[u]))) {
       once(`${round.id}:rank`, () => finishRanks(rankGroupRound(round, round.participants)));
     }
   }, [round]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Gemeinsam gesteuerte Spiele (Rafting, Touch-Parcours): der Host rechnet
+  useHostSim({ code, round, active: SIM_GAMES.includes(round?.gameId), finish: (payload) => once(`${round.id}:sim`, () => finish(payload)) });
+
+  // Mathe-Staffel: nach dem Zeitlimit auswerten (wer weiter ist, gewinnt)
+  const latest = useRef(round);
+  latest.current = round;
+  useEffect(() => {
+    if (round?.gameId !== 'mathRelay' || round.stage !== 'playing') return undefined;
+    const tm = setTimeout(() => once(`${round.id}:team`, () => finish(extraResult(latest.current))), Math.max(0, (round.playStartedAt ?? Date.now()) + RELAY_MS - Date.now()));
+    return () => clearTimeout(tm);
+  }, [round?.id, round?.stage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const library = room.gameMode === 'library';
 

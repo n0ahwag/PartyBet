@@ -668,6 +668,87 @@ const ART = {
       <Sparkle x={52} y={54} s={3.5} fill={YEL} />
     </>
   ),
+
+  rafting: ({ a, d }) => (
+    <>
+      <path d="M4 40q8-4 16 0t16 0 16 0 12 0V60H4z" fill={SKY} opacity="0.7" />
+      <ellipse cx="32" cy="38" rx="17" ry="8" fill="#F97316" />
+      <ellipse cx="32" cy="37" rx="11" ry="4.5" fill="#FDBA74" />
+      {[22, 32, 42].map((x) => <circle key={x} cx={x} cy="30" r="3.4" fill={INK} />)}
+      <path d="M14 22l8 14M50 22l-8 14" stroke="#92400E" strokeWidth="2.4" strokeLinecap="round" />
+      <path d="M8 50q6-3 12 0M40 52q6-3 12 0" stroke={W} strokeWidth="2" fill="none" strokeLinecap="round" />
+      <circle cx="52" cy="14" r="3.5" fill="#78716C" />
+      <Sparkle x={10} y={12} s={3.5} fill={YEL} />
+    </>
+  ),
+  shakeMarathon: ({ a, d }) => (
+    <>
+      <rect x="10" y="16" width="16" height="28" rx="4" fill={INK} transform="rotate(-15 18 30)" />
+      <rect x="38" y="16" width="16" height="28" rx="4" fill={INK} transform="rotate(15 46 30)" />
+      <path d="M6 18q-3 6 0 12M58 18q3 6 0 12M30 12v6M34 12v6" stroke={W} strokeWidth="2.4" strokeLinecap="round" fill="none" />
+      <path d="M6 52h52" stroke="#A16207" strokeWidth="4" strokeLinecap="round" />
+      <circle cx="32" cy="52" r="3.5" fill="#DC2626" />
+      <Sparkle x={32} y={34} s={4} fill={YEL} />
+    </>
+  ),
+  teamSeesaw: ({ a, d }) => (
+    <>
+      <path d="M4 50q10-5 20 0t20 0 16 0V60H4z" fill={SKY} opacity="0.6" />
+      <polygon points="26,50 38,50 32,38" fill="#78716C" />
+      <rect x="8" y="33" width="48" height="6" rx="3" fill={W} transform="rotate(-8 32 36)" />
+      <circle cx="14" cy="30" r="4.5" fill="#3B82F6" /><circle cx="50" cy="25" r="4.5" fill="#F97316" />
+      <Sparkle x={52} y={12} s={4} fill={YEL} />
+    </>
+  ),
+  compassWheel: ({ a, d }) => (
+    <>
+      <circle cx="32" cy="30" r="18" fill="none" stroke={W} strokeWidth="3" />
+      {[0, 1, 2, 3, 4, 5].map((i) => { const ang = (i / 6) * Math.PI * 2; return <g key={i}><line x1="32" y1="30" x2={32 + Math.cos(ang) * 18} y2={30 + Math.sin(ang) * 18} stroke={W} strokeWidth="1.6" /><circle cx={32 + Math.cos(ang) * 18} cy={30 + Math.sin(ang) * 18} r="4" fill={i % 2 ? '#3B82F6' : '#F97316'} /></g>; })}
+      <circle cx="32" cy="30" r="4" fill={d} />
+      <path d="M24 50l8-20 8 20" stroke={INK} strokeWidth="2.6" fill="none" />
+      <path d="M50 8a10 10 0 0 1 6 8l-3-1M56 16l1-3" stroke={YEL_D} strokeWidth="2" fill="none" strokeLinecap="round" />
+    </>
+  ),
+  teamFlash: ({ a, d }) => (
+    <>
+      <rect x="10" y="14" width="16" height="30" rx="4" fill={INK} />
+      <rect x="38" y="14" width="16" height="30" rx="4" fill={INK} />
+      <circle cx="18" cy="18" r="1.8" fill={YEL} /><circle cx="46" cy="18" r="1.8" fill={YEL} />
+      <path d="M32 6l-4 9h5l-4 9" stroke={YEL} strokeWidth="2.6" fill="none" strokeLinejoin="round" />
+      <path d="M8 50h20M36 50h20" stroke={W} strokeWidth="3" strokeLinecap="round" />
+      <circle cx="18" cy="50" r="2.5" fill="#3B82F6" /><circle cx="46" cy="50" r="2.5" fill="#F97316" />
+    </>
+  ),
+  mathRelay: ({ a, d }) => (
+    <>
+      <rect x="8" y="12" width="48" height="26" rx="6" fill={W} />
+      <Txt x={32} y={25} size={13} fill={d}>7×8=?</Txt>
+      <path d="M10 50h44" stroke={INK} strokeWidth="2" strokeDasharray="3 3" />
+      <circle cx="16" cy="50" r="4" fill="#3B82F6" /><circle cx="32" cy="50" r="4" fill="#3B82F6" opacity="0.5" />
+      <path d="M38 48l8 0M44 45l3 3-3 3" stroke={INK} strokeWidth="2" fill="none" strokeLinecap="round" />
+      <Sparkle x={54} y={8} s={3.5} fill={YEL} />
+    </>
+  ),
+  touchParcours: ({ a, d }) => (
+    <>
+      <rect x="18" y="6" width="28" height="52" rx="4" fill={INK} />
+      <rect x="18" y="18" width="10" height="4" fill={a} /><rect x="36" y="18" width="10" height="4" fill={a} />
+      <rect x="18" y="34" width="16" height="4" fill={a} /><rect x="42" y="34" width="4" height="4" fill={a} />
+      <circle cx="32" cy="27" r="3.5" fill={W} />
+      <rect x="6" y="50" width="14" height="4" rx="2" fill={W} /><circle cx="12" cy="52" r="3" fill="#3B82F6" />
+      <rect x="44" y="50" width="14" height="4" rx="2" fill={W} /><circle cx="52" cy="52" r="3" fill="#3B82F6" />
+    </>
+  ),
+  teamHivemind: ({ a, d }) => (
+    <>
+      <circle cx="20" cy="22" r="9" fill="#3B82F6" /><circle cx="44" cy="22" r="9" fill="#3B82F6" />
+      <circle cx="32" cy="40" r="9" fill="#3B82F6" />
+      <rect x="22" y="48" width="20" height="9" rx="4.5" fill={W} />
+      <Txt x={32} y={52.5} size={7} fill={d}>=</Txt>
+      <path d="M20 22h24M26 34l-4-8M38 34l4-8" stroke={W} strokeWidth="1.6" strokeDasharray="2 2" />
+      <Sparkle x={54} y={46} s={4} fill={YEL} />
+    </>
+  ),
 };
 
 /** Bild eines Spiels. Fällt auf das Emoji zurück, falls (noch) keine Illustration existiert. */
