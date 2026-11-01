@@ -44,6 +44,18 @@ Das Spielfeld ist eine **lebendige 3D-Map** (Three.js, wird nur im Spielfeld-Mod
 - **👥 Gruppen:** Team-Tauziehen (Tipp-Duell zweier Teams), Team-Schätzen (Team-Mittelwert zählt), Blind-Skizze (blind zeichnen, dann abstimmen)
 - **⚡ Live-Events:** Gruppen-Freeze (Handy flach hinlegen – der Letzte verliert), Daumen-Krieg (Daumen halten – wer zuerst loslässt, verliert)
 
+## 🤝 Team-Spiele (Team vs. Team & kooperativ)
+
+Die App teilt die Gruppe in **Team Blau** und **Team Orange** (bei ungleich großen Teams zählt der Schnitt pro Kopf). Siegerteam: je 2 Punkte, Gleichstand je 1.
+- 🛶 **Wildwasser-Rafting** (kooperativ, ab 2): Rollen *links rudern / rechts rudern / Tempo*, gedrückt halten = rudern. Der Host simuliert das Boot, alle sehen dasselbe. 3 Felsen = gekentert, Ziel = alle 3 Punkte.
+- 📳 **Schüttel-Marathon**: 5 s schütteln, live Seil zwischen den Teams.
+- ⚖️ **Team-Wippe**: Wellen kippen die Brücke, Handys gegenkippen – Zeit im Gleichgewicht zählt.
+- 🎡 **Kompass-Riesenrad**: im Kreis drehen, Ziel 900° pro Person, 30 s.
+- 💡 **Team-Lichtblitz**: Frontkamera abdecken, Team-Schnitt der Reaktionszeit.
+- 🧮 **Mathe-Staffel**: einer nach dem anderen, gleiche 6 Aufgaben, Server-Zeit entscheidet.
+- 🎯 **Touch-Parcours**: Kugel steht beim Schnitt aller Schieberegler des Teams, 3 Leben.
+- 🧠 **Team-Mehrheits-Duell**: größter Anteil exakt gleicher Begriffe im Team gewinnt.
+
 ## 🤫 Stealth-/Uni-Modus
 
 Der Modus lässt sich beim Erstellen jeder Party und der Bibliotheks-Lobby einschalten. Es gibt dann nur **leise, unauffällige Spiele** (Flag `quiet`): kein Rufen, kein Aufstehen, kein Ton nötig. Dazu gehören z. B. Der fliegende Teppich, Wasserwaage, Kopfrechnen, Zahlen-Merker, die Arcade-Spiele, „Wer am ehesten“ und das Beicht-Quiz. Alle Geräte der Party sind lautlos (Vibration bleibt), die Ketten-Story wird nicht vorgelesen, und Live-Events sind aus. In der Bibliotheks-Lobby filtert „🤫 Leise“ die Auswahl.

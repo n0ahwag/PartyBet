@@ -15,11 +15,11 @@ import { t, locale } from '../i18n/index.js';
 
 const Name = ({ p }) => <>{p?.avatar} {p?.name}</>;
 
-function TeamBadge({ team, big }) {
+export function TeamBadge({ team, big }) {
   return <span className="pill" style={{ background: TEAM_COLORS[team], color: '#fff', fontSize: big ? 20 : undefined }}>{t(TEAM_NAMES[team])}</span>;
 }
 
-function TeamLists({ teams, byId, extra, big }) {
+export function TeamLists({ teams, byId, extra, big }) {
   return (
     <div className="grid-2">
       {teams.map((ids, i) => (

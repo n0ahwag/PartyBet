@@ -102,7 +102,55 @@ Object.assign(GAMES, {
   },
 });
 
-export const GROUP_ONLY_IDS = ['whoMost', 'syncTest', 'hivemind', 'confession', 'chainStory', 'tugOfWar', 'teamEstimate', 'blindSketch'];
+// Team-Spiele (Team vs. Team & kooperativ)
+CATEGORIES.team = { label: 'Team-Spiele', icon: '🤝' };
+const team = { ...groupOnly, kind: 'team', judge: 'auto', minPlayers: 4 };
+Object.assign(GAMES, {
+  rafting: {
+    ...team, id: 'rafting', name: 'Wildwasser-Rafting', icon: '🛶', minPlayers: 2, accent: '#0891B2',
+    rules: 'Alle sitzen im selben Boot! Jeder bekommt eine Aufgabe: links rudern, rechts rudern oder Tempo machen. Gedrückt halten = rudern. Sprecht euch ab und weicht den Felsen aus – nach 3 Treffern kentert ihr. Schafft ihr es ins Ziel, bekommen alle 3 Punkte.',
+    createState: (rng) => ({ seed: rng.int(1, 999999) }),
+  },
+  shakeMarathon: {
+    ...team, id: 'shakeMarathon', name: 'Schüttel-Marathon', icon: '📳', needsMotion: true, accent: '#DB2777',
+    rules: 'Team gegen Team: Auf das Startsignal schüttelt jeder 5 Sekunden lang sein Handy, so oft er kann. Jeder Schüttler zieht am Seil – das Team mit dem höheren Schnitt pro Kopf gewinnt.',
+    createState: (rng) => ({ seed: rng.int(1, 999999) }),
+  },
+  teamSeesaw: {
+    ...team, id: 'teamSeesaw', name: 'Team-Wippe', icon: '⚖️', needsMotion: true, accent: '#16A34A',
+    rules: 'Jedes Team hält eine wackelige Brücke im Gleichgewicht, während Wellen sie kippen. Gleicht die Wellen aus, indem ihr eure Handys gegenkippt – alle im gleichen Winkel! 20 Sekunden: Das Team mit der längsten Zeit im Gleichgewicht gewinnt.',
+    createState: (rng) => ({ seed: rng.int(1, 999999) }),
+  },
+  compassWheel: {
+    ...team, id: 'compassWheel', name: 'Kompass-Riesenrad', icon: '🎡', needsCompass: true, accent: '#7C3AED',
+    rules: 'Alle drehen sich mit dem Handy flach in der Hand im Kreis – der Kompass zählt jede Drehung. Jedes Team sammelt gemeinsam Grad (Ziel: 2,5 Umdrehungen pro Person). Wer nach 30 Sekunden weiter ist, gewinnt.',
+    createState: (rng) => ({ seed: rng.int(1, 999999) }),
+  },
+  teamFlash: {
+    ...team, id: 'teamFlash', name: 'Team-Lichtblitz', icon: '💡', needsCamera: true, accent: '#CA8A04',
+    rules: 'Ein Signal erscheint auf allen Handys gleichzeitig – deckt sofort die Oberseite (Frontkamera) mit der Hand ab. Gezählt wird die durchschnittliche Reaktionszeit des Teams; Frühstart zählt wie 1,5 Sekunden.',
+    createState: (rng) => ({ seed: rng.int(1, 999999), ...GAMES.lightFlash.createState(rng) }),
+  },
+  mathRelay: {
+    ...team, id: 'mathRelay', name: 'Mathe-Staffel', icon: '🧮', accent: '#6366F1',
+    rules: 'Staffellauf im Kopfrechnen: Im Team löst einer nach dem anderen eine Aufgabe – erst nach der richtigen Antwort ist der Nächste dran. Beide Teams bekommen dieselben 6 Aufgaben. Wer zuerst fertig ist, gewinnt.',
+    createState: (rng) => ({ seed: rng.int(1, 999999) }),
+  },
+  touchParcours: {
+    ...team, id: 'touchParcours', name: 'Touch-Parcours', icon: '🎯', accent: '#EA580C',
+    rules: 'Jedes Team steuert gemeinsam eine Kugel durch einen Schacht voller Tore. Jeder hat einen Schieberegler – die Kugel steht dort, wo der Schnitt aller Regler liegt. Nur gemeinsam trefft ihr die Lücken – jedes verfehlte Tor kostet ein Leben (3 Leben). Wer weiter kommt, gewinnt.',
+    createState: (rng) => ({ seed: rng.int(1, 999999) }),
+  },
+  teamHivemind: {
+    ...team, id: 'teamHivemind', name: 'Team-Mehrheits-Duell', icon: '🧠', accent: '#EAB308',
+    rules: 'Beide Teams bekommen dieselbe Frage (z. B. „Nenne eine Eissorte“). Jeder tippt geheim einen Begriff. Es gewinnt das Team, in dem der größte Anteil exakt denselben Begriff getippt hat – denkt wie euer Team!',
+    createState: (rng) => ({ seed: rng.int(1, 999999), category: rng.pick(HIVEMIND_CATEGORIES) }),
+  },
+});
+export const TEAM_GAME_IDS = ['rafting', 'shakeMarathon', 'teamSeesaw', 'compassWheel', 'teamFlash', 'mathRelay', 'touchParcours', 'teamHivemind'];
+for (const id of ['mathRelay', 'teamHivemind', 'teamFlash']) GAMES[id].quiet = true;
+
+export const GROUP_ONLY_IDS = ['whoMost', 'syncTest', 'hivemind', 'confession', 'chainStory', 'tugOfWar', 'teamEstimate', 'blindSketch', ...TEAM_GAME_IDS];
 // Stealth-Modus: diese Gruppen-Spiele gehen auch leise (Ketten-Story ohne Vorlesen)
 for (const id of ['whoMost', 'syncTest', 'confession', 'chainStory', 'teamEstimate', 'blindSketch']) GAMES[id].quiet = true;
 
