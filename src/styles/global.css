@@ -290,3 +290,37 @@ body.phase-suddenDeath .phase-strip { background: #dc2626; animation: pulse 0.8s
 .tug-mid { position: absolute; left: 50%; top: 8px; bottom: 8px; width: 3px; margin-left: -1.5px; background: var(--ink-faint); }
 .tug-rope > .tug-half { height: 100%; }
 .tug-knot { position: absolute; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; background: #DC2626; border: 5px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.25); transition: left 250ms ease; }
+
+/* ---------- Kompakte Spielkacheln & Filter ---------- */
+.tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.game-tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; padding: 12px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow);
+  position: relative; min-height: 132px; transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.game-tile:not(:disabled):active { transform: scale(0.97); }
+.game-tile:not(:disabled):hover { border-color: color-mix(in srgb, var(--tile) 60%, var(--line)); }
+.game-tile-name { font-size: 15px; line-height: 1.2; }
+.game-tile-meta { font-size: 12px; font-weight: 700; color: var(--ink-soft); margin-top: auto; }
+.game-tile-badge { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--bg-soft); }
+.game-tile-badge.good { background: #dcfce7; color: #166534; }
+.game-tile-badge.bad { background: #fee2e2; color: #991b1b; }
+.game-tile.locked { opacity: 0.55; }
+.game-tile:disabled { cursor: default; }
+.chip-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; margin: 0 -2px; scrollbar-width: none; }
+.chip-scroll::-webkit-scrollbar { display: none; }
+.chip-scroll .chip { flex: 0 0 auto; white-space: nowrap; }
+details.fold { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; box-shadow: var(--shadow); }
+details.fold > summary { cursor: pointer; font-weight: 800; list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::after { content: '▾'; color: var(--ink-faint); transition: transform 0.2s; }
+details.fold[open] > summary::after { transform: rotate(180deg); }
+details.fold[open] > summary { margin-bottom: 12px; }
+.mode-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 14px; border-radius: 18px; border: 2px solid var(--line); background: var(--card); }
+.mode-row.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
+.mode-row .mode-ico { font-size: 28px; width: 36px; text-align: center; }
+.mode-row .mode-sub { font-size: 13px; color: var(--ink-soft); font-weight: 500; }
+.mini-stepper { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.mini-stepper button { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--bg-soft); font-size: 22px; font-weight: 900; }
+.mini-stepper .value { font-size: 30px; font-weight: 900; min-width: 40px; text-align: center; }
+.sticky-cta { position: sticky; bottom: 12px; z-index: 5; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); }

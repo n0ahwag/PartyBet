@@ -14,14 +14,11 @@ const MEDAL = ['🥇', '🥈', '🥉'];
 function MoveTable({ count }) {
   const ranks = Array.from({ length: Math.min(count, 4) }, (_, i) => i + 1);
   return (
-    <div className="card stack" style={{ gap: 6 }}>
-      <h3>{t('Platzierung → Würfel')}</h3>
-      {ranks.map((r) => (
-        <div key={r} className="row between">
-          <b>{MEDAL[r - 1] ?? `${r}.`} {r === 4 ? t('ab Platz 4') : t('{n}. Platz', { n: r })}</b>
-          <span>{t(moveRule(r).label)}</span>
-        </div>
-      ))}
+    <div className="card stack" style={{ gap: 6, padding: 14 }}>
+      <b className="small">🎲 {t('Platzierung → Würfel')}</b>
+      <div className="row wrap" style={{ gap: 6 }}>
+        {ranks.map((r) => <span key={r} className="pill">{r === 4 ? `${t('ab Platz 4')}: ` : ''}{t(moveRule(r).label)}</span>)}
+      </div>
     </div>
   );
 }

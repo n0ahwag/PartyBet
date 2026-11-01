@@ -25,19 +25,26 @@ export function BoosterCard({ p, count, onUse, open: initiallyOpen = true }) {
           <div style={{ fontWeight: 700 }}>{t(p.desc)}</div>
         </div>
       </div>
-      {open ? (
+      {open && (
         <div className="stack" style={{ gap: 6, marginTop: 10 }}>
           <ul className="booster-how">{p.how.map((h) => <li key={h}>{t(h)}</li>)}</ul>
           <div className="small"><b>⏱ {t('Wann')}:</b> {t(p.when)}</div>
           <div className="booster-example small">💡 {t(p.example)}</div>
         </div>
-      ) : (
-        <button className="btn ghost sm" style={{ marginTop: 8 }} onClick={() => setOpen(true)}>ℹ️ {t("So funktioniert's")}</button>
       )}
-      {onUse && (
-        <button className="btn block" style={{ marginTop: 10, background: color, color: '#fff' }} onClick={onUse}>
-          {p.target ? `🎯 ${t('Einsetzen – Ziel wählen')}` : `✨ ${t('Einsetzen')}`}
-        </button>
+      {(onUse || !open) && (
+        <div className="row" style={{ gap: 8, marginTop: 10 }}>
+          {!open && (
+            <button className="btn ghost sm" style={onUse ? undefined : { width: '100%' }} onClick={() => setOpen(true)} aria-label={t("So funktioniert's")}>
+              ℹ️{onUse ? '' : ` ${t("So funktioniert's")}`}
+            </button>
+          )}
+          {onUse && (
+            <button className="btn grow" style={{ background: color, color: '#fff' }} onClick={onUse}>
+              {p.target ? `🎯 ${t('Einsetzen – Ziel wählen')}` : `✨ ${t('Einsetzen')}`}
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

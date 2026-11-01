@@ -46,6 +46,22 @@ export function CreateRoom({ uid }) {
     }
   });
 
+  const MODES = [
+    { id: 'party', icon: '🍻', title: t('Party-Modus'), sub: t('1-gegen-1-Duelle mit Wetten & Schlücken') },
+    { id: 'board', icon: '🎲', title: t('Spielfeld-Modus'), sub: t('Brettspiel ohne Alkohol – wer zuerst im Ziel ist') },
+    { id: 'group', icon: '👥', title: t('Gruppen-Modus'), sub: t('Alle spielen gleichzeitig, für Punkte') },
+  ];
+  const Stepper = ({ label, value, dec, inc }) => (
+    <div className="stack center" style={{ gap: 4 }}>
+      <span className="small muted" style={{ fontWeight: 700 }}>{label}</span>
+      <div className="mini-stepper">
+        <button onClick={dec} aria-label="−">−</button>
+        <div className="value">{value}</div>
+        <button onClick={inc} aria-label="+">+</button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="page">
       <div className="row between">
@@ -54,124 +70,109 @@ export function CreateRoom({ uid }) {
         <LangSwitch />
       </div>
 
-      <div className="card stack">
-        <h3>{t('Spielmodus')}</h3>
-        <div className="grid-2">
-          <button className={`chip mode-card ${gameMode === 'party' ? 'on' : ''}`} onClick={() => setGameMode('party')}>
-            <span style={{ fontSize: 30 }}>🍻</span>{t('Party-Modus')}
-            <span className="small muted" style={{ fontWeight: 500 }}>{t('1-gegen-1-Duelle, Schlücke, Wetten & Pleite-Regel')}</span>
+      <div className="card stack" style={{ gap: 10 }}>
+        <h3>1 · {t('Was wollt ihr spielen?')}</h3>
+        {MODES.map((m) => (
+          <button key={m.id} className={`mode-row ${gameMode === m.id ? 'on' : ''}`} onClick={() => setGameMode(m.id)}>
+            <span className="mode-ico">{m.icon}</span>
+            <span className="grow"><b>{m.title}</b><br /><span className="mode-sub">{m.sub}</span></span>
+            <span style={{ fontSize: 20 }}>{gameMode === m.id ? '✅' : ''}</span>
           </button>
-          <button className={`chip mode-card ${gameMode === 'board' ? 'on' : ''}`} onClick={() => setGameMode('board')}>
-            <span style={{ fontSize: 30 }}>🎲</span>{t('Spielfeld-Modus')}
-            <span className="small muted" style={{ fontWeight: 500 }}>{t('Alkoholfrei: alle spielen jede Challenge, wer zuerst im Ziel ist, gewinnt')}</span>
-          </button>
-        </div>
-        <button className={`chip mode-card ${group ? 'on' : ''}`} style={{ width: '100%' }} onClick={() => setGameMode('group')}>
-          <span style={{ fontSize: 30 }}>👥</span>{t('Gruppen-Modus')}
-          <span className="small muted" style={{ fontWeight: 500 }}>{t('Alle spielen gleichzeitig, ohne Utensilien, für Punkte: Abstimmungen, Synch-Test, Hivemind, Beicht-Quiz, Ketten-Story & mehr')}</span>
-        </button>
+        ))}
         {board && (
           <div className="stack" style={{ gap: 6 }}>
-            <span className="small muted">{t('Länge des Spielfelds')}</span>
+            <span className="small muted" style={{ fontWeight: 700 }}>{t('Länge des Spielfelds')}</span>
             <div className="row">
               {Object.values(BOARD_LENGTHS).map((b) => (
-                <button key={b.id} className={`chip grow ${boardLength === b.id ? 'on' : ''}`} style={{ justifyContent: 'center' }} onClick={() => setBoardLength(b.id)}>
-                  {t(b.label)} · {t('ca. {n} Challenges', { n: b.rounds })}
+                <button key={b.id} className={`chip grow ${boardLength === b.id ? 'on' : ''}`} style={{ justifyContent: 'center', flexDirection: 'column', gap: 0 }} onClick={() => setBoardLength(b.id)}>
+                  {t(b.label)}<span className="small muted" style={{ fontWeight: 500 }}>{t('ca. {n} Challenges', { n: b.rounds })}</span>
                 </button>
               ))}
             </div>
-            <span className="small muted">{t('Themen-Welt')}</span>
+            <span className="small muted" style={{ fontWeight: 700 }}>{t('Themen-Welt')}</span>
             <ThemePicker value={boardTheme} onChange={setBoardTheme} />
           </div>
         )}
       </div>
 
-      <div className="card stack">
-        <h3>{t('Host-Modus')}</h3>
+      <div className="card stack" style={{ gap: 10 }}>
+        <h3>2 · {t('Womit spielt ihr?')}</h3>
         <div className="grid-2">
-          <button className={`chip ${mode === 'screen' ? 'on' : ''}`} style={{ flexDirection: 'column', padding: 16, borderRadius: 18 }} onClick={() => setMode('screen')}>
-            <span style={{ fontSize: 30 }}>📺</span>{t('Hauptbildschirm')}
-            <span className="small muted" style={{ fontWeight: 500 }}>{t('Laptop/TV + Handys als Controller')}</span>
+          <button className={`chip ${mode === 'screen' ? 'on' : ''}`} style={{ flexDirection: 'column', padding: 12, borderRadius: 16, gap: 2 }} onClick={() => setMode('screen')}>
+            <span style={{ fontSize: 26 }}>📺</span>{t('Hauptbildschirm')}
+            <span className="small muted" style={{ fontWeight: 500 }}>{t('TV/Laptop + Handys')}</span>
           </button>
-          <button className={`chip ${mode === 'mobile' ? 'on' : ''}`} style={{ flexDirection: 'column', padding: 16, borderRadius: 18 }} onClick={() => setMode('mobile')}>
-            <span style={{ fontSize: 30 }}>📱</span>{t('Nur Handys')}
-            <span className="small muted" style={{ fontWeight: 500 }}>{t('Raumcode, du hostest mit')}</span>
+          <button className={`chip ${mode === 'mobile' ? 'on' : ''}`} style={{ flexDirection: 'column', padding: 12, borderRadius: 16, gap: 2 }} onClick={() => setMode('mobile')}>
+            <span style={{ fontSize: 26 }}>📱</span>{t('Nur Handys')}
+            <span className="small muted" style={{ fontWeight: 500 }}>{t('du spielst mit')}</span>
           </button>
         </div>
         {mode === 'mobile' && <input className="input" placeholder={t('Dein Name')} maxLength={16} value={name} onChange={(e) => setName(e.target.value)} />}
       </div>
 
-      <div className="card stack">
-        <h3>{t('Spieleranzahl')}</h3>
-        <div className="stepper" style={{ justifyContent: 'center' }}>
-          <button onClick={() => setCount((c) => Math.max(2, c - 1))}>−</button>
-          <div className="value">{count}</div>
-          <button onClick={() => setCount((c) => Math.min(12, c + 1))}>+</button>
-        </div>
-      </div>
-
-      {group ? (
-        <div className="card flat tinted stack" style={{ gap: 8, padding: 14 }}>
-          <b>{t('{n} Gruppen-Runden verfügbar – keine Utensilien nötig', { n: library.length })}</b>
-          <div className="row wrap" style={{ gap: 6 }}>
-            {library.map((g) => <span key={g.id} className="pill" style={{ background: `color-mix(in srgb, ${g.accent} 16%, var(--card))`, paddingLeft: 4 }}><GameArt game={g} size={20} /> {t(g.name)}</span>)}
-          </div>
-          {count < 3 && <p className="small muted" style={{ margin: 0 }}>{t('Abstimmung, Hivemind & Beicht-Quiz brauchen mind. 3 Spieler.')}</p>}
-        </div>
-      ) : <div className="card stack">
-        <h3>{t('Vorhandene Utensilien')}</h3>
-        <div className="row wrap">
-          {EQUIPMENT.map((e) => (
-            <button key={e.id} className={`chip ${equipment.includes(e.id) ? 'on' : ''}`} onClick={() => toggle(e.id)}>{e.icon} {t(e.label)}</button>
-          ))}
-          <button className={`chip ${equipment.length === 0 ? 'on' : ''}`} onClick={() => setEquipment([])}>🙅 {t('Gar nichts')}</button>
-        </div>
-        <div className="card flat tinted stack" style={{ gap: 8, padding: 14 }}>
-          <b>{t('{n} Spiele verfügbar', { n: library.length })}{board ? ` ${t('(als Gruppen-Challenge)')}` : ''}</b>
-          <div className="row wrap" style={{ gap: 6 }}>
-            {library.map((g) => <span key={g.id} className="pill" style={{ background: `color-mix(in srgb, ${g.accent} 16%, var(--card))`, paddingLeft: 4 }}><GameArt game={g} size={20} /> {t(g.name)}</span>)}
-          </div>
-          {count < 3 && <p className="small muted" style={{ margin: 0 }}>{t('Farb-Sprint & Schätz-Duell brauchen mind. 3 Spieler.')}</p>}
-        </div>
-      </div>}
-
-      {!board && <div className="card stack">
-        <h3>{group ? t('Anzahl Runden') : t('Anzahl Duelle')}</h3>
-        <div className="stepper" style={{ justifyContent: 'center' }}>
-          <button onClick={() => setRounds((r) => Math.max(Math.min(3, maxRounds), r - 1))}>−</button>
-          <div className="value">{rounds}</div>
-          <button onClick={() => setRounds((r) => Math.min(maxRounds, r + 1))}>+</button>
+      <div className="card stack" style={{ gap: 10 }}>
+        <h3>3 · {t('Wie viele?')}</h3>
+        <div className={board ? '' : 'grid-2'}>
+          <Stepper label={t('Spieler')} value={count} dec={() => setCount((c) => Math.max(2, c - 1))} inc={() => setCount((c) => Math.min(12, c + 1))} />
+          {!board && (
+            <Stepper label={group ? t('Runden') : t('Duelle')} value={rounds}
+              dec={() => setRounds((r) => Math.max(Math.min(3, maxRounds), r - 1))} inc={() => setRounds((r) => Math.min(maxRounds, r + 1))} />
+          )}
         </div>
         <p className="small muted center" style={{ margin: 0 }}>
-          {group ? t('Jedes Spiel nur einmal – max. {n} Runden.', { n: maxRounds }) : t('Jedes Spiel nur einmal – max. {n} Duelle.', { n: maxRounds })}<br />
-          {group
-            ? t('Die letzte Runde ist das Finale mit doppelten Punkten.')
-            : `Warm-up: ${Math.max(1, Math.ceil((rounds - 1) * 0.5))} · Chaos: ${rounds - 1 - Math.max(1, Math.ceil((rounds - 1) * 0.5))} · Sudden Death: 1`}
+          {board ? t('Ca. {n} Challenges – alle spielen jede Challenge.', { n: BOARD_LENGTHS[boardLength].rounds })
+            : group ? t('Die letzte Runde ist das Finale mit doppelten Punkten.')
+              : t('Das letzte Duell ist der Sudden Death.')}
         </p>
-      </div>}
-
-      <div className="card row">
-        <div className="grow">
-          <b>🤫 {t('Stealth-/Uni-Modus')}</b>
-          <div className="small muted">{t('Nur leise, unauffällige Spiele – ohne Töne, Rufen oder Aufstehen. Perfekt für Vorlesung & Bibliothek.')}</div>
-        </div>
-        <button className={`chip ${stealth ? 'on' : ''}`} onClick={() => setStealth((v) => !v)}>{stealth ? '🤫' : '🔊'}</button>
       </div>
 
-      {!stealth && <div className="card row">
-        <div className="grow">
-          <b>⚡ {t('Spontane Live-Events')}</b>
-          <div className="small muted">
-            {board
-              ? t('Zwischendurch unerwartete Vollbild-Alarme – der Langsamste geht ein Feld zurück.')
-              : group ? t('Zwischendurch unerwartete Vollbild-Alarme – der Langsamste verliert einen Punkt.')
-              : t('Zwischen den Duellen unerwartete Vollbild-Alarme – der Langsamste trinkt 5 Schlücke.')}
-          </div>
+      <details className="fold">
+        <summary>
+          <span>⚙️ {t('Weitere Einstellungen')}</span>
+          <span className="small muted" style={{ fontWeight: 600 }}>
+            {[stealth && '🤫', !stealth && liveEvents && '⚡', equipment.length ? EQUIPMENT.filter((e) => equipment.includes(e.id)).map((e) => e.icon).join('') : null].filter(Boolean).join(' ')}
+          </span>
+        </summary>
+        <div className="stack" style={{ gap: 14 }}>
+          {!group && (
+            <div className="stack" style={{ gap: 6 }}>
+              <b>{t('Vorhandene Utensilien')}</b>
+              <div className="row wrap">
+                {EQUIPMENT.map((e) => (
+                  <button key={e.id} className={`chip ${equipment.includes(e.id) ? 'on' : ''}`} onClick={() => toggle(e.id)}>{e.icon} {t(e.label)}</button>
+                ))}
+              </div>
+              <span className="small muted">{t('Ohne Auswahl: nur Spiele, die nichts brauchen.')}</span>
+            </div>
+          )}
+          <label className="row" style={{ gap: 12, cursor: 'pointer' }}>
+            <input type="checkbox" checked={stealth} onChange={(e) => setStealth(e.target.checked)} style={{ width: 22, height: 22, flexShrink: 0 }} />
+            <span><b>🤫 {t('Stealth-/Uni-Modus')}</b><br /><span className="small muted">{t('Nur leise Spiele, keine Töne – z. B. für Vorlesung & Bibliothek.')}</span></span>
+          </label>
+          {!stealth && (
+            <label className="row" style={{ gap: 12, cursor: 'pointer' }}>
+              <input type="checkbox" checked={liveEvents} onChange={(e) => setLiveEvents(e.target.checked)} style={{ width: 22, height: 22, flexShrink: 0 }} />
+              <span><b>⚡ {t('Spontane Live-Events')}</b><br /><span className="small muted">
+                {board
+                  ? t('Zwischendurch unerwartete Vollbild-Alarme – der Langsamste geht ein Feld zurück.')
+                  : group ? t('Zwischendurch unerwartete Vollbild-Alarme – der Langsamste verliert einen Punkt.')
+                    : t('Zwischen den Duellen unerwartete Vollbild-Alarme – der Langsamste trinkt 5 Schlücke.')}
+              </span></span>
+            </label>
+          )}
         </div>
-        <button className={`chip ${liveEvents ? 'on' : ''}`} onClick={() => setLiveEvents((v) => !v)}>{liveEvents ? t('An') : t('Aus')}</button>
-      </div>}
+      </details>
 
-      <button className="btn primary lg block" disabled={busy || !uid || (mode === 'mobile' && !name.trim())} onClick={create}>{t('Raum erstellen')}</button>
+      <details className="fold">
+        <summary><span>🎮 {t('{n} Spiele dabei', { n: library.length })}</span></summary>
+        <div className="row wrap" style={{ gap: 6 }}>
+          {library.map((g) => <span key={g.id} className="pill" style={{ background: `color-mix(in srgb, ${g.accent} 16%, var(--card))`, paddingLeft: 4 }}><GameArt game={g} size={20} /> {t(g.name)}</span>)}
+        </div>
+      </details>
+
+      <button className="btn primary lg block sticky-cta" disabled={busy || !uid || (mode === 'mobile' && !name.trim())} onClick={create}>
+        {mode === 'mobile' && !name.trim() ? t('Gib oben deinen Namen ein') : `🚀 ${t('Raum erstellen')}`}
+      </button>
       {toastNode}
     </div>
   );
