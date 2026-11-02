@@ -8,6 +8,7 @@ import {
 import { useGo, CountdownView, Waiting } from './shared.jsx';
 import { EXTRA_GROUP_GAMES } from './GroupExtras.jsx';
 import { TEAM_GAMES } from './TeamGames.jsx';
+import { SCREEN_GAMES } from './screen/index.js';
 import { sfx, vibrate, isSilent } from '../lib/sound.js';
 import { t, speechLang } from '../i18n/index.js';
 
@@ -287,5 +288,5 @@ const ChainStory = {
 };
 
 export const GROUP_GAMES = {
-  whoMost: WhoMost, syncTest: SyncTest, hivemind: Hivemind, confession: Confession, chainStory: ChainStory, ...EXTRA_GROUP_GAMES, ...TEAM_GAMES,
+  whoMost: WhoMost, syncTest: SyncTest, hivemind: Hivemind, confession: Confession, chainStory: ChainStory, ...EXTRA_GROUP_GAMES, ...TEAM_GAMES, ...SCREEN_GAMES,
 };

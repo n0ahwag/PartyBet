@@ -5,6 +5,7 @@ import {
   shakeResult, seesawResult, wheelResult, flashResult, relayResult, relayState, teamHivemindResult, teamsOfRound, RELAY_MS,
 } from '../../game/teams.js';
 import { useHostSim, SIM_GAMES } from './useHostSim.js';
+import { useScreenDirector } from './useScreenDirector.js';
 import {
   pointsForRanks, tallyVotes, syncResult, hivemindResult, confessionResult, storyState, storyResult,
 } from '../../game/group.js';
@@ -99,6 +100,9 @@ export function GroupHostControls({ code, room, round, byId, run, busy, children
 
   // Gemeinsam gesteuerte Spiele (Rafting, Touch-Parcours): der Host rechnet
   useHostSim({ code, round, active: SIM_GAMES.includes(round?.gameId), finish: (payload) => once(`${round.id}:sim`, () => finish(payload)) });
+
+  // Hauptbildschirm-Spiele: die Regie läuft auf dem Hauptbildschirm (Host-Gerät)
+  useScreenDirector({ code, round, active: !!game?.needsScreen, finish: (payload) => once(`${round.id}:screen`, () => finish(payload)) });
 
   // Mathe-Staffel: nach dem Zeitlimit auswerten (wer weiter ist, gewinnt)
   const latest = useRef(round);

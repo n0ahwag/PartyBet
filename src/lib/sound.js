@@ -89,6 +89,12 @@ export const sfx = {
     tone(300, { dur: 0.8, type: 'sine', gain: 0.2, slideTo: 900 });
     tone(900, { start: 0.1, dur: 0.7, type: 'sine', gain: 0.12, slideTo: 250 });
   },
+  // Hauptbildschirm-Spiele
+  buzzer: () => { tone(140, { dur: 0.55, type: 'sawtooth', gain: 0.22 }); tone(147, { dur: 0.55, type: 'square', gain: 0.12 }); },
+  gavel: () => { tone(180, { dur: 0.09, type: 'square', gain: 0.3, slideTo: 90 }); tone(160, { start: 0.22, dur: 0.12, type: 'square', gain: 0.3, slideTo: 70 }); },
+  jingle: () => { [523, 659, 784, 659, 1047].forEach((f, i) => tone(f, { start: i * 0.11, dur: 0.16, type: 'triangle', gain: 0.16 })); },
+  whoosh: () => tone(900, { dur: 0.35, type: 'sine', gain: 0.12, slideTo: 180 }),
+  putt: () => tone(520, { dur: 0.06, type: 'triangle', gain: 0.18 }),
   beat: () => { tone(160, { dur: 0.12, type: 'sine', gain: 0.5, slideTo: 60 }); tone(2400, { dur: 0.03, type: 'square', gain: 0.05 }); },
 };
 

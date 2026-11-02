@@ -117,7 +117,9 @@ export function GroupRound({ code, round, byId, me, big = false, run, isHost = f
       </>
     );
   }
-  return <div className="stack slide-up">{header}{body}</div>;
+  // Hauptbildschirm-Spiele bringen auf dem großen Bildschirm ihren eigenen Titel mit
+  const ownHeader = game.needsScreen && round.stage === 'playing' && !(me && round.participants.includes(me.id));
+  return <div className="stack slide-up">{!ownHeader && header}{body}</div>;
 }
 
 /** Gesamtpunktestand. */

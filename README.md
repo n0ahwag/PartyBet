@@ -56,6 +56,26 @@ Die App teilt die Gruppe in **Team Blau** und **Team Orange** (bei ungleich gro�
 - 🎯 **Touch-Parcours**: Kugel steht beim Schnitt aller Schieberegler des Teams, 3 Leben.
 - 🧠 **Team-Mehrheits-Duell**: größter Anteil exakt gleicher Begriffe im Team gewinnt.
 
+## 📺 Hauptbildschirm-Spiele (TV/Laptop + Handys als Controller)
+
+Nur verfügbar, wenn der Raum mit **Hauptbildschirm** erstellt wurde (Gruppen-Modus & Bibliotheks-Lobby, ab 2 Spielern). Der große Bildschirm zeigt das Geschehen im farbenfrohen Konsolen-Look, die Handys sind helle, aufgeräumte Controller.
+- 🎙️ **Die Live-Quiz-Show**: Spielbrett mit 3 Kategorien × 100/200/300. Buzzer am Handy (Server-Zeit entscheidet), wer zuerst drückt, antwortet (A–D). Richtig = Wert, falsch = −½ Wert und gesperrt, die anderen dürfen nachbuzzern. Wer richtig lag, wählt das nächste Feld.
+- ⛳ **Party-Minigolf**: 3 Bahnen (Wände, Bumper, Sand), alle gleichzeitig. Schleuder-Mechanik am Handy (zurückziehen & loslassen), der Ball rollt auf dem TV. Max. 6 Schläge pro Bahn, wenige Schläge gewinnen.
+- 🚀 **Raumschiff-Chaos** (kooperativ): Jedes Handy ist ein anderes Schaltpult (Schalter, Knöpfe, Regler 0–3). Befehle erscheinen meist bei jemand anderem – laut zurufen! Erledigt = Kurs zum Planeten, verpasst = Hüllenschaden. Landung = alle 3 Punkte.
+- 🔨 **Das Biet-Duell**: 5 Runden, 20 Münzen, verdeckte Gebote. Höchstes Gebot gewinnt (Gleichstand: alle Höchstbietenden), Gebote sind weg. Live-Preiskurve auf dem TV. Meiste Gegenstände gewinnen (Münzen als Tiebreak).
+- 🏎️ **Party-Rennen**: Rundkurs aus der Vogelperspektive, 3 Runden. Handy: ◀ ▶ und ⚡ Boost (am PC Pfeiltasten + Leertaste). Öl = Schleudern, Hütchen = Bremse, Blitze = Boost auffüllen.
+- 🔍 **Wimmelbild-Rennen**: Riesiges Wimmelbild (aus dem Seed auf allen Geräten identisch). Gesucht: z. B. „Pinguin mit Krone“. Am Handy zoomen/verschieben und antippen – der schnellste Treffer (Server-Zeit) holt den Punkt, falsch = 2 s Sperre.
+
+**Echtzeit-Architektur** (`rooms/{code}/rounds/{id}`):
+
+| Feld | Wer schreibt | Inhalt |
+|---|---|---|
+| `game` | Host beim Start | fester Startzustand aus dem Seed (Fragen, Bahnen, Strecke, Wimmelbild …) |
+| `results.{uid}` | **nur das eigene Handy** (Firestore-Regeln) | Eingaben: Buzzer `{k, at: serverTimestamp}`, Schläge, Schalter, Gebote, Lenkung |
+| `sim` | **nur der Hauptbildschirm** (Regie) | Phase, Timer, Punkte, Positionen – 10 Hz gerechnet, nur bei Änderung geschrieben (Rennen ≤ 5×/s) |
+
+Die Regie (`director.start / tick`) ist pro Spiel eine reine Funktion ohne Firebase – dadurch komplett mit Vitest getestet (`tests/screen.test.js`). Lädt der Hauptbildschirm neu, geht es mit `round.sim` weiter. Soundeffekte (Buzzer, Auktions-Hammer, Renn-Jingle, Ticken) spielt der Hauptbildschirm.
+
 ## 🤫 Stealth-/Uni-Modus
 
 Der Modus lässt sich beim Erstellen jeder Party und der Bibliotheks-Lobby einschalten. Es gibt dann nur **leise, unauffällige Spiele** (Flag `quiet`): kein Rufen, kein Aufstehen, kein Ton nötig. Dazu gehören z. B. Der fliegende Teppich, Wasserwaage, Kopfrechnen, Zahlen-Merker, die Arcade-Spiele, „Wer am ehesten“ und das Beicht-Quiz. Alle Geräte der Party sind lautlos (Vibration bleibt), die Ketten-Story wird nicht vorgelesen, und Live-Events sind aus. In der Bibliotheks-Lobby filtert „🤫 Leise“ die Auswahl.
@@ -130,12 +150,17 @@ Google AdSense ist vorbereitet (Anzeigen nur auf ruhigen Seiten, `ads.txt`, Best
     │   ├── liveEvents.js      Live-Event-Katalog & Trigger-Regeln
     │   ├── group.js           Gruppen-Modus: Gruppen-Spiele, Bibliothek je Modus, Punkte (pure)
     │   ├── groupEngine.js     Gruppen-Modus: Runden & Punkte in Firestore
+    │   ├── screen/            📺 Hauptbildschirm-Spiele: Logik & Regie (pure, getestet)
+    │   │   ├── index.js       Registrierung (GAMES, Kategorie) + DIRECTORS
+    │   │   ├── common.js      Echtzeit-Modell, Auswertung, Server-Zeit-Helfer
+    │   │   └── quizShow.js · minigolf.js · spaceship.js · auction.js · racer.js · hiddenObject.js
     │   └── wrapped.js         Statistik → Wrapped-Karten (Party & Spielfeld)
     ├── hooks/                 useRoom (Realtime-Abo), usePhaseFx, Countdown, Auth
     ├── components/            Lobby, DuelVs, BetPanel, PowerupPanel, HostControls, Rescue, LiveEventOverlay, …
     │   ├── board/             Board3D (isometrische Karte & Themen), Dice (Würfel), BoardRound, BoardHostControls
-    │   └── group/             GroupRound, PointsBoard, GroupHostControls
+    │   └── group/             GroupRound, PointsBoard, GroupHostControls, useHostSim, useScreenDirector (Regie-Schleife)
     ├── minigames/             Ein Modul pro Spiel: { Play, Stage, Review, GroupPlay?, GroupStage? } + format.js
+    │   └── screen/            📺 TV-Ansicht (Stage) + Handy-Controller (Play) je Hauptbildschirm-Spiel, ui.jsx (Konsolen-Look)
     ├── screens/               Home, CreateRoom, JoinRoom, HostScreen, PlayerController, Wrapped, Library, Practice
     ├── i18n/                  Übersetzungen (Deutsch/Englisch), t(), Sprachwahl
     ├── lib/                   Sound, Seed-RNG, Router, Geräte-Fähigkeiten

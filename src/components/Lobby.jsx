@@ -19,7 +19,7 @@ export function Lobby({ code, room, players, meId, isHost, run, busy, big }) {
   const equipment = EQUIPMENT.filter((e) => room.equipment.includes(e.id));
 
   const startAnyway = () => run(async () => {
-    await updateLobby(code, { expectedPlayers: players.length, equipment: room.equipment, totalRounds: room.totalRounds, gameMode: room.gameMode, stealth: !!room.stealth });
+    await updateLobby(code, { expectedPlayers: players.length, equipment: room.equipment, totalRounds: room.totalRounds, gameMode: room.gameMode, stealth: !!room.stealth, screen: room.mode === 'screen' });
     await start();
   });
 
