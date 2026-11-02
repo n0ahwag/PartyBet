@@ -17,45 +17,61 @@ function walkOf(m) {
 const EFFECT_SOUND = { rocket: 'rocket', portal: 'portal', chaos: 'alarm', stumble: 'fail' };
 
 /**
- * Animiert nach jeder gezogenen Runde (einmal pro Runde und Gerät):
- *  1. alle Figuren laufen Feld für Feld bis zu ihrem Landefeld,
- *  2. für jedes Sonderfeld erscheint nacheinander eine große Einblendung (banner),
- *     danach springt die Figur (Rakete vor, Portal-Tausch, Stolperstein zurück).
- * @returns { positions, banner, finished } – banner = { playerId, move } oder null; finished = Zug fertig animiert
+ * Animiert jeden Zug, sobald er gezogen wurde (Würfeln der Reihe nach → ein Zug nach dem anderen):
+ *  1. die Figur läuft Feld für Feld bis zu ihrem Landefeld,
+ *  2. für jedes Hindernis / Sonderfeld erscheint eine große Einblendung (banner),
+ *     danach springt die Figur (Rakete vor, Portal-Tausch, Stolperstein zurück, Absturz).
+ * Züge, die beim Öffnen der Seite schon gelaufen sind, werden nicht nachgespielt.
+ * @returns { positions, banner, finished, animated }
+ *   finished = Runde gezogen und alle Züge fertig animiert · animated = Set der fertig animierten Spieler
  */
 export function useAnimatedPositions(players, round) {
   const actual = Object.fromEntries(players.map((p) => [p.id, p.position ?? 0]));
-  const [anim, setAnim] = useState(null);
+  const [anim, setAnim] = useState(null); // { uid: Feld } – Anzeige-Overrides während einer Animation
   const [banner, setBanner] = useState(null);
-  const [finished, setFinished] = useState(null); // Runde, deren Zug-Animation fertig ist
-  const done = useRef(null);
+  const [animated, setAnimated] = useState(() => new Set());
+  const [activeId, setActiveId] = useState(null); // wessen Figur gerade läuft
+  const st = useRef({ roundId: null, seen: new Set(), queue: [], busy: false, timers: [] });
+
+  // Runde gewechselt: Züge, die schon da sind, gelten als gesehen (kein Nachspielen nach Neuladen)
+  if (round?.id !== st.current.roundId) {
+    st.current.timers.forEach(clearTimeout);
+    st.current = { roundId: round?.id ?? null, seen: new Set(Object.keys(round?.moves || {})), queue: [], busy: false, timers: [], initial: true };
+  }
+  const moves = round?.moves || {};
+  st.current.moves = moves; // play() liest immer den neuesten Stand
+  const fresh = Object.keys(moves).filter((id) => !st.current.seen.has(id));
 
   useEffect(() => {
-    if (round?.stage !== 'resolved' || !round.moves || done.current === round.id) return undefined;
-    done.current = round.id;
-    const moves = round.moves;
-    const paths = Object.fromEntries(Object.entries(moves).map(([id, m]) => [id, walkOf(m)]));
-    const len = Math.max(...Object.values(paths).map((p) => p.length));
-    // Hindernisse & Sonderfelder in Zug-Reihenfolge (bester Platz zuerst, wie in applyRound)
-    const effects = Object.entries(moves)
-      .filter(([, m]) => !m.skipped)
-      .sort(([, a], [, b]) => (a.rank ?? 99) - (b.rank ?? 99))
-      .flatMap(([id, m]) => [
-        ...(m.obstacles || []).map((o) => ({ id, m, obstacle: o })),
-        ...(m.effect ? [{ id, m }] : []),
-      ]);
-    const timers = [];
-    let pos = Object.fromEntries(Object.entries(paths).map(([id, p]) => [id, p[0]]));
-    let step = 0;
-    sfx.dice();
-    setAnim(pos);
+    if (st.current.initial) { st.current.initial = false; setAnimated(new Set(st.current.seen)); setAnim(null); setBanner(null); }
+  }, [round?.id]);
 
+  const play = () => {
+    const s = st.current;
+    if (s.busy || !s.queue.length) return;
+    s.busy = true;
+    const id = s.queue.shift();
+    const m = s.moves?.[id];
+    const later = (fn, ms) => s.timers.push(setTimeout(fn, ms));
+    const done = () => {
+      setAnim(null); setBanner(null); setActiveId(null);
+      setAnimated((a) => new Set([...a, id]));
+      s.busy = false;
+      later(play, 150);
+    };
+    if (!m || m.skipped || (!m.steps && !m.effect && !(m.obstacles || []).length)) { done(); return; }
+    const path = walkOf(m);
+    setActiveId(id);
+    let pos = { [id]: path[0], ...(m.effect?.type === 'portal' && m.effect.with ? { [m.effect.with]: m.to } : {}) };
+    setAnim(pos);
+    sfx.dice();
+    const effects = [...(m.obstacles || []).map((o) => ({ obstacle: o })), ...(m.effect ? [{}] : [])];
     const runEffects = (i) => {
-      if (i >= effects.length) { setBanner(null); setAnim(null); setFinished(round.id); return; }
-      const { id, m, obstacle } = effects[i];
+      if (i >= effects.length) { done(); return; }
+      const { obstacle } = effects[i];
       setBanner({ playerId: id, move: m, obstacle });
       if (obstacle) { if (obstacle.ok) sfx.tusch(); else sfx.fail(); } else { const snd = EFFECT_SOUND[m.effect.type]; if (snd) sfx[snd]?.(); }
-      timers.push(setTimeout(() => {
+      later(() => {
         if (obstacle) {
           if (!obstacle.ok && obstacle.type === 'jump') pos = { ...pos, [id]: m.to };
         } else {
@@ -64,27 +80,45 @@ export function useAnimatedPositions(players, round) {
         }
         setAnim(pos);
         setBanner(null);
-        timers.push(setTimeout(() => runEffects(i + 1), 650));
-      }, BANNER_MS));
+        later(() => runEffects(i + 1), 700);
+      }, BANNER_MS);
     };
-
-    const walk = setInterval(() => {
+    let step = 0;
+    const walk = () => {
       step += 1;
-      if (step >= len) {
-        clearInterval(walk);
-        timers.push(setTimeout(() => runEffects(0), 250));
-        return;
-      }
+      if (step >= path.length) { later(() => runEffects(0), 300); return; }
       sfx.step();
-      pos = Object.fromEntries(Object.entries(paths).map(([id, p]) => [id, p[Math.min(step, p.length - 1)]]));
+      pos = { ...pos, [id]: path[step] };
       setAnim(pos);
-    }, STEP_MS);
-    return () => { clearInterval(walk); timers.forEach(clearTimeout); setBanner(null); };
-  }, [round?.id, round?.stage]); // eslint-disable-line react-hooks/exhaustive-deps
+      later(walk, STEP_MS);
+    };
+    later(walk, STEP_MS);
+  };
 
-  // Ohne Zug (oder schon gesehen) gilt die Runde sofort als fertig animiert
-  useEffect(() => { if (round?.stage === 'resolved' && !round.moves) setFinished(round.id); }, [round?.id, round?.stage]); // eslint-disable-line react-hooks/exhaustive-deps
-  return { positions: anim ? { ...actual, ...anim } : actual, banner, finished: round?.stage === 'resolved' && finished === round.id };
+  useEffect(() => {
+    if (!fresh.length) return;
+    fresh.forEach((id) => { st.current.seen.add(id); st.current.queue.push(id); });
+    play();
+  }); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => () => st.current.timers.forEach(clearTimeout), []);
+
+  // Noch nicht gestartete Züge: Figur bleibt sichtbar auf dem Startfeld (kein kurzes Aufblitzen am Ziel)
+  const hold = {};
+  for (const id of [...st.current.queue, ...fresh]) {
+    const m = moves[id];
+    if (!m) continue;
+    hold[id] = m.from;
+    if (m.effect?.type === 'portal' && m.effect.with) hold[m.effect.with] = m.to;
+  }
+  const allDone = Object.keys(moves).every((id) => animated.has(id)) && !st.current.busy && !st.current.queue.length && !fresh.length;
+  return {
+    positions: { ...actual, ...hold, ...(anim || {}) },
+    banner,
+    animated,
+    activeId,
+    finished: round?.stage === 'resolved' && allDone,
+  };
 }
 
 /** Große Vollbild-Einblendung, wenn jemand auf einem Sonderfeld landet oder an ein Hindernis kommt (auf allen Geräten). */

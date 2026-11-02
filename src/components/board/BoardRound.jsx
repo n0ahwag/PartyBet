@@ -1,7 +1,7 @@
 import { GAMES, CATEGORIES, resultComplete } from '../../game/gameLibrary.js';
 import { GameArt } from '../GameArt.jsx';
 import { useEffect, useRef, useState } from 'react';
-import { moveRule, bonusDice, FIELD_TYPES, rollDiceFor, rollersOf, rollOrder, hasRolled, challengesFor, ROLL_TURN_MS as TURN_MS } from '../../game/board.js';
+import { moveRule, bonusDice, FIELD_TYPES, rollDiceFor, rollersOf, rollOrder, hasRolled, currentRoller, challengesFor, ROLL_TURN_MS as TURN_MS } from '../../game/board.js';
 import { submitRoundResult, rollDice } from '../../game/boardEngine.js';
 import { Dice, ROLL_MS } from './Dice.jsx';
 import { Placements } from '../Placements.jsx';
@@ -138,11 +138,12 @@ function DiceStage({ code, round, byId, me, big, run, fields }) {
   const order = rollOrder(round, rollers);
   const skipped = round.participants.filter((id) => !rollers.includes(id));
   const rolled = (id) => hasRolled(round, id) || (me?.id === id && tapped);
-  const current = order.find((id) => !hasRolled(round, id)) ?? null; // wer gerade dran ist (auch während der Proben)
+  const current = currentRoller(round, rollers); // wer gerade dran ist: würfelt oder zieht noch
+  const moving = !!(current && round.moves?.[current]);
   const mine = me && rollers.includes(me.id);
-  const myTurn = mine && current === me.id && !tapped;
+  const myTurn = mine && current === me.id && !tapped && !hasRolled(round, me.id);
   const ahead = mine ? order.indexOf(me.id) - (current ? order.indexOf(current) : order.length) : 0;
-  const turnLeft = useTurnLeft(current ? `${round.id}:${current}` : null);
+  const turnLeft = useTurnLeft(current && !moving ? `${round.id}:${current}` : null);
   const diceOf = (id) => rollDiceFor(seed, id, round.ranks[id] ?? n, n);
   const sumOf = (id) => diceOf(id).reduce((a, x) => a + x.value, 0);
   const resultText = (id) => {
@@ -196,7 +197,7 @@ function DiceStage({ code, round, byId, me, big, run, fields }) {
             label={!rolled(me.id) && (myTurn
               ? <b style={{ fontSize: 20 }}>👆 {t('Tippen zum Würfeln!')}</b>
               : <span className="small muted" style={{ fontWeight: 700 }}>
-                ⏳ {current ? t('{name} würfelt gerade', { name: byId[current]?.name }) : ''}{ahead > 1 ? ` · ${t('noch {n} vor dir', { n: ahead })}` : ''}
+                ⏳ {current ? (moving ? t('{name} zieht …', { name: byId[current]?.name }) : t('{name} würfelt gerade', { name: byId[current]?.name })) : ''}{ahead > 1 ? ` · ${t('noch {n} vor dir', { n: ahead })}` : ''}
               </span>)}
             result={resultText(me.id)} />
         </div>
@@ -208,7 +209,7 @@ function DiceStage({ code, round, byId, me, big, run, fields }) {
         <div className="card stack" style={{ gap: 10 }}>
           <div className="row between">
             <h3 style={{ margin: 0 }}>🎲 {t('Würfel-Reihenfolge')}</h3>
-            {current && <span className="pill">{t('{a}/{b} gewürfelt', { a: order.filter(rolled).length, b: order.length })}</span>}
+            {current && <span className="pill">{t('{a}/{b} gezogen', { a: order.filter((id) => round.shown?.[id]).length, b: order.length })}</span>}
           </div>
           <div className="roll-queue">
             {order.map((id) => {
@@ -222,7 +223,9 @@ function DiceStage({ code, round, byId, me, big, run, fields }) {
                   <div className="grow" style={{ minWidth: 0 }}>
                     <b style={{ fontSize: big ? 22 : 16 }}>{p?.name}{id === me?.id ? ` (${t('du')})` : ''}</b>
                     <div className="small muted" style={{ fontWeight: 700 }}>
-                      {isCur && !done ? `🎲 ${t('würfelt …')}${turnLeft <= 10 ? ` (${t('automatisch in {n} s', { n: turnLeft })})` : ''}` : kindText(id)}
+                      {isCur && round.moves?.[id] ? `🚶 ${t('zieht …')}`
+                        : isCur && !done ? `🎲 ${t('würfelt …')}${turnLeft <= 10 ? ` (${t('automatisch in {n} s', { n: turnLeft })})` : ''}`
+                          : round.moves?.[id] ? moveText(round.moves[id], byId) : kindText(id)}
                     </div>
                   </div>
                   <div className="roll-dice">
@@ -247,7 +250,7 @@ function DiceStage({ code, round, byId, me, big, run, fields }) {
       )}
       <p className="center muted" style={{ margin: 0, fontWeight: 700 }}>
         {!rollers.length ? t('Diesmal würfelt niemand – gleich wird gezogen.')
-          : current ? t('{name} ist dran mit Würfeln.', { name: byId[current]?.name }) : `✅ ${t('Alle haben gewürfelt – gleich wird gezogen!')}`}
+          : current ? (moving ? `🚶 ${t('{name} zieht …', { name: byId[current]?.name })}` : t('{name} ist dran mit Würfeln.', { name: byId[current]?.name })) : `✅ ${t('Alle sind gezogen!')}`}
       </p>
     </div>
   );

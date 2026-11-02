@@ -26,7 +26,7 @@ import { GroupHostControls } from '../components/group/GroupHostControls.jsx';
 export function PlayerController({ uid, code }) {
   const { room, players, byId, duel, round, rescues, online, loading } = useRoom(code);
   const overlay = usePhaseFx(room, duel ?? round);
-  const { positions, banner, finished: animDone } = useAnimatedPositions(players, round);
+  const { positions, banner, finished: animDone, animated, activeId } = useAnimatedPositions(players, round);
   // Neu geräumte Felder erst nach der Zug-Animation von der Karte nehmen
   const shownCleared = (room?.board?.cleared || []).filter((i) => animDone || round?.stage !== 'resolved' || !(round?.cleared || []).includes(i));
   const [toast, toastNode] = useToast();
@@ -109,7 +109,7 @@ export function PlayerController({ uid, code }) {
               <FieldBanner banner={banner} byId={byId} />
               <BoardMap fields={room.board.fields} cleared={shownCleared} players={players} positions={positions} theme={room.board.theme} meId={uid} focus={banner?.playerId} compact
                 reserve={(isHost ? 430 : 250) + (round?.winnerId || (round?.chaos && !round?.chaosDone) ? 90 : 0)} />
-              {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} animDone={animDone} />}
+              {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} animDone={animDone} animated={animated} />}
               {!round && !isHost && <div className="card center muted">{t("Gleich geht's los…")}</div>}
               <div className="grid-2">
                 <button className={`btn ghost sm ${showBoard === 'moves' ? 'on' : ''}`} disabled={round?.stage !== 'resolved'}
@@ -122,7 +122,13 @@ export function PlayerController({ uid, code }) {
           ) : (
             <>
               <BoardRound code={code} round={round} byId={byId} me={me} run={run} fields={effectiveFields(room.board.fields, room.board.cleared)} live={room.mode === 'screen'} />
-              {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} animDone={animDone} />}
+              {round?.stage === 'review' && (
+                <>
+                  <FieldBanner banner={banner} byId={byId} />
+                  <BoardMap fields={room.board.fields} cleared={shownCleared} players={players} positions={positions} theme={room.board.theme} meId={uid} focus={banner?.playerId ?? activeId} compact reserve={420} />
+                </>
+              )}
+              {isHost && <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} animDone={animDone} animated={animated} />}
             </>
           )}
         </>

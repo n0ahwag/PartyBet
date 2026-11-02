@@ -13,7 +13,7 @@ import { t } from '../../i18n/index.js';
  */
 const lowPowerDevice = () => (navigator.hardwareConcurrency ?? 8) <= 4 || (navigator.deviceMemory ?? 8) <= 3;
 
-export function BoardMap({ fields, cleared = [], players, positions, theme, meId = null, compact = false, follow = false, reserve = 330, focus = null }) {
+export function BoardMap({ fields, cleared = [], players, positions, theme, meId = null, compact = false, follow = false, fill = false, reserve = 330, focus = null }) {
   const wrap = useRef(null);
   const canvas = useRef(null);
   const ctl = useRef(null);
@@ -61,7 +61,7 @@ export function BoardMap({ fields, cleared = [], players, positions, theme, meId
   if (state === 'failed') {
     return <BoardSvg fields={effectiveFields(fields, cleared)} players={players} positions={positions} meId={meId} compact={compact} follow={follow} reserve={reserve} focus={focus} seed={theme} />;
   }
-  const height = compact ? `clamp(300px, calc(100dvh - ${reserve}px), 560px)` : follow ? '68vh' : undefined;
+  const height = fill ? '100%' : compact ? `clamp(300px, calc(100dvh - ${reserve}px), 560px)` : follow ? '68vh' : undefined;
   return (
     <div className={`board-map ${compact ? 'compact' : ''}`} style={{ height, aspectRatio: height ? undefined : '4 / 3' }} ref={wrap}>
       <canvas key={sig} ref={canvas} style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none' }} aria-label={t('Spielfeld')} />

@@ -26,18 +26,22 @@ import { t } from '../i18n/index.js';
 export function HostScreen({ uid, code }) {
   const { room, players, byId, duel, round, rescues, online, loading } = useRoom(code);
   const overlay = usePhaseFx(room, duel ?? round);
-  const { positions, banner, finished: animDone } = useAnimatedPositions(players, round);
+  const { positions, banner, finished: animDone, animated, activeId } = useAnimatedPositions(players, round);
   // Neu geräumte Felder erst nach der Zug-Animation von der Karte nehmen
   const shownCleared = (room?.board?.cleared || []).filter((i) => animDone || round?.stage !== 'resolved' || !(round?.cleared || []).includes(i));
   const [toast, toastNode] = useToast();
   const [run, busy] = useAction(toast);
   // Spielfeld: Karte erst nach dem Ziehen (bzw. vor der ersten Challenge), sonst nur Spiel/Würfel
-  const boardMap = room?.gameMode === 'board' && (!round || round.stage === 'resolved');
   // Stealth-/Uni-Modus: dieses Gerät bleibt lautlos, solange es in der Party ist
   useEffect(() => { setStealth(room?.stealth); return () => setStealth(false); }, [room?.stealth]);
+  // Spielfeld auf dem Hauptbildschirm: festes Layout ohne Seiten-Scrollen (Karte links, Seitenleiste rechts)
+  const boardLayout = room?.gameMode === 'board' && room?.status === 'playing';
   useEffect(() => {
-    if (room?.gameMode === 'board') window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [room?.gameMode, round?.id, round?.stage]);
+    if (!boardLayout) return undefined;
+    window.scrollTo({ top: 0 });
+    document.documentElement.classList.add('no-page-scroll');
+    return () => document.documentElement.classList.remove('no-page-scroll');
+  }, [boardLayout]);
 
   if (loading) return <Loading text={t('Lade Arena…')} />;
   if (!room) return <div className="page center"><h2>{t('Raum {code} nicht gefunden', { code })}</h2><button className="btn" onClick={() => navigate('/')}>{t('Zur Startseite')}</button></div>;
@@ -79,26 +83,25 @@ export function HostScreen({ uid, code }) {
           </div>
         </div>
       ) : room.gameMode === 'board' ? (
-        <div className="host-grid">
-          <div className="stack">
-            {/* Immer nur eine Ansicht: Challenge/Würfel ODER (nach dem Ziehen) die Karte */}
-            {boardMap ? (
-              <>
-                <RoundBanners round={round} byId={byId} />
-                <FieldBanner banner={banner} byId={byId} />
-                <BoardMap fields={room.board.fields} cleared={shownCleared} players={players} positions={positions} theme={room.board.theme} follow focus={banner?.playerId} />
-                <FieldLegend />
-              </>
-            ) : <div className="card"><BoardRound code={code} round={round} byId={byId} me={null} big run={run} fields={effectiveFields(room.board.fields, room.board.cleared)} /></div>}
+        <div className="board-stage">
+          {/* Die Karte bleibt immer stehen – nur die Seitenleiste wechselt ihren Inhalt */}
+          <div className="board-stage-map">
+            <BoardMap fields={room.board.fields} cleared={shownCleared} players={players} positions={positions} theme={room.board.theme} follow fill focus={banner?.playerId ?? activeId} />
+            <div className="board-stage-banners"><RoundBanners round={round} byId={byId} /></div>
+            <FieldBanner banner={banner} byId={byId} />
           </div>
-          <div className="stack">
-            <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} animDone={animDone} />
+          <aside className="board-side">
+            {round && round.stage !== 'resolved' && (
+              <div className="card"><BoardRound code={code} round={round} byId={byId} me={null} run={run} fields={effectiveFields(room.board.fields, room.board.cleared)} /></div>
+            )}
+            <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} animDone={animDone} animated={animated} />
             <RoundMoves round={round} byId={byId} />
-            <div className="card stack">
-              <h3>{t('Wer führt?')}</h3>
-              <Standings players={players} fields={effectiveFields(room.board.fields, room.board.cleared)} />
-            </div>
-          </div>
+            <details className="card">
+              <summary><b>🏆 {t('Wer führt?')}</b></summary>
+              <div style={{ marginTop: 10 }}><Standings players={players} fields={effectiveFields(room.board.fields, room.board.cleared)} /></div>
+            </details>
+            <FieldLegend />
+          </aside>
         </div>
       ) : (
         <div className="host-grid">
