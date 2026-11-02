@@ -141,7 +141,7 @@ export function LibraryLobby({ code, room, players, byId, round, me, isHost, run
   );
   const main = round ? (
     <>
-      <div className="card"><GroupRound code={code} round={round} byId={byId} me={me} big={big} run={run} isHost={isHost} /></div>
+      <div className="card"><GroupRound code={code} round={round} byId={byId} me={me} big={big} run={run} isHost={isHost} live={room.mode === 'screen'} /></div>
       {round.stage === 'resolved' && <AfterRound code={code} round={round} isHost={isHost} run={run} busy={busy} players={players} />}
     </>
   ) : <GamePicker code={code} players={players} room={room} isHost={isHost} run={run} busy={busy} />;

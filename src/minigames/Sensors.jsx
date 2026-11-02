@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLiveValue } from './live.jsx';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
 import { ResultList } from './Anywhere.jsx';
 import { requestMotionPermission, requestOrientationPermission } from '../lib/device.js';
@@ -50,6 +51,7 @@ function SpiritLevel({ duel, submit }) {
   const { target, toleranceDeg, durationMs } = duel.game;
   const [step, setStep] = useState('perm');
   const [live, setLive] = useState({ db: 0, dg: 0, err: 99, cur: 0, best: 0, left: durationMs });
+  useLiveValue(step === 'run' ? Math.round(live.best / 100) * 100 : null);
   const st = useRef({ tilt: null, since: null, best: 0, done: false });
   const got = useRef(false);
   const n = useGo(step === 'count', () => setStep('run'));
@@ -141,6 +143,7 @@ function SafeCracker({ duel, submit }) {
   const [step, setStep] = useState('perm');
   const [total, setTotal] = useState(0);
   const [left, setLeft] = useState(timeoutMs);
+  useLiveValue(step === 'run' ? Math.round(clamp(total, 0, degrees)) : null);
   const st = useRef({ tracker: makeRotationTracker(), done: false, t0: 0 });
   const got = useRef(false);
   const n = useGo(step === 'count', () => { st.current.t0 = performance.now(); st.current.tracker = makeRotationTracker(); setStep('run'); });

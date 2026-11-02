@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLiveReport, useLiveValue } from './live.jsx';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
 import { ResultList } from './Anywhere.jsx';
 import {
@@ -48,6 +49,7 @@ export function ReadyView({ text, start, label }) {
 // ------------------------------------------------------------------ Pixel-Sprint
 function PixelSprint({ duel, submit }) {
   const course = useMemo(() => makeCourse(duel.game.seed), [duel.game.seed]);
+  const live = useLiveReport();
   const { step, setStep, n, start } = useArcade();
   const [score, setScore] = useState(null);
   const canvasRef = useRef(null);
@@ -111,6 +113,7 @@ function PixelSprint({ duel, submit }) {
       jump.current = false;
       const elapsed = now - t0;
       draw(elapsed);
+      live(runMeters(st.dist));
       if (!st.alive || elapsed >= RUN.maxMs) {
         const m = runMeters(st.dist);
         setScore(m);
@@ -139,6 +142,7 @@ function PixelSprint({ duel, submit }) {
 // ------------------------------------------------------------------ Block-Stacker
 function BlockStacker({ duel, submit }) {
   const seed = duel.game.seed;
+  const live = useLiveReport();
   const { step, setStep, n, start } = useArcade();
   const [res, setRes] = useState(null);
   const canvasRef = useRef(null);
@@ -216,6 +220,7 @@ function BlockStacker({ duel, submit }) {
             const cutW = cur.w - r.placed.w;
             if (cutW > 0) falling = { x: cur.x < top.x ? cur.x : r.placed.x + r.placed.w, w: cutW, y: H - 30 - (blocks.length + 1) * B + cam };
             blocks.push(r.placed);
+            live(blocks.length - 1);
             if (r.perfect) { perfects += 1; sfx.coins(); vibrate([20, 30, 20]); } else { sfx.tap(); vibrate(15); }
             if (blocks.length - 1 >= STACK.maxFloors) finish();
             const floor = blocks.length;
@@ -252,6 +257,7 @@ function LongJump({ duel, submit }) {
   const { step, setStep, n, start } = useArcade();
   const [phase, setPhase] = useState('idle'); // idle | charging | angle | flying
   const [jumps, setJumps] = useState([]);
+  useLiveValue(jumps.length ? Math.max(...jumps) : null);
   const [, force] = useState(0);
   const st = useRef({ t: 0, v: 0, deg: 0, fly: 0, landed: false });
   const canvasRef = useRef(null);
@@ -359,6 +365,7 @@ function LongJump({ duel, submit }) {
 // ------------------------------------------------------------------ Vertikal-Jumper
 function SkyJumper({ duel, submit }) {
   const platforms = useMemo(() => makePlatforms(duel.game.seed), [duel.game.seed]);
+  const live = useLiveReport();
   const { step, setStep, n, start } = useArcade(() => requestOrientationPermission());
   const [score, setScore] = useState(null);
   const canvasRef = useRef(null);
@@ -413,6 +420,7 @@ function SkyJumper({ duel, submit }) {
         }
       }
       best = Math.max(best, p.y);
+      live(Math.floor(best / 10));
       cam = Math.max(cam, p.y - H / sc * 0.45);
       // Zeichnen (Welt-y nach oben → Bildschirm-y nach unten)
       const sy = (y) => H - (y - cam) * sc;

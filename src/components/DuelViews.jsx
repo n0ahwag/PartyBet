@@ -8,6 +8,7 @@ import { DuelVs } from './DuelVs.jsx';
 import { BetPanel } from './BetPanel.jsx';
 import { PowerupPanel } from './PowerupPanel.jsx';
 import { Settlement } from './Settlement.jsx';
+import { LIVE, LiveBoard, LiveProvider } from '../minigames/live.jsx';
 import { t } from '../i18n/index.js';
 
 function WinnerBanner({ duel, byId }) {
@@ -45,6 +46,7 @@ export function DuelStage({ duel, byId, big = true }) {
       return (
         <div className="stage">
           <DuelVs duel={duel} byId={byId} compact />
+          {LIVE[duel.gameId] && <LiveBoard round={duel} byId={byId} ids={[duel.playerA, duel.playerB]} big={big} />}
           {mg.Stage ? <mg.Stage duel={duel} byId={byId} big={big} /> : <Rules game={game} />}
         </div>
       );
@@ -86,7 +88,9 @@ export function PlayerDuelView({ code, room, duel, me, byId, players, run }) {
       return (
         <div className="stack">
           {duel.sabotage?.target === me.id && <div className="card center" style={{ background: '#fee2e2' }}>🧪 {t('Sabotiert! Du')} {t(duel.sabotage.rule)}.</div>}
-          <mg.Play duel={duel} me={me} byId={byId} submit={submit} />
+          <LiveProvider code={code} coll="duels" id={duel.id} uid={me.id} on={onScreen}>
+            <mg.Play duel={duel} me={me} byId={byId} submit={submit} />
+          </LiveProvider>
         </div>
       );
     }

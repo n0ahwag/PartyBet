@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLiveReport, useLiveValue } from './live.jsx';
 import { CountdownView, Waiting } from './shared.jsx';
 import { setupCanvas, canvasWidth, useArcade, ReadyView, auto } from './Arcade.jsx';
 import {
@@ -77,6 +78,7 @@ function LevelHit({ duel, submit }) {
   const [level, setLevel] = useState(0);
   const [inMs, setInMs] = useState(0);
   const [left, setLeft] = useState(LEVEL.durationMs);
+  useLiveValue(step === 'run' ? Math.round(inMs / 100) * 100 : null);
 
   useEffect(() => {
     if (step !== 'run' || !mic.current) return undefined;
@@ -157,6 +159,7 @@ function BreathBalloon({ duel, submit }) {
   const [size, setSize] = useState(0);
   const [popped, setPopped] = useState(false);
   const [left, setLeft] = useState(BALLOON.timeMs);
+  useLiveValue(step === 'run' || popped ? (popped ? -1 : Math.round(size * 100)) : null);
   const stopRef = useRef(false);
   const sizeRef = useRef(0);
 
@@ -288,6 +291,7 @@ function TraceLine({ duel, submit }) {
 // ------------------------------------------------------------------ Heißer Draht
 function HotWire({ duel, submit }) {
   const path = useMemo(() => makeWire(duel.game.seed), [duel.game.seed]);
+  const live = useLiveReport();
   const { step, setStep, n, start } = useArcade(() => requestOrientationPermission());
   const [res, setRes] = useState(null);
   const canvasRef = useRef(null);
@@ -350,6 +354,7 @@ function HotWire({ duel, submit }) {
       const st = wireStep(path, ball, cx * WIRE.speed * 14 * dt, cy * WIRE.speed * 14 * dt);
       ball.x = st.x; ball.y = st.y;
       best = Math.max(best, st.progress);
+      live(Math.round(best * 100));
       // Berührung zählt einmal pro Kontakt (erst wieder, wenn die Kugel kurz frei war)
       let hit = false;
       if (st.touching && !wasTouching && now > safeUntil) {
@@ -410,6 +415,7 @@ function HigherLower({ duel, submit }) {
   const [reveal, setReveal] = useState(null); // { ok }
   const t0 = useRef(0);
   const [final, setFinal] = useState(null);
+  useLiveValue(step === 'run' ? i + (reveal?.ok ? 1 : 0) : null);
 
   useEffect(() => { if (step === 'run') t0.current = performance.now(); }, [step]);
 

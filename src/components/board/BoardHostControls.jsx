@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { GAMES, rankGroupRound, resultComplete, buildBracket, ranksFromBracket } from '../../game/gameLibrary.js';
-import { beginChallenge, setRanks, moveTokens, triggerChaos, setBracketWinner } from '../../game/boardEngine.js';
-import { rollersOf } from '../../game/board.js';
+import { beginChallenge, setRanks, moveTokens, triggerChaos, setBracketWinner, autoRoll } from '../../game/boardEngine.js';
+import { rollersOf, currentRoller, hasRolled, ROLL_TURN_MS } from '../../game/board.js';
 import { ROLL_MS } from './Dice.jsx';
-
-const AUTO_ROLL_MS = 40000;
 import { nextStep, triggerLiveEvent, finishGame } from '../../game/engine.js';
 import { sfx } from '../../lib/sound.js';
 import { t } from '../../i18n/index.js';
@@ -100,21 +98,32 @@ export function BoardHostControls({ code, room, round, byId, run, busy, animDone
     run(() => setRanks(code, round.id, rankGroupRound(round, round.participants)));
   }, [round, game, code, run]);
 
-  // Würfel-Phase: ziehen, sobald alle Würfler getippt haben (nach der Würfel-Animation).
-  // Wer nicht tippt, für den würfelt die App nach AUTO_ROLL_MS automatisch.
+  // Würfel-Phase (der Reihe nach): Wer dran ist und nicht innerhalb von ROLL_TURN_MS tippt,
+  // für den würfelt die App. Sind alle durch, wird nach der letzten Würfel-Animation gezogen.
+  const rollers = round?.stage === 'review' ? rollersOf(round, Object.values(byId)) : [];
+  const current = round?.stage === 'review' ? currentRoller(round, rollers) : null;
   useEffect(() => {
-    if (round?.stage !== 'review') return undefined;
+    if (round?.stage !== 'review' || !current) return undefined;
+    const key = `${round.id}:auto:${current}`;
+    const tm = setTimeout(() => {
+      if (fired.current[key]) return;
+      fired.current[key] = true;
+      run(() => autoRoll(code, round.id, current));
+    }, ROLL_TURN_MS);
+    return () => clearTimeout(tm);
+  }, [round?.id, round?.stage, current]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (round?.stage !== 'review' || current) return undefined;
     const key = `${round.id}:move`;
     if (fired.current[key]) return undefined;
-    const open = rollersOf(round, Object.values(byId)).filter((id) => !round.rolls?.[id]);
-    const wait = open.length ? Math.max(0, (round.reviewAt ?? Date.now()) + AUTO_ROLL_MS - Date.now()) : ROLL_MS + 1200;
     const tm = setTimeout(() => {
       if (fired.current[key]) return;
       fired.current[key] = true;
       run(() => moveTokens(code, round.id));
-    }, wait);
+    }, ROLL_MS + 1600);
     return () => clearTimeout(tm);
-  }, [round, byId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [round?.id, round?.stage, current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Challenge startet nach dem Regel-Countdown von selbst
   useEffect(() => {
@@ -197,10 +206,12 @@ export function BoardHostControls({ code, room, round, byId, run, busy, animDone
       );
     }
   } else if (round.stage === 'review') {
-    const open = rollersOf(round, Object.values(byId)).filter((id) => !round.rolls?.[id]).length;
+    const open = rollers.filter((id) => !hasRolled(round, id)).length;
     main = (
       <>
-        <p className="muted small" style={{ margin: 0 }}>{open ? t('Die Würfler tippen auf ihren Handys – nach 40 s würfelt die App für sie.') : t('Alle haben gewürfelt – die Figuren ziehen gleich.')}</p>
+        <p className="muted small" style={{ margin: 0 }}>
+          {open ? t('Es wird der Reihe nach gewürfelt – wer {n} s nicht tippt, für den würfelt die App.', { n: ROLL_TURN_MS / 1000 }) : t('Alle haben gewürfelt – die Figuren ziehen gleich.')}
+        </p>
         <button className="btn ghost sm" disabled={busy} onClick={() => { fired.current[`${round.id}:move`] = true; run(() => moveTokens(code, round.id)); }}>🎲 {t('Für alle würfeln & sofort ziehen')}</button>
       </>
     );

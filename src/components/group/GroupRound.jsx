@@ -1,4 +1,4 @@
-import { GAMES, CATEGORIES, resultComplete } from '../../game/gameLibrary.js';
+import { GAMES, CATEGORIES, resultComplete, rankFromScores } from '../../game/gameLibrary.js';
 import { GameArt } from '../GameArt.jsx';
 import { RANK_POINTS, FINAL_MULTIPLIER } from '../../game/group.js';
 import { submitGroupResult } from '../../game/groupEngine.js';
@@ -8,19 +8,21 @@ import { FORMAT_RESULT, revealOf } from '../../minigames/format.js';
 import { Rules, Waiting } from '../../minigames/shared.jsx';
 import { t } from '../../i18n/index.js';
 import { useSecondsLeft } from '../../hooks/useCountdown.js';
+import { LiveBoard, LiveProvider } from '../../minigames/live.jsx';
+import { Placements } from '../Placements.jsx';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
 
 /** Punkte-Vergabe dieser Runde (sortiert). */
-function PointsList({ round, byId, meId }) {
+function PointsList({ round, ranks: shownRanks = round.ranks, byId, meId }) {
   const game = GAMES[round.gameId];
   const fmt = FORMAT_RESULT[round.gameId];
   const ids = [...round.participants].sort((a, b) => (round.points?.[b] ?? 0) - (round.points?.[a] ?? 0)
-    || (round.ranks?.[a] ?? 99) - (round.ranks?.[b] ?? 99));
+    || (shownRanks?.[a] ?? 99) - (shownRanks?.[b] ?? 99));
   return (
     <div className="stack" style={{ gap: 8 }}>
       {ids.map((id) => {
-        const rank = round.ranks?.[id];
+        const rank = shownRanks?.[id];
         const res = round.results?.[id];
         return (
           <div key={id} className={`player-row ${id === meId ? 'me' : ''}`}>
@@ -41,7 +43,7 @@ function PointsList({ round, byId, meId }) {
 /**
  * Eine Gruppen-Runde. me = Spieler auf diesem Handy (null auf dem Hauptbildschirm).
  */
-export function GroupRound({ code, round, byId, me, big = false, run, isHost = false }) {
+export function GroupRound({ code, round, byId, me, big = false, run, isHost = false, live = false }) {
   const game = GAMES[round.gameId];
   const social = GROUP_GAMES[round.gameId];
   const mg = MINIGAMES[round.gameId];
@@ -77,33 +79,41 @@ export function GroupRound({ code, round, byId, me, big = false, run, isHost = f
         : <social.Stage round={round} byId={byId} big={big} />;
     } else {
       const done = (id) => resultComplete(round.gameId, round.results?.[id]);
-      const progress = game.judge === 'auto' && (
-        <div className="row wrap" style={{ gap: 6 }}>
-          {round.participants.map((id) => <span key={id} className={`pill ${done(id) ? 'good' : ''}`}>{byId[id]?.avatar} {byId[id]?.name} {done(id) ? '✓' : '…'}</span>)}
-        </div>
-      );
+      const board = game.judge === 'auto' && <LiveBoard round={round} byId={byId} meId={me?.id} big={big} />;
       if (me && game.judge === 'auto' && round.participants.includes(me.id)) {
         const Play = mg.GroupPlay ?? mg.Play;
         body = done(me.id)
-          ? <><Waiting text={`✓ ${t('Abgegeben – warte auf die anderen…')}`} />{progress}</>
-          : <Play duel={round} me={me} byId={byId} submit={(k, data) => run(() => submitGroupResult(code, round.id, k ?? me.id, data))} />;
+          ? <><Waiting text={`✓ ${t('Abgegeben – warte auf die anderen…')}`} />{board}</>
+          : (
+            <LiveProvider code={code} id={round.id} uid={me.id} on={live}>
+              <Play duel={round} me={me} byId={byId} submit={(k, data) => run(() => submitGroupResult(code, round.id, k ?? me.id, data))} />
+            </LiveProvider>
+          );
       } else {
         body = (
           <>
-            {mg.GroupStage ? <mg.GroupStage duel={round} byId={byId} big={big} /> : <Rules game={shownGame} />}
-            {game.judge === 'auto' ? progress : <p className="center muted" style={{ fontWeight: 700, margin: 0 }}>{t('Der Host trägt die Platzierung ein.')}</p>}
+            {mg.GroupStage ? <mg.GroupStage duel={round} byId={byId} big={big} /> : game.judge !== 'auto' && <Rules game={shownGame} />}
+            {game.judge === 'auto' ? board : <p className="center muted" style={{ fontWeight: 700, margin: 0 }}>{t('Der Host trägt die Platzierung ein.')}</p>}
           </>
         );
       }
     }
   } else {
     const reveal = !social && revealOf(round);
+    // Platzierung: aus der Auswertung – bei sozialen Spielen ohne Plätze nach den Punkten dieser Runde
+    const pts = round.points || {};
+    const ranks = round.ranks ?? (new Set(round.participants.map((id) => pts[id] ?? 0)).size > 1
+      ? rankFromScores(round.participants, (id) => -(pts[id] ?? 0)) : null);
     body = (
       <>
         {social?.Result && <social.Result round={round} byId={byId} isHost={isHost} />}
         {reveal && <div className="card tinted center"><b>{reveal}</b></div>}
+        {ranks && (
+          <Placements round={round} ranks={ranks} byId={byId} meId={me?.id} big={big} showRest={false}
+            extra={(id) => <span className={`pill ${pts[id] ? 'good' : ''}`}>+{pts[id] ?? 0} P</span>} />
+        )}
         <h3>{t('Punkte dieser Runde')}{round.multiplier > 1 ? ` (×${round.multiplier})` : ''}</h3>
-        <PointsList round={round} byId={byId} meId={me?.id} />
+        <PointsList round={round} ranks={ranks} byId={byId} meId={me?.id} />
       </>
     );
   }
