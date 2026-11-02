@@ -71,7 +71,8 @@ export async function startChallenge(code) {
       introEndsAt: Date.now() + BOARD_INTRO_MS, // Regeln lesen, dann startet die Challenge von selbst
       results: {},
       ranks: null,
-      rolls: {}, // Spieler tippen zum Würfeln: rolls[uid] = true (Wert: diceFor)
+      rolls: {}, // Spieler tippen zum Würfeln (der Reihe nach): rolls[uid] = true (Wert: diceFor)
+      autoRolls: {},
       moves: null,
       chaos: false,
       chaosDone: false,
@@ -99,7 +100,7 @@ export async function submitRoundResult(code, id, uid, data) {
 
 /** ranks = { uid: Platz } – automatisch (Auto-Spiele) oder vom Host eingetragen. */
 export async function setRanks(code, id, ranks) {
-  await updateDoc(roundRef(code, id), { stage: 'review', ranks, rolls: {}, reviewAt: Date.now() });
+  await updateDoc(roundRef(code, id), { stage: 'review', ranks, rolls: {}, autoRolls: {}, reviewAt: Date.now() });
 }
 
 /**
@@ -108,6 +109,11 @@ export async function setRanks(code, id, ranks) {
  */
 export async function rollDice(code, id, uid, ch = null) {
   await updateDoc(roundRef(code, id), { [`rolls.${uid}`]: ch ? { ch } : true });
+}
+
+/** Host: Wer nicht rechtzeitig tippt, für den würfelt die App (Proben unterwegs gelten dann als verpatzt). */
+export async function autoRoll(code, id, uid) {
+  await updateDoc(roundRef(code, id), { [`autoRolls.${uid}`]: true });
 }
 
 /** Würfeln & ziehen: Bewegung + Sonderfelder für alle, Phase und Sieger bestimmen. */
@@ -121,7 +127,7 @@ export async function moveTokens(code, id) {
     const players = snaps.filter((s) => s.exists()).map((s) => ({ id: s.id, ...s.data() }));
 
     const challenges = Object.fromEntries(Object.entries(round.rolls || {}).map(([uid, r]) => [uid, (r && typeof r === 'object' && r.ch) || {}]));
-    const result = applyRound({ players, ranks: round.ranks, fields: room.board.fields, seed: `${code}:${id}`, challenges, cleared: room.board.cleared || [] });
+    const result = applyRound({ players, ranks: round.ranks, fields: room.board.fields, seed: `${code}:${id}`, challenges, cleared: room.board.cleared || [], n: round.participants.length });
 
     for (const p of players) {
       const st = result.stats[p.id] || {};

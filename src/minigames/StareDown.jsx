@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLiveValue } from './live.jsx';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
 import { sfx, vibrate } from '../lib/sound.js';
 import { t } from '../i18n/index.js';
@@ -38,6 +39,7 @@ function Play({ duel, me, submit }) {
   const [error, setError] = useState(null);
   const [faceSeen, setFaceSeen] = useState(true);
   const [elapsed, setElapsed] = useState(0);
+  useLiveValue(step === 'run' ? Math.floor(elapsed / 500) * 500 : null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const st = useRef({ done: false, start: 0, landmarker: null });

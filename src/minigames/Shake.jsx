@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLiveValue } from './live.jsx';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
 import { requestMotionPermission } from '../lib/device.js';
 import { sfx, vibrate } from '../lib/sound.js';
@@ -15,6 +16,7 @@ function Play({ duel, submit }) {
   const [noSensor, setNoSensor] = useState(false);
   const st = useRef({ armed: true, n: 0, events: 0, last: 0 });
   const n = useGo(step === 'count', () => setStep('run'));
+  useLiveValue(step === 'run' ? count : null);
 
   useEffect(() => {
     if (step !== 'run') return undefined;

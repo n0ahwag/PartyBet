@@ -60,9 +60,9 @@ export function diceFor(seed, uid, index = 0, faces = DICE_KINDS.normal.faces) {
   return makeRng(`dice:${seed}:${uid}:${index}`).pick(faces);
 }
 
-/** Alle Würfel eines Spielers mit Ergebnis: [{ kind, value }]. */
-export function rollDiceFor(seed, uid, rank) {
-  return moveRule(rank).dice.map((kind, i) => ({ kind, value: diceFor(seed, uid, i, DICE_KINDS[kind].faces) }));
+/** Alle Würfel eines Spielers mit Ergebnis: [{ kind, value }]. n = Zahl der Teilnehmer. */
+export function rollDiceFor(seed, uid, rank, n) {
+  return moveRule(rank, n).dice.map((kind, i) => ({ kind, value: diceFor(seed, uid, i, DICE_KINDS[kind].faces) }));
 }
 
 /** Wer würfelt in dieser Runde? Jeder – außer wer aussetzen muss. */
@@ -79,14 +79,54 @@ export const CHAOS_PENALTY = 2;
 export const EVENT_PENALTY = 1; // zufällige Live-Events zwischen den Runden
 
 /**
- * Würfel je Platzierung: Jeder würfelt mit einem normalen Würfel. Platz 1 bekommt
- * zusätzlich einen Gold-Würfel (4–6), Platz 2 einen Silber-Würfel (2–4), Platz 3 einen Bronze-Würfel (1–3).
+ * Spezialwürfel je nach Gruppengröße – so bekommt bei 2 Spielern nicht gleich
+ * jeder einen Bonus, und der Vorsprung des Siegers bleibt fair:
+ *   2 Spieler:   Platz 1 Silber
+ *   3 Spieler:   Platz 1 Silber, Platz 2 Bronze
+ *   4–5 Spieler: Platz 1 Gold, Platz 2 Silber
+ *   ab 6:        Gold, Silber, Bronze
+ * Der Letzte bekommt nie einen Spezialwürfel.
  */
-export function moveRule(rank) {
-  if (rank === 1) return { dice: ['gold', 'normal'], label: '🥇 Gold-Würfel (4–6) + Würfel' };
-  if (rank === 2) return { dice: ['silver', 'normal'], label: '🥈 Silber-Würfel (2–4) + Würfel' };
-  if (rank === 3) return { dice: ['bronze', 'normal'], label: '🥉 Bronze-Würfel (1–3) + Würfel' };
-  return { dice: ['normal'], label: '🎲 Würfel' };
+export function bonusDice(n) {
+  if (!n || n <= 1) return [];
+  if (n === 2) return ['silver'];
+  if (n === 3) return ['silver', 'bronze'];
+  if (n <= 5) return ['gold', 'silver'];
+  return ['gold', 'silver', 'bronze'];
+}
+
+const DICE_LABEL = {
+  gold: '🥇 Gold-Würfel (4–6) + Würfel',
+  silver: '🥈 Silber-Würfel (2–4) + Würfel',
+  bronze: '🥉 Bronze-Würfel (1–3) + Würfel',
+};
+
+/**
+ * Würfel je Platzierung: Jeder würfelt mit einem normalen Würfel, die besten Plätze
+ * bekommen zusätzlich einen Spezialwürfel (wie viele, hängt von n ab – siehe bonusDice).
+ * n = Zahl der Teilnehmer (ohne Angabe: volle Staffel Gold/Silber/Bronze).
+ */
+export function moveRule(rank, n = 6) {
+  const kind = bonusDice(n)[rank - 1];
+  if (kind) return { dice: [kind, 'normal'], bonus: kind, label: DICE_LABEL[kind] };
+  return { dice: ['normal'], bonus: null, label: '🎲 Würfel' };
+}
+
+/** So lange hat jeder Zeit zum Antippen, dann würfelt die App für ihn. */
+export const ROLL_TURN_MS = 20000;
+
+/** Reihenfolge beim Würfeln: bester Platz zuerst (bei Gleichstand wie in der Teilnehmerliste). */
+export function rollOrder(round, rollers) {
+  const idx = (id) => round.participants.indexOf(id);
+  return [...rollers].sort((a, b) => (round.ranks?.[a] ?? 99) - (round.ranks?.[b] ?? 99) || idx(a) - idx(b));
+}
+
+/** Hat der Spieler gewürfelt (selbst getippt oder nach Ablauf der Zeit von der App)? */
+export const hasRolled = (round, id) => !!(round.rolls?.[id] || round.autoRolls?.[id]);
+
+/** Wer ist gerade mit Würfeln dran? null = alle fertig. */
+export function currentRoller(round, rollers) {
+  return rollOrder(round, rollers).find((id) => !hasRolled(round, id)) ?? null;
 }
 
 /**
@@ -191,7 +231,8 @@ export function boardPhase(leaderPos, length) {
  * @param challenges { uid: { [Feld]: true/false } } – Ergebnis der Proben (Ducken/Springen) am Handy
  * @returns { moves, positions, skipNext, winnerId, chaos, stats }
  */
-export function applyRound({ players, ranks, fields: rawFields, seed, fixedRolls = null, challenges = {}, cleared = [] }) {
+export function applyRound({ players, ranks, fields: rawFields, seed, fixedRolls = null, challenges = {}, cleared = [], n = null }) {
+  const count = n ?? (Object.keys(ranks).length || players.length);
   const fields = [...effectiveFields(rawFields, cleared)];
   const newCleared = [];
   const clear = (i) => { if (fields[i] !== 'normal' && fields[i] !== 'start' && fields[i] !== 'goal') { fields[i] = 'normal'; newCleared.push(i); } };
@@ -222,7 +263,7 @@ export function applyRound({ players, ranks, fields: rawFields, seed, fixedRolls
     // fixedRolls (nur für Tests): feste Augenzahlen statt Würfel
     m.dice = fixedRolls?.[p.id]
       ? fixedRolls[p.id].map((value) => ({ kind: 'normal', value }))
-      : rollDiceFor(seed, p.id, rank);
+      : rollDiceFor(seed, p.id, rank, count);
     m.roll = m.dice.reduce((sum, d) => sum + d.value, 0);
     m.steps = m.roll;
     m.landed = Math.min(goal, from + m.steps);

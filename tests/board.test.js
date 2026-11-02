@@ -18,12 +18,41 @@ describe('Spielfeld', () => {
     }
   });
 
-  it('Platzierung → Würfel: jeder würfelt, Platz 1–3 mit Spezialwürfel', () => {
-    expect(moveRule(1).dice).toEqual(['gold', 'normal']);
-    expect(moveRule(2).dice).toEqual(['silver', 'normal']);
-    expect(moveRule(3).dice).toEqual(['bronze', 'normal']);
-    expect(moveRule(4).dice).toEqual(['normal']);
-    expect(moveRule(9).dice).toEqual(['normal']); // auch ohne Ergebnis wird gewürfelt
+  it('Platzierung → Würfel: jeder würfelt, Platz 1–3 mit Spezialwürfel (ab 6 Spielern)', () => {
+    expect(moveRule(1, 6).dice).toEqual(['gold', 'normal']);
+    expect(moveRule(2, 6).dice).toEqual(['silver', 'normal']);
+    expect(moveRule(3, 6).dice).toEqual(['bronze', 'normal']);
+    expect(moveRule(4, 6).dice).toEqual(['normal']);
+    expect(moveRule(9, 6).dice).toEqual(['normal']); // auch ohne Ergebnis wird gewürfelt
+  });
+
+  it('Spezialwürfel passen sich der Spielerzahl an – der Letzte bekommt nie einen', () => {
+    const tiers = (n) => Array.from({ length: n }, (_, i) => moveRule(i + 1, n).bonus);
+    expect(tiers(2)).toEqual(['silver', null]);
+    expect(tiers(3)).toEqual(['silver', 'bronze', null]);
+    expect(tiers(4)).toEqual(['gold', 'silver', null, null]);
+    expect(tiers(5)).toEqual(['gold', 'silver', null, null, null]);
+    expect(tiers(8).slice(0, 4)).toEqual(['gold', 'silver', 'bronze', null]);
+    for (let n = 2; n <= 12; n++) expect(moveRule(n, n).bonus).toBe(null);
+  });
+
+  it('Würfeln der Reihe nach: bester Platz zuerst, Gleichstand in Teilnehmer-Reihenfolge', async () => {
+    const { rollOrder, currentRoller } = await import('../src/game/board.js');
+    const round = { participants: ['a', 'b', 'c', 'd'], ranks: { a: 3, b: 1, c: 1, d: 2 }, rolls: {}, autoRolls: {} };
+    const rollers = ['a', 'b', 'c', 'd'];
+    expect(rollOrder(round, rollers)).toEqual(['b', 'c', 'd', 'a']);
+    expect(currentRoller(round, rollers)).toBe('b');
+    expect(currentRoller({ ...round, rolls: { b: true } }, rollers)).toBe('c');
+    expect(currentRoller({ ...round, rolls: { b: true, c: { ch: { 5: true } } }, autoRolls: { d: true } }, rollers)).toBe('a');
+    expect(currentRoller({ ...round, rolls: { a: true, b: true, c: true, d: true } }, rollers)).toBe(null);
+  });
+
+  it('Bei 2 Spielern: Sieger würfelt Silber + normal, der Zweite nur normal', () => {
+    const fields = F('S........................................G');
+    const players = [{ id: 'a', position: 0 }, { id: 'b', position: 0 }];
+    const r = applyRound({ players, ranks: { a: 1, b: 2 }, fields, seed: 'X:r01' });
+    expect(r.moves.a.dice.map((d) => d.kind)).toEqual(['silver', 'normal']);
+    expect(r.moves.b.dice.map((d) => d.kind)).toEqual(['normal']);
   });
 
   it('Phasen nach Fortschritt des Führenden', () => {
@@ -138,7 +167,7 @@ describe('3D-Spielfeld & Würfel', () => {
     const players = ['a', 'b', 'c', 'd'].map((id) => ({ id, position: 0 }));
     const r = applyRound({ players, ranks: { a: 1, b: 2, c: 3, d: 4 }, fields, seed: 'ROOM:r01' });
     for (const [id, rank] of [['a', 1], ['b', 2], ['c', 3], ['d', 4]]) {
-      const dice = rollDiceFor('ROOM:r01', id, rank);
+      const dice = rollDiceFor('ROOM:r01', id, rank, 4);
       expect(r.moves[id].dice).toEqual(dice);
       expect(r.moves[id].steps).toBe(dice.reduce((s2, x) => s2 + x.value, 0));
     }
