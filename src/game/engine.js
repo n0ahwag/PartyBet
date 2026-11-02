@@ -61,8 +61,8 @@ export async function createRoom({
         status: 'lobby', // lobby | playing | finished
         expectedPlayers: gameMode === 'library' ? MAX_PLAYERS : expectedPlayers,
         equipment,
-        library: libraryFor(gameMode, expectedPlayers, equipment, { stealth }).map((g) => g.id),
-        totalRounds: Math.min(totalRounds, libraryFor(gameMode, expectedPlayers, equipment, { stealth }).length),
+        library: libraryFor(gameMode, expectedPlayers, equipment, { stealth, screen: mode === 'screen' }).map((g) => g.id),
+        totalRounds: Math.min(totalRounds, libraryFor(gameMode, expectedPlayers, equipment, { stealth, screen: mode === 'screen' }).length),
         stealth, // Stealth-/Uni-Modus: nur leise Spiele, keine Sounds, keine Live-Events
         round: 0,
         phase: 'warmup',
@@ -86,8 +86,8 @@ export async function createRoom({
   throw new Error('Konnte keinen freien Raumcode finden.');
 }
 
-export async function updateLobby(code, { expectedPlayers, equipment, totalRounds, gameMode = 'party', stealth = false }) {
-  const library = libraryFor(gameMode, expectedPlayers, equipment, { stealth }).map((g) => g.id);
+export async function updateLobby(code, { expectedPlayers, equipment, totalRounds, gameMode = 'party', stealth = false, screen = false }) {
+  const library = libraryFor(gameMode, expectedPlayers, equipment, { stealth, screen }).map((g) => g.id);
   await updateDoc(roomRef(code), {
     expectedPlayers,
     equipment,

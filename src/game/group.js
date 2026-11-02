@@ -1,6 +1,7 @@
 import { GAMES, CATEGORIES, filterLibrary, ESTIMATE_QUESTIONS } from './gameLibrary.js';
 import { SKETCH_PROMPTS, SKETCH } from './extras.js';
 import { t } from '../i18n/index.js';
+import './screen/index.js'; // registriert die Hauptbildschirm-Spiele 📺
 
 /*
  * Gruppen-Modus: Alle spielen gleichzeitig, ohne Utensilien, für Punkte.
@@ -155,8 +156,9 @@ export const GROUP_ONLY_IDS = ['whoMost', 'syncTest', 'hivemind', 'confession', 
 for (const id of ['whoMost', 'syncTest', 'confession', 'chainStory', 'teamEstimate', 'blindSketch']) GAMES[id].quiet = true;
 
 /** Bibliothek je Spielmodus (wird beim Erstellen im Raum gespeichert). */
-export function libraryFor(gameMode, playerCount, equipment = [], { stealth = false } = {}) {
-  const lib = libraryForMode(gameMode, playerCount, equipment);
+export function libraryFor(gameMode, playerCount, equipment = [], { stealth = false, screen = false } = {}) {
+  // Hauptbildschirm-Spiele nur, wenn wirklich ein zentraler Bildschirm dabei ist
+  const lib = libraryForMode(gameMode, playerCount, equipment).filter((g) => screen || !g.needsScreen);
   return stealth ? lib.filter((g) => g.quiet) : lib;
 }
 

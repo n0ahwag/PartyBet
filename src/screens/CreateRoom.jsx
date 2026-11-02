@@ -25,7 +25,7 @@ export function CreateRoom({ uid }) {
 
   const board = gameMode === 'board';
   const group = gameMode === 'group';
-  const library = useMemo(() => libraryFor(gameMode, count, equipment, { stealth }), [gameMode, count, equipment, stealth]);
+  const library = useMemo(() => libraryFor(gameMode, count, equipment, { stealth, screen: mode === 'screen' }), [gameMode, count, equipment, stealth, mode]);
   // Jedes Spiel nur einmal pro Party → höchstens so viele Duelle wie Spiele
   const maxRounds = Math.max(1, library.length);
   useEffect(() => setRounds((r) => Math.min(r, maxRounds)), [maxRounds]);

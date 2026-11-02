@@ -200,3 +200,8 @@ export async function submitResultField(code, id, uid, field, value) {
 export async function submitRelay(code, id, uid, k) {
   await updateDoc(roundRef(code, id), { [`results.${uid}.t${k}`]: serverTimestamp() });
 }
+
+/** Hauptbildschirm-Spiele: Meldung mit Server-Zeit (Buzzer, Wimmelbild-Treffer) – die Früheste gewinnt. */
+export async function submitStamp(code, id, uid, field, data = {}) {
+  await updateDoc(roundRef(code, id), { [`results.${uid}.${field}`]: { ...data, at: serverTimestamp() } });
+}
