@@ -124,9 +124,22 @@ export function rollOrder(round, rollers) {
 /** Hat der Spieler gewürfelt (selbst getippt oder nach Ablauf der Zeit von der App)? */
 export const hasRolled = (round, id) => !!(round.rolls?.[id] || round.autoRolls?.[id]);
 
-/** Wer ist gerade mit Würfeln dran? null = alle fertig. */
+/** Ist der Zug des Spielers fertig (gezogen und auf dem Hauptbildschirm zu Ende animiert)? */
+export const turnDone = (round, id) => !!round.shown?.[id];
+
+/**
+ * Wer ist gerade dran? Der Reihe nach: würfeln → ziehen → erst dann der Nächste.
+ * null = alle durch (oder jemand ist schon im Ziel).
+ */
 export function currentRoller(round, rollers) {
-  return rollOrder(round, rollers).find((id) => !hasRolled(round, id)) ?? null;
+  if (round.winnerId && round.shown?.[round.winnerId]) return null;
+  return rollOrder(round, rollers).find((id) => !turnDone(round, id)) ?? null;
+}
+
+/** Phase des aktuellen Zugs: 'roll' (wartet auf den Wurf) · 'move' (wird gezogen/animiert) */
+export function turnPhase(round, id) {
+  if (!id) return null;
+  return round.moves?.[id] ? 'move' : 'roll';
 }
 
 /**
@@ -229,9 +242,10 @@ export function boardPhase(leaderPos, length) {
  * @param fields  Spielfeld (Array von Feldtypen)
  * @param fixedRolls { uid: [Augen…] } – optional, für Tests
  * @param challenges { uid: { [Feld]: true/false } } – Ergebnis der Proben (Ducken/Springen) am Handy
+ * @param only  uid – nur diesen Spieler ziehen (Würfeln der Reihe nach); die anderen bleiben stehen
  * @returns { moves, positions, skipNext, winnerId, chaos, stats }
  */
-export function applyRound({ players, ranks, fields: rawFields, seed, fixedRolls = null, challenges = {}, cleared = [], n = null }) {
+export function applyRound({ players, ranks, fields: rawFields, seed, fixedRolls = null, challenges = {}, cleared = [], n = null, only = null }) {
   const count = n ?? (Object.keys(ranks).length || players.length);
   const fields = [...effectiveFields(rawFields, cleared)];
   const newCleared = [];
@@ -248,6 +262,7 @@ export function applyRound({ players, ranks, fields: rawFields, seed, fixedRolls
 
   const order = [...players].sort((a, b) => (ranks[a.id] ?? 99) - (ranks[b.id] ?? 99));
   for (const p of order) {
+    if (only && p.id !== only) continue; // Zug für Zug: nur dieser Spieler zieht jetzt
     const rank = ranks[p.id] ?? players.length;
     const from = positions[p.id];
     const m = { rank, from, roll: null, steps: 0, landed: from, to: from, field: null, effect: null, skipped: false, obstacles: [] };

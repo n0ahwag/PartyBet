@@ -36,15 +36,29 @@ describe('Spielfeld', () => {
     for (let n = 2; n <= 12; n++) expect(moveRule(n, n).bonus).toBe(null);
   });
 
-  it('Würfeln der Reihe nach: bester Platz zuerst, Gleichstand in Teilnehmer-Reihenfolge', async () => {
-    const { rollOrder, currentRoller } = await import('../src/game/board.js');
-    const round = { participants: ['a', 'b', 'c', 'd'], ranks: { a: 3, b: 1, c: 1, d: 2 }, rolls: {}, autoRolls: {} };
+  it('Zug für Zug: bester Platz zuerst, der Nächste erst nach dem Ziehen', async () => {
+    const { rollOrder, currentRoller, turnPhase } = await import('../src/game/board.js');
+    const round = { participants: ['a', 'b', 'c', 'd'], ranks: { a: 3, b: 1, c: 1, d: 2 }, rolls: {}, autoRolls: {}, moves: {}, shown: {} };
     const rollers = ['a', 'b', 'c', 'd'];
     expect(rollOrder(round, rollers)).toEqual(['b', 'c', 'd', 'a']);
     expect(currentRoller(round, rollers)).toBe('b');
-    expect(currentRoller({ ...round, rolls: { b: true } }, rollers)).toBe('c');
-    expect(currentRoller({ ...round, rolls: { b: true, c: { ch: { 5: true } } }, autoRolls: { d: true } }, rollers)).toBe('a');
-    expect(currentRoller({ ...round, rolls: { a: true, b: true, c: true, d: true } }, rollers)).toBe(null);
+    // b hat gewürfelt und gezogen – solange der Zug läuft, bleibt b dran
+    const moving = { ...round, rolls: { b: true }, moves: { b: { to: 5 } } };
+    expect(currentRoller(moving, rollers)).toBe('b');
+    expect(turnPhase(moving, 'b')).toBe('move');
+    expect(currentRoller({ ...moving, shown: { b: true } }, rollers)).toBe('c');
+    expect(currentRoller({ ...round, shown: { a: true, b: true, c: true, d: true } }, rollers)).toBe(null);
+    // im Ziel: danach würfelt niemand mehr
+    expect(currentRoller({ ...round, winnerId: 'b', shown: { b: true } }, rollers)).toBe(null);
+  });
+
+  it('applyRound mit only: nur der aktuelle Spieler zieht', () => {
+    const fields = F('S........................................G');
+    const players = [{ id: 'a', position: 3 }, { id: 'b', position: 7 }];
+    const r = applyRound({ players, ranks: { a: 1, b: 2 }, fields, seed: 'X:r02', only: 'b' });
+    expect(Object.keys(r.moves)).toEqual(['b']);
+    expect(r.positions.a).toBe(3);
+    expect(r.positions.b).toBeGreaterThan(7);
   });
 
   it('Bei 2 Spielern: Sieger würfelt Silber + normal, der Zweite nur normal', () => {

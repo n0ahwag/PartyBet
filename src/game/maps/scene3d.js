@@ -267,7 +267,9 @@ export function createMapScene({ canvas, width, height, mapId, fields, pixelRati
   world.build({ scene, map, P, k, anim, isl });
 
   // ---------------------------------------------------------------- Figuren
-  const tokens = new Map(); // id → { g, from, to, t0 }
+  const tokens = new Map(); // id → { g, to, field, queue, seg }
+  const STEP_MS = 330; // etwas länger als ein Animationsschritt (320 ms) → durchgehende Laufbewegung
+
   let tokenData = [];
   function placeTokens(players, positions, meId) {
     const byField = {};
@@ -281,23 +283,37 @@ export function createMapScene({ canvas, width, height, mapId, fields, pixelRati
       const n = list.length; const idx = list.indexOf(p.id);
       const off = n > 1 ? V(Math.cos((idx / n) * Math.PI * 2) * 0.28 * fieldScale, 0, Math.sin((idx / n) * Math.PI * 2) * 0.28 * fieldScale) : V(0, 0, 0);
       const target = fieldPos[fi].clone().add(off).add(V(0, 0.08, 0));
-      if (!tk.to) { tk.g.position.copy(target); tk.to = target; tk.from = target; tk.field = fi; return; }
-      if (tk.to.distanceTo(target) > 1e-3) { tk.from = tk.g.position.clone(); tk.to = target; tk.t0 = now; tk.jump = Math.abs(fi - tk.field) > 1 ? 1.2 : 0.35; tk.field = fi; }
+      if (!tk.to) { tk.g.position.copy(target); tk.to = target; tk.field = fi; tk.queue = []; tk.seg = null; return; }
+      if (tk.to.distanceTo(target) > 1e-3) {
+        // Schritte in eine Warteschlange: die Figur läuft sie ohne Pause hintereinander ab
+        const far = Math.abs(fi - tk.field) > 1;
+        tk.queue.push({ to: target, jump: far ? 1.2 : 0.3, dur: far ? 650 : STEP_MS });
+        tk.to = target; tk.field = fi;
+      }
     });
     for (const [id, tk] of tokens) if (!players.some((p) => p.id === id)) { scene.remove(tk.g); tokens.delete(id); }
     tokenData = players;
   }
-  const MOVE_MS = 300;
   anim((t) => {
     const now = performance.now();
     for (const tk of tokens.values()) {
       if (!tk.to) continue;
-      const dur = tk.jump > 1 ? 650 : MOVE_MS;
-      const u = Math.min(1, (now - tk.t0) / dur);
-      if (u < 1) {
-        tk.g.position.lerpVectors(tk.from, tk.to, u);
-        tk.g.position.y += Math.sin(u * Math.PI) * tk.jump;
-      } else tk.g.position.copy(tk.to);
+      // nächstes Teilstück starten – nahtlos am Ende des vorigen
+      while (tk.queue.length && (!tk.seg || now - tk.seg.t0 >= tk.seg.dur)) {
+        const next = tk.queue.shift();
+        const from = tk.seg ? tk.seg.to : tk.g.position.clone().setY(next.to.y);
+        const t0 = tk.seg ? Math.max(tk.seg.t0 + tk.seg.dur, now - 60) : now;
+        const dur = tk.queue.length > 2 ? next.dur * 0.6 : next.dur; // Rückstand aufholen
+        tk.seg = { from, to: next.to, t0, dur, jump: next.jump };
+      }
+      const sg = tk.seg;
+      if (sg) {
+        const u = Math.min(1, Math.max(0, (now - sg.t0) / sg.dur));
+        tk.g.position.lerpVectors(sg.from, sg.to, u);
+        tk.g.position.y += Math.sin(u * Math.PI) * sg.jump;
+        tk.g.rotation.z = Math.sin(u * Math.PI * 2) * 0.06; // leichtes Wackeln beim Laufen
+        if (u >= 1 && !tk.queue.length) { tk.g.position.copy(sg.to); tk.g.rotation.z = 0; tk.seg = null; }
+      }
       if (tk.g.userData.halo) tk.g.userData.halo.scale.setScalar(1 + Math.sin(t * 4) * 0.1);
     }
   });

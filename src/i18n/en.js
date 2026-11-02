@@ -1543,4 +1543,11 @@ export const EN = {
   "Wimmelbild-Rennen": "Hidden Picture Race",
   "Auf dem Bildschirm ist ein riesiges Wimmelbild. Gesucht wird eine bestimmte Figur – z. B. ein Pinguin mit Krone. Such sie auf deinem Handy (zoomen & verschieben) und tipp sie an. Wer sie zuerst findet, holt den Punkt. Falsch getippt = 2 Sekunden Pause.": "The main screen shows a huge hidden picture. You're looking for one specific character – e.g. a penguin with a crown. Search for it on your phone (zoom & pan) and tap it. First to find it gets the point. Wrong tap = 2 second pause.",
   "Hauptbildschirm-Spiele": "Main screen games",
+  "Alle sind gezogen.": "Everyone has moved.",
+  "{name} zieht …": "{name} is moving …",
+  "Nach {n} s würfelt die App.": "After {n} s the app rolls.",
+  "Für {name} würfeln": "Roll for {name}",
+  "{a}/{b} gezogen": "{a}/{b} moved",
+  "zieht …": "moving …",
+  "Alle sind gezogen!": "Everyone has moved!",
 };

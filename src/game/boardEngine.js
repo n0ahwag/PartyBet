@@ -100,7 +100,7 @@ export async function submitRoundResult(code, id, uid, data) {
 
 /** ranks = { uid: Platz } – automatisch (Auto-Spiele) oder vom Host eingetragen. */
 export async function setRanks(code, id, ranks) {
-  await updateDoc(roundRef(code, id), { stage: 'review', ranks, rolls: {}, autoRolls: {}, reviewAt: Date.now() });
+  await updateDoc(roundRef(code, id), { stage: 'review', ranks, rolls: {}, autoRolls: {}, moves: {}, shown: {}, reviewAt: Date.now() });
 }
 
 /**
@@ -116,25 +116,35 @@ export async function autoRoll(code, id, uid) {
   await updateDoc(roundRef(code, id), { [`autoRolls.${uid}`]: true });
 }
 
-/** Würfeln & ziehen: Bewegung + Sonderfelder für alle, Phase und Sieger bestimmen. */
-export async function moveTokens(code, id) {
+/**
+ * Zug für Zug: Der Spieler, der gerade gewürfelt hat, zieht sofort (Bewegung, Hindernisse,
+ * Sonderfelder). Erst wenn der Zug auf dem Hauptbildschirm zu Ende gelaufen ist (markShown),
+ * darf der Nächste würfeln.
+ */
+export async function movePlayer(code, id, uid) {
   const refs = await playerRefs(code);
   return runTransaction(db, async (tx) => {
     const round = (await tx.get(roundRef(code, id))).data();
-    if (round.stage !== 'review') return;
+    if (round.stage !== 'review' || round.moves?.[uid]) return;
     const room = (await tx.get(roomRef(code))).data();
     const snaps = await Promise.all(refs.map((r) => tx.get(r)));
     const players = snaps.filter((s) => s.exists()).map((s) => ({ id: s.id, ...s.data() }));
 
-    const challenges = Object.fromEntries(Object.entries(round.rolls || {}).map(([uid, r]) => [uid, (r && typeof r === 'object' && r.ch) || {}]));
-    const result = applyRound({ players, ranks: round.ranks, fields: room.board.fields, seed: `${code}:${id}`, challenges, cleared: room.board.cleared || [], n: round.participants.length });
+    const r = round.rolls?.[uid];
+    const challenges = { [uid]: (r && typeof r === 'object' && r.ch) || {} };
+    const result = applyRound({
+      players, ranks: round.ranks, fields: room.board.fields, seed: `${code}:${id}`, challenges,
+      cleared: room.board.cleared || [], n: round.participants.length, only: uid,
+    });
+    const move = result.moves[uid];
+    if (!move) return;
 
     for (const p of players) {
       const st = result.stats[p.id] || {};
-      const patch = {
-        position: result.positions[p.id],
-        skipNext: result.skipNext[p.id],
-      };
+      const moved = result.positions[p.id] !== (p.position ?? 0);
+      if (p.id !== uid && !moved && !Object.keys(st).length) continue;
+      const patch = { position: result.positions[p.id] };
+      if (p.id === uid) patch.skipNext = result.skipNext[uid];
       for (const key of ['firstPlaces', 'rockets', 'portals', 'stumbles', 'fieldsLost', 'fieldsMoved', 'obstaclesPassed', 'obstaclesFailed']) {
         if (st[key]) patch[`stats.${key}`] = increment(st[key]);
       }
@@ -145,18 +155,39 @@ export async function moveTokens(code, id) {
     const leaderPos = Math.max(...Object.values(result.positions));
     const phase = boardPhase(leaderPos, room.board.fields.length);
     tx.update(roundRef(code, id), {
-      stage: 'resolved',
-      moves: result.moves,
-      chaos: result.chaos && !result.winnerId,
-      winnerId: result.winnerId,
-      cleared: result.cleared,
-      resolvedAt: Date.now(),
+      [`moves.${uid}`]: move,
+      ...(result.chaos ? { chaos: true } : {}),
+      ...(result.winnerId ? { winnerId: result.winnerId } : {}),
+      cleared: [...(round.cleared || []), ...result.cleared],
     });
     tx.update(roomRef(code), {
       'board.cleared': [...(room.board.cleared || []), ...result.cleared],
       phase,
       ...(phase !== room.phase ? { phaseChangedAt: Date.now() } : {}),
       ...(result.winnerId ? { winnerId: result.winnerId } : {}),
+    });
+  });
+}
+
+/** Der Zug ist auf dem Hauptbildschirm fertig gelaufen → der Nächste ist dran. */
+export async function markShown(code, id, uid) {
+  await updateDoc(roundRef(code, id), { [`shown.${uid}`]: true });
+}
+
+/** Alle sind gezogen (oder jemand ist im Ziel): Runde abschließen. */
+export async function finishBoardRound(code, id) {
+  const refs = await playerRefs(code);
+  return runTransaction(db, async (tx) => {
+    const round = (await tx.get(roundRef(code, id))).data();
+    if (round.stage !== 'review') return;
+    const snaps = await Promise.all(refs.map((r) => tx.get(r)));
+    // Wer diesmal aussetzen musste, ist nächste Runde wieder dabei
+    snaps.filter((s) => s.exists() && s.data().skipNext && !round.moves?.[s.id]).forEach((s) => tx.update(s.ref, { skipNext: false }));
+    tx.update(roundRef(code, id), {
+      stage: 'resolved',
+      moves: round.moves || {},
+      chaos: !!round.chaos && !round.winnerId,
+      resolvedAt: Date.now(),
     });
     tx.set(doc(collection(db, 'rooms', code, 'events')), { ...expiry(),
       type: 'boardRound', round: round.round, gameId: round.gameId, ranks: round.ranks, at: serverTimestamp(),
