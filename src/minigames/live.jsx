@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { GAMES, resultComplete, rankFromScores } from '../game/gameLibrary.js';
 import { makeLiveReporter } from '../game/live.js';
 import { FORMAT_RESULT, num } from './format.js';
@@ -15,8 +15,15 @@ const noop = () => {};
 
 /** Stellt den Spielen auf diesem Handy den Live-Kanal bereit (nur mit Hauptbildschirm). */
 export function LiveProvider({ code, coll = 'rounds', id, uid, on, children }) {
-  const report = useMemo(() => (on && code && id && uid ? makeLiveReporter(code, coll, id, uid) : null), [on, code, coll, id, uid]);
-  useEffect(() => () => report?.stop(), [report]);
+  // Stabile Funktion für die Spiele; der eigentliche Kanal hängt in einem Ref (übersteht StrictMode-Doppel-Mount)
+  const ref = useRef(null);
+  const [report] = useState(() => (v) => ref.current?.(v));
+  useEffect(() => {
+    if (!(on && code && id && uid)) return undefined;
+    const r = makeLiveReporter(code, coll, id, uid);
+    ref.current = r;
+    return () => { r.stop(); if (ref.current === r) ref.current = null; };
+  }, [on, code, coll, id, uid]);
   return <LiveContext.Provider value={report}>{children}</LiveContext.Provider>;
 }
 
