@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLiveValue } from './live.jsx';
 import { Waiting } from './shared.jsx';
 import { sfx, vibrate } from '../lib/sound.js';
 import { t } from '../i18n/index.js';
@@ -171,6 +172,7 @@ function SoloReaction({ duel, submit }) {
   const [color, setColor] = useState(IDLE);
   const [times, setTimes] = useState([]);
   const st = useRef({ changedAt: 0, done: false, fouls: 0, times: [] });
+  useLiveValue(phase === 'running' ? { n: times.length, avg: times.length ? times.reduce((a, b) => a + b, 0) / times.length : 0 } : null);
 
   useEffect(() => {
     if (phase !== 'running') return undefined;

@@ -210,6 +210,8 @@ function BreathBalloon({ duel, submit }) {
 }
 
 // ------------------------------------------------------------------ Linie halten
+const polyLen = (pts) => pts.reduce((s, p, i) => (i ? s + Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) : 0), 0) || 1;
+
 function TraceLine({ duel, submit }) {
   const path = useMemo(() => shapePoints(duel.game.shape), [duel.game.shape]);
   const { step, setStep, n, start } = useArcade();
@@ -221,6 +223,8 @@ function TraceLine({ duel, submit }) {
   const doneRef = useRef(false);
   const svgRef = useRef(null);
   const size = Math.min(340, canvasWidth());
+  const pathLen = useMemo(() => polyLen(path), [path]);
+  useLiveValue(step === 'run' && trace.length > 1 ? Math.min(100, Math.round((polyLen(trace) / pathLen) * 20) * 5) : null);
 
   const finish = () => {
     if (doneRef.current) return;
@@ -466,6 +470,7 @@ function PriceTag({ duel, submit }) {
   const [val, setVal] = useState('');
   const [guesses, setGuesses] = useState([]);
   const [sent, setSent] = useState(null);
+  useLiveValue(guesses.length || null);
   if (sent != null) return <Waiting text={t('Abgegeben 🤫 Im Schnitt {n} % daneben – warte auf die anderen…', { n: num(sent, 1) })} />;
   const item = items[k];
   const value = parsePrice(val);

@@ -2,7 +2,8 @@ import {
   collection, doc, getDocs, updateDoc, runTransaction, serverTimestamp, increment,
 } from 'firebase/firestore';
 import { db, expiry } from '../firebase.js';
-import { GAMES, groupPlayable, pickGame } from './gameLibrary.js';
+import { GAMES, groupPlayable, chooseNextGame } from './gameLibrary.js';
+import { cycleIds, rememberPlayed } from '../lib/playCycle.js';
 import { phaseForRound } from './constants.js';
 import { FINAL_MULTIPLIER, confessionOrder } from './group.js';
 import { makeRng } from '../lib/random.js';
@@ -42,17 +43,14 @@ export async function startGroupRound(code) {
     const rng = makeRng(seed);
 
     const playable = groupPlayable(room.library || [], players).filter((g) => players.length >= g.minPlayers);
-    let played = room.playedGames || [];
-    let candidates = playable.filter((g) => !played.includes(g.id));
-    if (!candidates.length) { played = []; candidates = playable; }
-    // Die sozialen Gruppen-Spiele bevorzugen, solange noch welche offen sind
-    const social = candidates.filter((g) => g.groupOnly);
-    const game = pickGame(social.length && rng.next() < 0.6 ? social : candidates, room.lastGameId, seed, counts);
-    if (!game) throw new Error('Keine Gruppen-Spiele verfügbar.');
-    chosen = game.id;
-    return writeRound(tx, code, room, players, game, rng, round, phase, [...played, game.id]);
+    // Jedes Spiel erst wieder, wenn alle einmal dran waren (auch partyübergreifend), Kategorien gemischt
+    const pick = chooseNextGame({ playable, played: room.playedGames || [], cycle: cycleIds('group'), lastGameId: room.lastGameId, seed, counts });
+    if (!pick.game) throw new Error('Keine Gruppen-Spiele verfügbar.');
+    chosen = pick;
+    return writeRound(tx, code, room, players, pick.game, rng, round, phase, pick.playedGames);
   });
-  recordPlay(chosen);
+  recordPlay(chosen?.game.id);
+  rememberPlayed('group', chosen?.game.id, { reset: chosen?.cycleReset });
   return result;
 }
 

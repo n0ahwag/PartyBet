@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useLiveValue } from './live.jsx';
 import { Waiting } from './shared.jsx';
 import { sfx, vibrate } from '../lib/sound.js';
 import { t } from '../i18n/index.js';
@@ -12,6 +13,7 @@ function Play({ duel, submit }) {
   const [flash, setFlash] = useState(false);
   const [taps, setTaps] = useState([]);
   const tapsRef = useRef([]);
+  useLiveValue(step === 'tap' ? taps.length : null);
 
   const pulse = () => { sfx.beat(); vibrate(25); setFlash(true); setTimeout(() => setFlash(false), 110); };
 

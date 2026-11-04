@@ -473,12 +473,48 @@ export function requirementsOf(game) {
 }
 
 /** Wählt ein Spiel; vermeidet direkte Wiederholung, wenn möglich. */
-export function pickGame(candidates, lastGameId, seed, counts = null) {
+/**
+ * Abwechslungsreiche Auswahl eines Spiels:
+ *  1. nie dasselbe Spiel zweimal hintereinander,
+ *  2. Kategorie zuerst: die bisher am wenigsten genutzte (im Verhältnis zur Zahl ihrer Spiele)
+ *     und möglichst keine der letzten beiden Runden – so wechseln sich Sensor-, Arcade-, Wissens-,
+ *     Überall-Spiele usw. ab, statt dass eine große Kategorie dominiert,
+ *  3. innerhalb der Kategorie die universell am seltensten gespielten Spiele der Woche.
+ * @param history bisher gespielte Spiel-Ids in Reihenfolge (diese Party)
+ */
+export function pickGame(candidates, lastGameId, seed, counts = null, history = []) {
   if (!candidates.length) return null;
   const rng = makeRng(seed);
   const fresh = candidates.filter((g) => g.id !== lastGameId);
-  // Universell am wenigsten gespielte Spiele der letzten Woche zuerst (counts = { gameId: n })
-  return rng.pick(leastPlayed(fresh.length ? fresh : candidates, counts));
+  const pool = fresh.length ? fresh : candidates;
+  const kindOf = (id) => GAMES[id]?.kind;
+  const used = {};
+  for (const id of history) { const k = kindOf(id); if (k) used[k] = (used[k] ?? 0) + 1; }
+  const left = {};
+  for (const g of pool) left[g.kind] = (left[g.kind] ?? 0) + 1;
+  const recent = history.slice(-2).map(kindOf);
+  let kinds = Object.keys(left).filter((k) => !recent.includes(k));
+  if (!kinds.length) kinds = Object.keys(left);
+  // Anteil schon gespielter Spiele je Kategorie – der kleinste Anteil ist dran
+  const share = (k) => (used[k] ?? 0) / ((used[k] ?? 0) + left[k]);
+  const min = Math.min(...kinds.map(share));
+  const kind = rng.pick(kinds.filter((k) => share(k) - min < 1e-9));
+  return rng.pick(leastPlayed(pool.filter((g) => g.kind === kind), counts));
+}
+
+/**
+ * Nächstes Spiel für eine Runde: erst alle Spiele einmal, dann wieder von vorn.
+ * cycle = Spiele, die auf diesem Gerät in früheren Partys schon dran waren (partyübergreifender Durchlauf).
+ * @returns { game, playedGames, cycleReset } – cycleReset: Durchlauf ist komplett, neu beginnen
+ */
+export function chooseNextGame({ playable, played = [], cycle = [], lastGameId = null, seed, counts = null }) {
+  let playedGames = played;
+  let unplayed = playable.filter((g) => !playedGames.includes(g.id));
+  if (!unplayed.length) { playedGames = []; unplayed = playable; } // diese Party hat alles gespielt
+  const fresh = unplayed.filter((g) => !cycle.includes(g.id));
+  const cycleReset = !fresh.length;
+  const game = pickGame(fresh.length ? fresh : unplayed, lastGameId, seed, counts, playedGames);
+  return { game, playedGames: game ? [...playedGames, game.id] : playedGames, cycleReset };
 }
 
 /** Nur die Kandidaten mit der niedrigsten Wochen-Anzahl (ohne Zähler = alle). */
@@ -496,10 +532,11 @@ export function leastPlayed(candidates, counts) {
  */
 export function planDuel({ orderedPlayers, libraryIds = [], playedIds = [], seed, counts = null }) {
   const unplayed = libraryIds.filter((id) => !playedIds.includes(id)).map((id) => GAMES[id]).filter(Boolean);
+  // Kategorien mischen: dieselbe Logik wie im Spielfeld-/Gruppen-Modus
   for (let i = 0; i < orderedPlayers.length; i++) {
     for (let j = i + 1; j < orderedPlayers.length; j++) {
       const duelists = [orderedPlayers[i], orderedPlayers[j]];
-      const game = pickGame(playableFor(unplayed, duelists), null, seed, counts);
+      const game = pickGame(playableFor(unplayed, duelists), null, seed, counts, playedIds);
       if (game) return { duelists, game };
     }
   }
