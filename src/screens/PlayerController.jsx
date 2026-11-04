@@ -54,7 +54,7 @@ export function PlayerController({ uid, code }) {
       </div>
     );
   }
-  if (room.status === 'finished') return <Wrapped code={code} players={players} room={room} />;
+  if (room.status === 'finished') return <Wrapped code={code} players={players} room={room} uid={uid} />;
 
   const isHost = room.hostId === uid;
   const board = room.gameMode === 'board';
@@ -93,7 +93,7 @@ export function PlayerController({ uid, code }) {
         <>
           <PhaseBadge room={room} />
           <div className="phase-strip" />
-          {round ? <GroupRound code={code} round={round} byId={byId} me={me} run={run} isHost={isHost} live={room.mode === 'screen'} /> : <div className="card center muted">{t("Gleich geht's los…")}</div>}
+          {round ? <GroupRound room={room} code={code} round={round} byId={byId} me={me} run={run} isHost={isHost} live={room.mode === 'screen'} /> : <div className="card center muted">{t("Gleich geht's los…")}</div>}
           {isHost && <GroupHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} />}
           <button className="btn ghost sm" onClick={() => setShowBoard((s) => !s)}>{showBoard ? t('Punktestand ausblenden') : `⭐ ${t('Punktestand')}`}</button>
           {showBoard && <PointsBoard players={players} meId={uid} />}
@@ -121,7 +121,7 @@ export function PlayerController({ uid, code }) {
             </>
           ) : (
             <>
-              <BoardRound code={code} round={round} byId={byId} me={me} run={run} fields={effectiveFields(room.board.fields, room.board.cleared)} live={room.mode === 'screen'} />
+              <BoardRound room={room} code={code} round={round} byId={byId} me={me} run={run} fields={effectiveFields(room.board.fields, room.board.cleared)} live={room.mode === 'screen'} />
               {round?.stage === 'review' && (
                 <>
                   <FieldBanner banner={banner} byId={byId} />

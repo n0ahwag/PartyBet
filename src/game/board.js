@@ -61,8 +61,8 @@ export function diceFor(seed, uid, index = 0, faces = DICE_KINDS.normal.faces) {
 }
 
 /** Alle Würfel eines Spielers mit Ergebnis: [{ kind, value }]. n = Zahl der Teilnehmer. */
-export function rollDiceFor(seed, uid, rank, n) {
-  return moveRule(rank, n).dice.map((kind, i) => ({ kind, value: diceFor(seed, uid, i, DICE_KINDS[kind].faces) }));
+export function rollDiceFor(seed, uid, rank, n, mods = {}) {
+  return moveRule(rank, n, mods).dice.map((kind, i) => ({ kind, value: diceFor(seed, uid, i, DICE_KINDS[kind].faces) }));
 }
 
 /** Wer würfelt in dieser Runde? Jeder – außer wer aussetzen muss. */
@@ -106,8 +106,11 @@ const DICE_LABEL = {
  * bekommen zusätzlich einen Spezialwürfel (wie viele, hängt von n ab – siehe bonusDice).
  * n = Zahl der Teilnehmer (ohne Angabe: volle Staffel Gold/Silber/Bronze).
  */
-export function moveRule(rank, n = 6) {
-  const kind = bonusDice(n)[rank - 1];
+export function moveRule(rank, n = 6, mods = {}) {
+  let kind = bonusDice(n)[rank - 1];
+  // Wochen-Regeln: Spiel der Woche / Jackpot → Gold für Platz 1 · Underdog → Bronze für den Letzten
+  if (mods.gold1 && rank === 1) kind = 'gold';
+  if (mods.bronzeLast && !kind && n >= 3 && rank === n) kind = 'bronze';
   if (kind) return { dice: [kind, 'normal'], bonus: kind, label: DICE_LABEL[kind] };
   return { dice: ['normal'], bonus: null, label: '🎲 Würfel' };
 }
@@ -146,7 +149,7 @@ export function turnPhase(round, id) {
  * Spielfeld mit zufällig verteilten Sonderfeldern (nicht direkt hintereinander).
  * mapId: Hindernisse (Felsen, Ducken, kaputte Brücke) liegen dort, wo sie auf der Map stehen.
  */
-export function generateBoard(length, seed, mapId = null) {
+export function generateBoard(length, seed, mapId = null, factor = 1) {
   const rng = makeRng(`board:${seed}`);
   const fields = Array.from({ length }, () => 'normal');
   fields[0] = 'start';
@@ -158,10 +161,10 @@ export function generateBoard(length, seed, mapId = null) {
   }
   // Sonderfelder sparsam: insgesamt ca. 12 % der Felder (bei 90 Feldern: 4 Raketen, 3 Chaos, 3 Stolpersteine, 2 Portale)
   const counts = {
-    rocket: Math.max(1, Math.round(length * 0.045)),
-    chaos: Math.max(1, Math.round(length * 0.03)),
-    stumble: Math.max(1, Math.round(length * 0.03)),
-    portal: Math.max(1, Math.round(length * 0.02)),
+    rocket: Math.max(1, Math.round(length * 0.045 * factor)),
+    chaos: Math.max(1, Math.round(length * 0.03 * factor)),
+    stumble: Math.max(1, Math.round(length * 0.03 * factor)),
+    portal: Math.max(1, Math.round(length * 0.02 * factor)),
   };
   const special = (t) => t !== 'normal' && t !== 'start' && t !== 'goal';
   // freie Felder ohne Sonderfeld-Nachbarn, nicht direkt an Start oder Ziel (und nicht direkt hinter einer Brückenlücke)
@@ -245,7 +248,7 @@ export function boardPhase(leaderPos, length) {
  * @param only  uid – nur diesen Spieler ziehen (Würfeln der Reihe nach); die anderen bleiben stehen
  * @returns { moves, positions, skipNext, winnerId, chaos, stats }
  */
-export function applyRound({ players, ranks, fields: rawFields, seed, fixedRolls = null, challenges = {}, cleared = [], n = null, only = null }) {
+export function applyRound({ players, ranks, fields: rawFields, seed, fixedRolls = null, challenges = {}, cleared = [], n = null, only = null, mods = {} }) {
   const count = n ?? (Object.keys(ranks).length || players.length);
   const fields = [...effectiveFields(rawFields, cleared)];
   const newCleared = [];
@@ -278,7 +281,7 @@ export function applyRound({ players, ranks, fields: rawFields, seed, fixedRolls
     // fixedRolls (nur für Tests): feste Augenzahlen statt Würfel
     m.dice = fixedRolls?.[p.id]
       ? fixedRolls[p.id].map((value) => ({ kind: 'normal', value }))
-      : rollDiceFor(seed, p.id, rank, count);
+      : rollDiceFor(seed, p.id, rank, count, mods);
     m.roll = m.dice.reduce((sum, d) => sum + d.value, 0);
     m.steps = m.roll;
     m.landed = Math.min(goal, from + m.steps);
@@ -303,7 +306,7 @@ export function applyRound({ players, ranks, fields: rawFields, seed, fixedRolls
     // Sonderfelder wirken nur, wenn man in dieser Runde darauf gezogen ist
     if (!blocked && to !== goal && m.steps > 0) {
       if (field === 'rocket') {
-        to = Math.min(goal, to + ROCKET_STEPS);
+        to = Math.min(goal, to + (mods.rocket ?? ROCKET_STEPS));
         m.effect = { type: 'rocket', delta: to - m.landed };
         stat(p.id, 'rockets');
       } else if (field === 'portal') {

@@ -72,3 +72,14 @@ export function useEvents(code, enabled) {
   }, [code, enabled]);
   return events;
 }
+
+/** Live-Abo eines beliebigen Dokuments (z. B. Crew, Wochen-Bestenliste). null = existiert nicht. */
+export function useDocData(path) {
+  const [data, setData] = useState(undefined);
+  const key = path ? path.join('/') : null;
+  useEffect(() => {
+    if (!key) { setData(null); return undefined; }
+    return onSnapshot(doc(db, ...key.split('/')), (s) => setData(s.exists() ? s.data() : null), () => setData(null));
+  }, [key]);
+  return data;
+}

@@ -3,6 +3,7 @@ import { GAMES, rankGroupRound, resultComplete, buildBracket, ranksFromBracket }
 import { beginChallenge, setRanks, triggerChaos, setBracketWinner, autoRoll, movePlayer, markShown, finishBoardRound } from '../../game/boardEngine.js';
 import { rollersOf, currentRoller, hasRolled, ROLL_TURN_MS } from '../../game/board.js';
 import { ROLL_MS } from './Dice.jsx';
+import { recordRoundRecords } from '../../game/crewEngine.js';
 import { nextStep, triggerLiveEvent, finishGame } from '../../game/engine.js';
 import { sfx } from '../../lib/sound.js';
 import { t } from '../../i18n/index.js';
@@ -99,6 +100,13 @@ export function BoardHostControls({ code, room, round, byId, run, busy, animDone
     run(() => setRanks(code, round.id, rankGroupRound(round, round.participants)));
   }, [round, game, code, run]);
 
+  // Rekorde & Wochen-Bestenliste, sobald die Platzierung steht
+  useEffect(() => {
+    if (round?.stage !== 'review' || round.records !== undefined || fired.current[`${round.id}:records`]) return;
+    fired.current[`${round.id}:records`] = true;
+    recordRoundRecords(code, round.id).catch(() => {});
+  }, [round?.id, round?.stage]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Würfel-Phase, Zug für Zug: würfeln → ziehen (Animation auf dem Hauptbildschirm) → erst dann der Nächste.
   // Wer nicht innerhalb von ROLL_TURN_MS tippt, für den würfelt die App.
   const rollers = round?.stage === 'review' ? rollersOf(round, Object.values(byId)) : [];
@@ -115,7 +123,7 @@ export function BoardHostControls({ code, room, round, byId, run, busy, animDone
       if (fired.current[key]) return;
       fired.current[key] = true;
       run(() => autoRoll(code, round.id, current));
-    }, ROLL_TURN_MS);
+    }, round.mods?.turnMs ?? ROLL_TURN_MS);
     return () => clearTimeout(tm);
   }, [round?.id, round?.stage, current, rolled, moved]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -240,7 +248,7 @@ export function BoardHostControls({ code, room, round, byId, run, busy, animDone
     main = (
       <>
         <p className="muted small" style={{ margin: 0 }}>
-          {!current ? t('Alle sind gezogen.') : moved ? `🚶 ${t('{name} zieht …', { name: who })}` : `🎲 ${t('{name} ist dran mit Würfeln.', { name: who })} ${t('Nach {n} s würfelt die App.', { n: ROLL_TURN_MS / 1000 })}`}
+          {!current ? t('Alle sind gezogen.') : moved ? `🚶 ${t('{name} zieht …', { name: who })}` : `🎲 ${t('{name} ist dran mit Würfeln.', { name: who })} ${t('Nach {n} s würfelt die App.', { n: (round.mods?.turnMs ?? ROLL_TURN_MS) / 1000 })}`}
         </p>
         {current && !rolled && !moved && (
           <button className="btn ghost sm" disabled={busy} onClick={() => { fired.current[`${round.id}:auto:${current}`] = true; run(() => autoRoll(code, round.id, current)); }}>

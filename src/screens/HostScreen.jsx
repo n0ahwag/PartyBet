@@ -46,7 +46,7 @@ export function HostScreen({ uid, code }) {
   if (loading) return <Loading text={t('Lade Arena…')} />;
   if (!room) return <div className="page center"><h2>{t('Raum {code} nicht gefunden', { code })}</h2><button className="btn" onClick={() => navigate('/')}>{t('Zur Startseite')}</button></div>;
   if (room.hostId !== uid) return <div className="page center"><h2>{t('Nur das Host-Gerät kann diesen Bildschirm öffnen.')}</h2><button className="btn" onClick={() => navigate('/')}>{t('Zur Startseite')}</button></div>;
-  if (room.status === 'finished') return <Wrapped code={code} players={players} room={room} />;
+  if (room.status === 'finished') return <Wrapped code={code} players={players} room={room} uid={uid} />;
 
   return (
     <div className="page wide">
@@ -71,7 +71,7 @@ export function HostScreen({ uid, code }) {
       ) : room.gameMode === 'group' ? (
         <div className="host-grid">
           <div className="stack">
-            {round ? <div className="card"><GroupRound code={code} round={round} byId={byId} me={null} big run={run} isHost /></div>
+            {round ? <div className="card"><GroupRound room={room} code={code} round={round} byId={byId} me={null} big run={run} isHost /></div>
               : <div className="card center"><h2>{t('Bereit für die erste Runde?')}</h2></div>}
           </div>
           <div className="stack">
@@ -92,7 +92,7 @@ export function HostScreen({ uid, code }) {
           </div>
           <aside className="board-side">
             {round && round.stage !== 'resolved' && (
-              <div className="card"><BoardRound code={code} round={round} byId={byId} me={null} run={run} fields={effectiveFields(room.board.fields, room.board.cleared)} /></div>
+              <div className="card"><BoardRound room={room} code={code} round={round} byId={byId} me={null} run={run} fields={effectiveFields(room.board.fields, room.board.cleared)} /></div>
             )}
             <BoardHostControls code={code} room={room} round={round} byId={byId} run={run} busy={busy} animDone={animDone} animated={animated} />
             <RoundMoves round={round} byId={byId} />

@@ -6,6 +6,7 @@ import {
 } from '../../game/teams.js';
 import { useHostSim, SIM_GAMES } from './useHostSim.js';
 import { useScreenDirector } from './useScreenDirector.js';
+import { recordRoundRecords } from '../../game/crewEngine.js';
 import {
   pointsForRanks, tallyVotes, syncResult, hivemindResult, confessionResult, storyState, storyResult,
 } from '../../game/group.js';
@@ -55,7 +56,11 @@ export function GroupHostControls({ code, room, round, byId, run, busy, children
   const fired = useRef({});
   const game = round && GAMES[round.gameId];
   const n = round?.participants.length ?? 0;
-  const finish = (payload) => run(() => finishGroupRound(code, round.id, payload));
+  const finish = (payload) => run(async () => {
+    const id = round.id;
+    await finishGroupRound(code, id, payload);
+    recordRoundRecords(code, id).catch(() => {}); // Rekorde & Wochen-Bestenliste
+  });
   const finishRanks = (ranks) => finish({ ranks, points: pointsForRanks(ranks, n) });
   const once = (key, fn) => { if (!fired.current[key]) { fired.current[key] = true; fn(); } };
 
@@ -100,6 +105,12 @@ export function GroupHostControls({ code, room, round, byId, run, busy, children
 
   // Gemeinsam gesteuerte Spiele (Rafting, Touch-Parcours): der Host rechnet
   useHostSim({ code, round, active: SIM_GAMES.includes(round?.gameId), finish: (payload) => once(`${round.id}:sim`, () => finish(payload)) });
+
+  // Rekorde & Wochen-Bestenliste nach jeder gewerteten Runde prüfen
+  useEffect(() => {
+    if (round?.stage !== 'resolved' || round.records !== undefined) return;
+    once(`${round.id}:records`, () => recordRoundRecords(code, round.id).catch(() => {}));
+  }, [round?.id, round?.stage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Hauptbildschirm-Spiele: die Regie läuft auf dem Hauptbildschirm (Host-Gerät)
   useScreenDirector({ code, round, active: !!game?.needsScreen, finish: (payload) => once(`${round.id}:screen`, () => finish(payload)) });

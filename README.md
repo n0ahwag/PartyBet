@@ -76,6 +76,15 @@ Nur verfügbar, wenn der Raum mit **Hauptbildschirm** erstellt wurde (Gruppen-Mo
 
 Die Regie (`director.start / tick`) ist pro Spiel eine reine Funktion ohne Firebase – dadurch komplett mit Vitest getestet (`tests/screen.test.js`). Lädt der Hauptbildschirm neu, geht es mit `round.sim` weiter. Soundeffekte (Buzzer, Auktions-Hammer, Renn-Jingle, Ticken) spielt der Hauptbildschirm.
 
+## 🔁 Wiederspielen: Crew, Rekorde & Spiel der Woche
+
+- **Revanche:** Am Ende startet der Host mit einem Tipp eine neue Party mit denselben Einstellungen – alle Handys treten automatisch bei (`room.rematch`).
+- **Crew-Bilanz (ohne Anmeldung):** Gleiche Spielernamen = gleiche Crew (`crews/{crewId}`). Ewige Tabelle, Siegesserie, direkter Vergleich und Sätze wie „Nur noch 1 Sieg bis zum Gleichstand mit Ben!“ auf dem Endbildschirm.
+- **Rekorde:** Persönliche Bestwerte pro Spiel (je Crew-Mitglied) mit „🔥 NEUER REKORD!“ und eine **Wochen-Bestenliste** (Top 5) je Spiel über alle Partys (`weekRecords/{2026-W45}`).
+- **16 Abzeichen** (z. B. Hattrick, Portal-Pirat, Rekordjäger, Erzrivale) mit Fortschritt „🎖️ 3/16“.
+- **Spiel der Woche & Wochen-Regel** (aus der Kalenderwoche, auf allen Geräten gleich): Das Spiel der Woche eröffnet jede Party und zählt doppelt. Regeln: 💥 Chaos (doppelt so viele Sonderfelder), 🚀 Raketen (+5), ⚡ Speed (kürzere Wartezeiten), 🐢 Underdog (Bonus für den Letzten), 💰 Jackpot (jede 3. Runde doppelt).
+- Logik rein & getestet: `src/game/crew.js`, `src/game/weekly.js` (`tests/crew.test.js`), Firestore-Teil in `src/game/crewEngine.js`.
+
 ## 🤫 Stealth-/Uni-Modus
 
 Der Modus lässt sich beim Erstellen jeder Party und der Bibliotheks-Lobby einschalten. Es gibt dann nur **leise, unauffällige Spiele** (Flag `quiet`): kein Rufen, kein Aufstehen, kein Ton nötig. Dazu gehören z. B. Der fliegende Teppich, Wasserwaage, Kopfrechnen, Zahlen-Merker, die Arcade-Spiele, „Wer am ehesten“ und das Beicht-Quiz. Alle Geräte der Party sind lautlos (Vibration bleibt), die Ketten-Story wird nicht vorgelesen, und Live-Events sind aus. In der Bibliotheks-Lobby filtert „🤫 Leise“ die Auswahl.

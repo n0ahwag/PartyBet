@@ -8,6 +8,7 @@ import {
   LOAN_INTEREST, EMERGENCY_TASKS, VIDEO_PROMPTS, PLAYER_COLORS, AVATARS, phaseForRound,
 } from './constants.js';
 import { filterLibrary, planDuel } from './gameLibrary.js';
+import { weekInfo, specialFactor } from './weekly.js';
 import { lockDuel, settleDuel, applyRepayments } from './economy.js';
 import { createLiveEvent, shouldTriggerLiveEvent } from './liveEvents.js';
 import { generateBoard, stepBack, EVENT_PENALTY, BOARD_LENGTHS, pickMap } from './board.js';
@@ -48,6 +49,8 @@ export async function createRoom({
   hostId, mode, expectedPlayers, equipment, totalRounds, liveEvents = true, gameMode = 'party', boardLength = 'normal',
   boardTheme = null, stealth = false,
 }) {
+  // Spiel der Woche & Wochen-Regel gelten für die ganze Party (auch wenn sie über Mitternacht geht)
+  const week = weekInfo();
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = makeRoomCode();
     const ref = roomRef(code);
@@ -74,9 +77,10 @@ export async function createRoom({
         liveEvent: null,
         gameMode, // 'party' (Schlücke & Wetten) | 'board' (Spielfeld) | 'group' | 'library' (Host wählt Spiele frei)
         ...(gameMode === 'board'
-          ? (() => { const map = boardTheme || pickMap(code); return { board: { length: boardLength, theme: map, fields: generateBoard(BOARD_LENGTHS[boardLength].fields, code, map) }, winnerId: null }; })()
+          ? (() => { const map = boardTheme || pickMap(code); return { board: { length: boardLength, theme: map, fields: generateBoard(BOARD_LENGTHS[boardLength].fields, code, map, specialFactor(week)) }, winnerId: null }; })()
           : {}),
         lastEventRound: -1,
+        week,
         createdAt: serverTimestamp(),
       });
       return true;

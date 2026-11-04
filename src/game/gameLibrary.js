@@ -507,10 +507,13 @@ export function pickGame(candidates, lastGameId, seed, counts = null, history = 
  * cycle = Spiele, die auf diesem Gerät in früheren Partys schon dran waren (partyübergreifender Durchlauf).
  * @returns { game, playedGames, cycleReset } – cycleReset: Durchlauf ist komplett, neu beginnen
  */
-export function chooseNextGame({ playable, played = [], cycle = [], lastGameId = null, seed, counts = null }) {
+export function chooseNextGame({ playable, played = [], cycle = [], lastGameId = null, seed, counts = null, featured = null }) {
   let playedGames = played;
   let unplayed = playable.filter((g) => !playedGames.includes(g.id));
   if (!unplayed.length) { playedGames = []; unplayed = playable; } // diese Party hat alles gespielt
+  // Spiel der Woche: eröffnet jede Party (falls spielbar)
+  const star = featured && !played.length ? unplayed.find((g) => g.id === featured) : null;
+  if (star) return { game: star, playedGames: [...playedGames, star.id], cycleReset: false };
   const fresh = unplayed.filter((g) => !cycle.includes(g.id));
   const cycleReset = !fresh.length;
   const game = pickGame(fresh.length ? fresh : unplayed, lastGameId, seed, counts, playedGames);

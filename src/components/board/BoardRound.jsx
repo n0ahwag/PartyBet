@@ -5,6 +5,7 @@ import { moveRule, bonusDice, FIELD_TYPES, rollDiceFor, rollersOf, rollOrder, ha
 import { submitRoundResult, rollDice } from '../../game/boardEngine.js';
 import { Dice, ROLL_MS } from './Dice.jsx';
 import { Placements } from '../Placements.jsx';
+import { RecordsPanel, ModBanner } from '../CrewPanel.jsx';
 import { LiveBoard, LiveProvider } from '../../minigames/live.jsx';
 import { sfx, vibrate } from '../../lib/sound.js';
 import { DuckChallenge, JumpChallenge, BoulderChallenge } from './Obstacles.jsx';
@@ -16,7 +17,7 @@ import { t } from '../../i18n/index.js';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
 
-function MoveTable({ count }) {
+function MoveTable({ count, mods = {} }) {
   const bonus = bonusDice(count).length;
   const ranks = Array.from({ length: bonus + 1 }, (_, i) => i + 1);
   return (
@@ -25,7 +26,7 @@ function MoveTable({ count }) {
       <div className="row wrap" style={{ gap: 6 }}>
         {ranks.map((r) => (
           <span key={r} className="pill">
-            {r === bonus + 1 ? (r === count ? `${t('Platz {n}', { n: r })}: ` : `${t('ab Platz {n}', { n: r })}: `) : `${t('Platz {n}', { n: r })}: `}{t(moveRule(r, count).label)}
+            {r === bonus + 1 ? (r === count ? `${t('Platz {n}', { n: r })}: ` : `${t('ab Platz {n}', { n: r })}: `) : `${t('Platz {n}', { n: r })}: `}{t(moveRule(r, count, mods).label)}
           </span>
         ))}
       </div>
@@ -76,7 +77,7 @@ export function RankingList({ round, byId, meId }) {
               {game.judge === 'auto' && <div className="small muted">{res ? fmt?.(res, round, id) : t('kein Ergebnis')}</div>}
             </div>
             <span className="small" style={{ fontWeight: 800, textAlign: 'right' }}>
-              {round.stage === 'resolved' ? moveText(m, byId) : t(moveRule(rank, round.participants.length).label)}
+              {round.stage === 'resolved' ? moveText(m, byId) : t(moveRule(rank, round.participants.length, round.mods).label)}
             </span>
           </div>
         );
@@ -110,7 +111,7 @@ export function RoundMoves({ round, byId, meId }) {
 }
 
 /** Sekunden, bis die App für den aktuellen Würfler automatisch würfelt (lokal ab Zugbeginn gezählt). */
-function useTurnLeft(turnKey) {
+function useTurnLeft(turnKey, total = TURN_MS) {
   const [start, setStart] = useState(() => Date.now());
   const [, tick] = useState(0);
   useEffect(() => { setStart(Date.now()); }, [turnKey]);
@@ -119,7 +120,7 @@ function useTurnLeft(turnKey) {
     const iv = setInterval(() => tick((x) => x + 1), 500);
     return () => clearInterval(iv);
   }, [turnKey]);
-  return Math.max(0, Math.ceil((start + TURN_MS - Date.now()) / 1000));
+  return Math.max(0, Math.ceil((start + total - Date.now()) / 1000));
 }
 
 /**
@@ -143,8 +144,8 @@ function DiceStage({ code, round, byId, me, big, run, fields }) {
   const mine = me && rollers.includes(me.id);
   const myTurn = mine && current === me.id && !tapped && !hasRolled(round, me.id);
   const ahead = mine ? order.indexOf(me.id) - (current ? order.indexOf(current) : order.length) : 0;
-  const turnLeft = useTurnLeft(current && !moving ? `${round.id}:${current}` : null);
-  const diceOf = (id) => rollDiceFor(seed, id, round.ranks[id] ?? n, n);
+  const turnLeft = useTurnLeft(current && !moving ? `${round.id}:${current}` : null, round.mods?.turnMs ?? TURN_MS);
+  const diceOf = (id) => rollDiceFor(seed, id, round.ranks[id] ?? n, n, round.mods);
   const sumOf = (id) => diceOf(id).reduce((a, x) => a + x.value, 0);
   const resultText = (id) => {
     const d = diceOf(id);
@@ -178,7 +179,7 @@ function DiceStage({ code, round, byId, me, big, run, fields }) {
     run(() => rollDice(code, round.id, me.id, Object.keys(next).length ? next : null));
   };
   const challenge = queue?.[0];
-  const kindText = (id) => t(moveRule(round.ranks[id] ?? n, n).label);
+  const kindText = (id) => t(moveRule(round.ranks[id] ?? n, n, round.mods).label);
   const rankBadge = (id) => {
     const r = round.ranks[id];
     return r > n ? '–' : MEDAL[r - 1] ?? `${r}.`;
@@ -260,7 +261,7 @@ function DiceStage({ code, round, byId, me, big, run, fields }) {
  * Eine Gruppen-Challenge im Spielfeld-Modus.
  * me = Spieler auf diesem Handy (null auf dem Hauptbildschirm).
  */
-export function BoardRound({ code, round, byId, me, big = false, run, fields = null, live = false }) {
+export function BoardRound({ code, round, byId, me, big = false, run, fields = null, live = false, room = null }) {
   const game = GAMES[round.gameId];
   const mg = MINIGAMES[round.gameId];
   const shownGame = { ...game, rules: game.groupRules ?? game.rules };
@@ -282,8 +283,9 @@ export function BoardRound({ code, round, byId, me, big = false, run, fields = n
   if (round.stage === 'intro') {
     body = (
       <>
+        <ModBanner mods={round.mods} />
         <Rules game={shownGame} />
-        <MoveTable count={round.participants.length} />
+        <MoveTable count={round.participants.length} mods={round.mods} />
         {round.introEndsAt
           ? <div className="card tinted center"><b style={{ fontSize: big ? 28 : 20 }}>⏳ {startsIn > 0 ? t('Start in {n} s', { n: startsIn }) : t("Los geht's!")}</b></div>
           : !big && <Waiting text={t("Gleich geht's los…")} />}
@@ -314,8 +316,9 @@ export function BoardRound({ code, round, byId, me, big = false, run, fields = n
     const n = round.participants.length;
     body = (
       <>
+        <RecordsPanel round={round} room={room} byId={byId} meId={me?.id} />
         <Placements round={round} byId={byId} meId={me?.id} big={big} showRest={false}
-          extra={(id) => <span className="muted" style={{ fontWeight: 700 }}>{t(moveRule(round.ranks[id] ?? n, n).label)}</span>} />
+          extra={(id) => <span className="muted" style={{ fontWeight: 700 }}>{t(moveRule(round.ranks[id] ?? n, n, round.mods).label)}</span>} />
         <DiceStage code={code} round={round} byId={byId} me={me} big={big} run={run} fields={fields} />
       </>
     );

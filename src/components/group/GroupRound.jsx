@@ -10,6 +10,7 @@ import { t } from '../../i18n/index.js';
 import { useSecondsLeft } from '../../hooks/useCountdown.js';
 import { LiveBoard, LiveProvider } from '../../minigames/live.jsx';
 import { Placements } from '../Placements.jsx';
+import { RecordsPanel, ModBanner } from '../CrewPanel.jsx';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
 
@@ -43,7 +44,7 @@ function PointsList({ round, ranks: shownRanks = round.ranks, byId, meId }) {
 /**
  * Eine Gruppen-Runde. me = Spieler auf diesem Handy (null auf dem Hauptbildschirm).
  */
-export function GroupRound({ code, round, byId, me, big = false, run, isHost = false, live = false }) {
+export function GroupRound({ code, round, byId, me, big = false, run, isHost = false, live = false, room = null }) {
   const game = GAMES[round.gameId];
   const social = GROUP_GAMES[round.gameId];
   const mg = MINIGAMES[round.gameId];
@@ -65,6 +66,7 @@ export function GroupRound({ code, round, byId, me, big = false, run, isHost = f
   if (round.stage === 'intro') {
     body = (
       <>
+        <ModBanner mods={round.mods} />
         <Rules game={shownGame} />
         {!social && <div className="card small">🥇 +{RANK_POINTS[0]} · 🥈 +{RANK_POINTS[1]} · 🥉 +{RANK_POINTS[2]} {t('Punkte')}{final ? ` ${t('(im Finale ×{n})', { n: FINAL_MULTIPLIER })}` : ''}</div>}
         {round.introEndsAt
@@ -108,6 +110,7 @@ export function GroupRound({ code, round, byId, me, big = false, run, isHost = f
       <>
         {social?.Result && <social.Result round={round} byId={byId} isHost={isHost} />}
         {reveal && <div className="card tinted center"><b>{reveal}</b></div>}
+        <RecordsPanel round={round} room={room} byId={byId} meId={me?.id} />
         {ranks && (
           <Placements round={round} ranks={ranks} byId={byId} meId={me?.id} big={big} showRest={false}
             extra={(id) => <span className={`pill ${pts[id] ? 'good' : ''}`}>+{pts[id] ?? 0} P</span>} />
