@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLiveValue } from './live.jsx';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
 import { requestMotionPermission } from '../lib/device.js';
 import { sfx, vibrate } from '../lib/sound.js';
@@ -13,6 +14,7 @@ function Measure({ duel, submit }) {
   const [error, setError] = useState(null);
   const [live, setLive] = useState({ x: 0, y: 0, wobble: 0, left: 0 });
   const acc = useRef({ last: null, sum: 0, n: 0 });
+  useLiveValue(step === 'run' && live.wobble ? Math.round(live.wobble * 1000) / 1000 : null);
 
   const n = useGo(step === 'count', () => setStep('run'));
 

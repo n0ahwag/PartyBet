@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLiveValue } from './live.jsx';
 import {
   GAMES, categoryWordValid, associationValid, secretTargetOf, resultComplete, buildBracket,
 } from '../game/gameLibrary.js';
@@ -124,6 +125,7 @@ function MathBlitz({ duel, submit }) {
   const [val, setVal] = useState('');
   const [wrong, setWrong] = useState(0);
   const t0 = useRef(0);
+  useLiveValue(step === 'run' ? wrong : null);
   const n = useGo(step === 'count', () => { t0.current = performance.now(); setStep('run'); });
   const press = (d) => { sfx.tap(); setVal((v) => (v + d).slice(0, 5)); };
   const check = () => {
@@ -230,6 +232,7 @@ function SecretNumber({ duel, me, byId, submit }) {
   useEffect(() => {
     if (targetSecret != null && (bot || own?.secret != null) && !t0.current) t0.current = performance.now();
   }, [targetSecret, own?.secret, bot]);
+  useLiveValue(targetSecret != null && (bot || own?.secret != null) ? hints.length : null);
 
   if (!bot && own?.secret == null) {
     return (
@@ -276,6 +279,7 @@ function NumberMemory({ duel, submit }) {
   const [val, setVal] = useState('');
   const t0 = useRef(0);
   const best = useRef(0);
+  useLiveValue(step === 'show' || step === 'input' ? best.current : null);
 
   useEffect(() => {
     if (step !== 'show') return undefined;

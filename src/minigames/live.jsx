@@ -59,6 +59,37 @@ export const LIVE = {
   hotWire: { fmt: (v) => `⚡ ${t('{p} % geschafft', { p: Math.round(v) })}`, final: (r) => (r.ms != null ? 100 : Math.round((r.progress ?? 0) * 100)), max: () => 100 },
   higherLower: { fmt: (v) => `🔥 ${t('{n} richtig', { n: v })}`, final: (r) => r.streak },
   stareDown: { fmt: (v) => s1(v), final: (r) => r.survivedMs },
+  numberMemory: { fmt: (v) => `🧠 ${t('{n} Ziffern', { n: v })}`, final: (r) => r.digits },
+  balance: { fmt: (v) => `〰️ ${t('Wackel-Wert')} ${num(v, 3)}`, final: (r) => r.wobble, low: true },
+
+  // Zwischenstand ohne direkten Vergleich zum Endergebnis (progress): Fertige stehen oben
+  speedTap: { progress: true, fmt: (v, round) => `⚡ ${v.n}/${round.game.rounds.length}${v.avg ? ` · Ø ${Math.round(v.avg)} ms` : ''}`, key: (v) => v.n, max: (round) => round.game.rounds.length },
+  memoryCode: { progress: true, fmt: (v, round) => `⌨️ ${t('{a}/{b} Ziffern', { a: v, b: round.game.code.length })}`, max: (round) => round.game.code.length, idle: '👀 merkt sich den Code …' },
+  rhythm: { progress: true, fmt: (v, round) => `🥁 ${t('{a}/{b} Schläge', { a: v, b: round.game.intervals.length + 1 })}`, max: (round) => round.game.intervals.length + 1, idle: '👂 hört zu …' },
+  priceTag: { progress: true, fmt: (v, round) => `🏷️ ${t('{a}/{b} geschätzt', { a: v, b: round.game.items.length })}`, max: (round) => round.game.items.length, idle: '🏷️ schätzt …' },
+  compass: { progress: true, low: true, fmt: (v) => `🧭 ${t('{n}° daneben', { n: Math.round(v) })}`, idle: '🧭 sucht die Richtung …' },
+  emojiQuiz: { progress: true, low: true, fmt: (v) => `🤔 ${t('{n}× falsch geraten', { n: v })}`, idle: '🤔 rätselt …' },
+  mathBlitz: { progress: true, low: true, fmt: (v) => `✖️ ${t('{n}× falsch', { n: v })}`, idle: '🧮 rechnet …' },
+  secretNumber: { progress: true, low: true, fmt: (v) => `🔢 ${t('{n} Versuche', { n: v })}`, idle: '🔢 rät …' },
+  traceLine: { progress: true, fmt: (v) => `✍️ ${t('{n} % gezeichnet', { n: Math.round(v) })}`, max: () => 100, idle: '✍️ zeichnet …' },
+
+  // Kein Zwischenstand möglich (z. B. eine geheime Antwort) – dafür ein klarer Status statt „spielt“
+  estimate: { idle: '🤔 schätzt …' },
+  stopwatch: { idle: '⏱️ die Uhr läuft …' },
+  f1Start: { idle: '🚦 wartet auf Grün …' },
+  lightFlash: { idle: '💡 wartet auf das Signal …' },
+  association: { idle: '✍️ tippt …' },
+  categorySprint: { idle: '✍️ tippt …' },
+  heightStretch: { idle: '💪 streckt sich …' },
+  marbleMaze: { idle: '🎯 im Labyrinth …' },
+  truthBluff: { idle: '🤔 überlegt …' },
+};
+
+/** Sortier-Wert eines Live-Werts (höher = besser). */
+const keyOf = (cfg, v) => {
+  if (v == null) return -Infinity;
+  const k = cfg.key ? cfg.key(v) : typeof v === 'number' ? v : 0;
+  return cfg.low ? -k : k;
 };
 
 const MEDAL = ['🥇', '🥈', '🥉'];
@@ -76,19 +107,26 @@ export function LiveBoard({ round, byId, ids = round.participants, meId, big = f
   const provisional = game?.groupScore
     ? rankFromScores(doneIds, (id) => game.groupScore(round.results[id], id, round))
     : {};
-  const valueOf = (id) => (done(id) ? cfg?.final(round.results[id], round) : round.live?.[id]);
+  const live = !!cfg?.fmt;
+  const comparable = live && !!cfg.final;
+  const valueOf = (id) => (done(id) ? (comparable ? cfg.final(round.results[id], round) : null) : round.live?.[id] ?? null);
 
-  const rows = ids.map((id) => ({ id, done: done(id), v: cfg ? valueOf(id) : null, rank: provisional[id] }));
+  const rows = ids.map((id) => ({ id, done: done(id), v: live ? valueOf(id) : null, rank: provisional[id] }));
   rows.sort((a, b) => {
-    if (cfg) {
-      const va = a.v ?? -Infinity;
-      const vb = b.v ?? -Infinity;
-      if (va !== vb) return vb - va;
+    if (comparable) {
+      const d = keyOf(cfg, b.v) - keyOf(cfg, a.v);
+      if (d) return d;
     }
     if (a.done !== b.done) return a.done ? -1 : 1;
+    if (!a.done && live) {
+      const d = keyOf(cfg, b.v) - keyOf(cfg, a.v);
+      if (d) return d;
+    }
     return (a.rank ?? 99) - (b.rank ?? 99) || ids.indexOf(a.id) - ids.indexOf(b.id);
   });
-  const max = Math.max(1e-9, cfg?.max?.(round) ?? 0, ...rows.map((r) => r.v ?? 0));
+  const barOf = (v) => (cfg?.key ? cfg.key(v) : v);
+  const showBar = live && !cfg.low;
+  const max = Math.max(1e-9, cfg?.max?.(round) ?? 0, ...rows.map((r) => (r.v != null ? barOf(r.v) : 0)));
   const anyValue = rows.some((r) => r.v != null || r.done);
   const rowH = big ? 66 : 54;
 
@@ -106,8 +144,8 @@ export function LiveBoard({ round, byId, ids = round.participants, meId, big = f
           const lead = anyValue && i === 0 && (r.v != null || r.done);
           let status;
           if (r.done) status = `✓ ${fmt ? fmt(round.results[id], round, id) : t('fertig')}`;
-          else if (cfg && r.v != null) status = cfg.fmt(r.v, round);
-          else status = t('spielt …');
+          else if (live && r.v != null) status = cfg.fmt(r.v, round);
+          else status = t(cfg?.idle ?? 'spielt …');
           return (
             <div key={id} className={`live-row ${id === meId ? 'me' : ''} ${r.done ? 'done' : ''} ${lead ? 'lead' : ''}`}
               style={{ transform: `translateY(${i * rowH}px)`, height: rowH - 8, '--c': p?.color ?? 'var(--accent)' }}>
@@ -118,8 +156,8 @@ export function LiveBoard({ round, byId, ids = round.participants, meId, big = f
                   <b className="ellipsis">{p?.name}</b>
                   <span className={`small live-status ${r.done ? '' : 'muted'}`}>{status}</span>
                 </div>
-                {cfg && (
-                  <div className="bar live-bar"><div style={{ width: `${Math.max(0, Math.min(1, (r.v ?? 0) / max)) * 100}%` }} /></div>
+                {showBar && (
+                  <div className="bar live-bar"><div style={{ width: `${Math.max(0, Math.min(1, (r.v != null ? barOf(r.v) : r.done && !comparable ? max : 0) / max)) * 100}%` }} /></div>
                 )}
               </div>
             </div>

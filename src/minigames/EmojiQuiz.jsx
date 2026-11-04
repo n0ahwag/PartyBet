@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useLiveValue } from './live.jsx';
 import { EMOJI_PUZZLES, emojiAnswerCorrect } from '../game/gameLibrary.js';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
 import { sfx, vibrate } from '../lib/sound.js';
@@ -10,6 +11,7 @@ function Play({ duel, submit }) {
   const [step, setStep] = useState('ready');
   const [val, setVal] = useState('');
   const [wrong, setWrong] = useState(0);
+  useLiveValue(step === 'run' ? wrong : null);
   const t0 = useRef(0);
   const n = useGo(step === 'count', () => { t0.current = performance.now(); setStep('run'); });
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLiveValue } from './live.jsx';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
 import { requestOrientationPermission } from '../lib/device.js';
 import { sfx, vibrate } from '../lib/sound.js';
@@ -15,6 +16,7 @@ function Play({ duel, submit }) {
   const [noSensor, setNoSensor] = useState(false);
   const { target, holdMs, timeoutMs } = duel.game;
   const st = useRef({ heading: null, inZoneSince: null, done: false });
+  useLiveValue(step === 'run' && heading != null ? Math.round(angleDiff(heading, target.deg) / 5) * 5 : null);
   const n = useGo(step === 'count', () => setStep('run'));
 
   useEffect(() => {

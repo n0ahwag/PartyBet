@@ -2,7 +2,8 @@ import {
   collection, doc, getDocs, updateDoc, runTransaction, serverTimestamp, increment,
 } from 'firebase/firestore';
 import { db, expiry } from '../firebase.js';
-import { GAMES, groupPlayable, pickGame } from './gameLibrary.js';
+import { GAMES, groupPlayable, chooseNextGame } from './gameLibrary.js';
+import { cycleIds, rememberPlayed } from '../lib/playCycle.js';
 import { applyRound, boardPhase, CHAOS_PENALTY } from './board.js';
 import { triggerLiveEvent } from './engine.js';
 import { makeRng } from '../lib/random.js';
@@ -46,15 +47,11 @@ export async function startChallenge(code) {
     const rng = makeRng(seed);
 
     const playable = groupPlayable(room.library || [], players);
-    let played = room.playedGames || [];
-    let candidates = playable.filter((g) => !played.includes(g.id));
-    if (!candidates.length) {
-      played = []; // alle Spiele durch → Pool neu mischen
-      candidates = playable;
-    }
-    const game = pickGame(candidates, room.lastGameId, seed, counts);
+    // Jedes Spiel erst wieder, wenn alle einmal dran waren (auch partyübergreifend), Kategorien gemischt
+    const pick = chooseNextGame({ playable, played: room.playedGames || [], cycle: cycleIds('board'), lastGameId: room.lastGameId, seed, counts });
+    const { game } = pick;
     if (!game) throw new Error('Keine Gruppen-Spiele für diese Runde verfügbar.');
-    chosen = game.id;
+    chosen = pick;
 
     const id = `r${String(round).padStart(2, '0')}`;
     tx.set(roundRef(code, id), { ...expiry(),
@@ -82,11 +79,12 @@ export async function startChallenge(code) {
       round,
       currentRoundId: id,
       lastGameId: game.id,
-      playedGames: [...played, game.id],
+      playedGames: pick.playedGames,
     });
     return id;
   });
-  recordPlay(chosen);
+  recordPlay(chosen?.game.id);
+  rememberPlayed('board', chosen?.game.id, { reset: chosen?.cycleReset });
   return result;
 }
 

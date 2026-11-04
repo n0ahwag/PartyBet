@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLiveValue } from './live.jsx';
 import { useGo, CountdownView, Waiting } from './shared.jsx';
 import { sfx, vibrate } from '../lib/sound.js';
 import { t } from '../i18n/index.js';
@@ -11,6 +12,7 @@ function Play({ duel, me, submit }) {
   const [input, setInput] = useState('');
   const t0 = useRef(0);
   const code = duel.game.code;
+  useLiveValue(step === 'input' ? input.length : null);
   const showMs = duel.sabotage?.target === me.id ? SABOTAGED_SHOW_MS : duel.game.showMs;
 
   const n = useGo(step === 'count', () => setStep('show'));

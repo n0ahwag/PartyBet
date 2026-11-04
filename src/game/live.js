@@ -23,14 +23,22 @@ export function makeLiveReporter(code, coll, id, uid) {
   let stopped = false;
   const send = () => {
     timer = null;
-    if (stopped || pending === sent) return;
+    const json = JSON.stringify(pending);
+    if (stopped || json === sent) return;
     last = Date.now();
-    sent = pending;
+    sent = json;
     updateDoc(doc(db, 'rooms', code, coll, id), { [`live.${uid}`]: pending }).catch(() => {});
   };
+  const round2 = (v) => Math.round(v * 100) / 100;
+  /** value: Zahl oder kleines Objekt mit Zahlen (z. B. { n: 3, avg: 290 }) */
   const report = (value) => {
-    if (stopped || value == null || !Number.isFinite(value)) return;
-    pending = Math.round(value * 100) / 100;
+    if (stopped || value == null) return;
+    if (typeof value === 'number') {
+      if (!Number.isFinite(value)) return;
+      pending = round2(value);
+    } else if (typeof value === 'object') {
+      pending = Object.fromEntries(Object.entries(value).filter(([, v]) => Number.isFinite(v)).map(([k, v]) => [k, round2(v)]));
+    } else return;
     if (!timer) timer = setTimeout(send, Math.max(0, last + LIVE_EVERY_MS - Date.now()));
   };
   report.stop = () => { stopped = true; clearTimeout(timer); };
