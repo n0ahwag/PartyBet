@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { WeekCard } from '../components/CrewPanel.jsx';
+import { weekInfo } from '../game/weekly.js';
 import { GameArt } from '../components/GameArt.jsx';
 import { EQUIPMENT } from '../game/constants.js';
 import { libraryFor } from '../game/group.js';
@@ -67,6 +69,7 @@ export function CreateRoom({ uid }) {
         <h2>{t('Party erstellen')}</h2>
         <LangSwitch />
       </div>
+      {gameMode !== 'party' && <WeekCard week={weekInfo()} compact />}
 
       <div className="card stack" style={{ gap: 10 }}>
         <h3>1 · {t('Was wollt ihr spielen?')}</h3>

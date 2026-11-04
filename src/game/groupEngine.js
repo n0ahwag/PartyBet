@@ -4,6 +4,7 @@ import {
 import { db, expiry } from '../firebase.js';
 import { GAMES, groupPlayable, chooseNextGame } from './gameLibrary.js';
 import { cycleIds, rememberPlayed } from '../lib/playCycle.js';
+import { roundMods, introMs } from './weekly.js';
 import { phaseForRound } from './constants.js';
 import { FINAL_MULTIPLIER, confessionOrder } from './group.js';
 import { makeRng } from '../lib/random.js';
@@ -44,7 +45,7 @@ export async function startGroupRound(code) {
 
     const playable = groupPlayable(room.library || [], players).filter((g) => players.length >= g.minPlayers);
     // Jedes Spiel erst wieder, wenn alle einmal dran waren (auch partyübergreifend), Kategorien gemischt
-    const pick = chooseNextGame({ playable, played: room.playedGames || [], cycle: cycleIds('group'), lastGameId: room.lastGameId, seed, counts });
+    const pick = chooseNextGame({ playable, played: room.playedGames || [], cycle: cycleIds('group'), lastGameId: room.lastGameId, seed, counts, featured: room.week?.game });
     if (!pick.game) throw new Error('Keine Gruppen-Spiele verfügbar.');
     chosen = pick;
     return writeRound(tx, code, room, players, pick.game, rng, round, phase, pick.playedGames);
@@ -71,6 +72,7 @@ function writeRound(tx, code, room, players, game, rng, round, phase, playedGame
     results: {},
     ranks: null,
     points: null,
+    mods: roundMods(room.week, round, game.id), // Spiel der Woche / Wochen-Regel
     ...extra,
     createdAt: serverTimestamp(),
   });
@@ -109,7 +111,7 @@ export async function startLibraryRound(code, gameId, { replay = false } = {}) {
     const rng = makeRng(`${code}:library:${round}:${Date.now()}`);
     return writeRound(tx, code, room, players, game, rng, round, 'warmup',
       played.includes(game.id) ? played : [...played, game.id],
-      replay ? { stage: 'playing', playStartedAt: Date.now() } : { introEndsAt: Date.now() + LIBRARY_INTRO_MS });
+      replay ? { stage: 'playing', playStartedAt: Date.now() } : { introEndsAt: Date.now() + introMs(room.week, LIBRARY_INTRO_MS) });
   });
   recordPlay(gameId); // auch frei gewählte Spiele zählen für die Wochen-Statistik
   return id;
@@ -150,8 +152,16 @@ export async function finishGroupRound(code, id, { points = {}, stats = {}, rank
   return runTransaction(db, async (tx) => {
     const round = (await tx.get(roundRef(code, id))).data();
     if (round.stage === 'resolved') return;
-    const mult = round.phase === 'suddenDeath' ? FINAL_MULTIPLIER : 1;
+    const mods = round.mods || {};
+    const mult = (round.phase === 'suddenDeath' ? FINAL_MULTIPLIER : 1) * (mods.double ? 2 : 1);
     const final = Object.fromEntries(Object.entries(points).filter(([, n]) => n > 0).map(([uid, n]) => [uid, n * mult]));
+    // Underdog-Woche: der Letzte bekommt 1 Trostpunkt
+    if (mods.consolation && ranks) {
+      const n = round.participants.length;
+      const valid = Object.values(ranks).filter((r) => r <= n);
+      const worst = valid.length ? Math.max(...valid) : null;
+      if (worst && worst > 1) for (const [uid, r] of Object.entries(ranks)) if (r === worst && !final[uid]) final[uid] = 1;
+    }
     const ids = new Set([...Object.keys(final), ...Object.keys(stats)]);
     for (const uid of ids) {
       const patch = {};

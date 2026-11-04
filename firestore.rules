@@ -34,6 +34,23 @@ service cloud.firestore {
 
     // Universelle Spiel-Statistik (ein Dokument pro Tag): jeder darf lesen und
     // genau einen Zähler um 1 erhöhen – sonst nichts.
+    // Crew-Bilanz (ewige Tabelle, Rekorde, Abzeichen) – ohne Anmeldung, über die Spielernamen.
+    // Schreibt der Host einer Party; nur die bekannten Felder, keine Löschungen.
+    match /crews/{crewId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['names', 'parties', 'wins', 'h2h', 'streak', 'history', 'totals', 'badges', 'records', 'updatedAt'])
+        && request.resource.data.parties is int && request.resource.data.parties >= 0;
+    }
+
+    // Wochen-Bestenlisten je Spiel (Top 5) über alle Partys
+    match /weekRecords/{week} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['key', 'games'])
+        && request.resource.data.key == week;
+    }
+
     match /gameStats/{day} {
       allow read: if signedIn();
       allow create: if signedIn()

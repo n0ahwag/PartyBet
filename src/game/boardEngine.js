@@ -4,6 +4,7 @@ import {
 import { db, expiry } from '../firebase.js';
 import { GAMES, groupPlayable, chooseNextGame } from './gameLibrary.js';
 import { cycleIds, rememberPlayed } from '../lib/playCycle.js';
+import { roundMods, introMs } from './weekly.js';
 import { applyRound, boardPhase, CHAOS_PENALTY } from './board.js';
 import { triggerLiveEvent } from './engine.js';
 import { makeRng } from '../lib/random.js';
@@ -48,7 +49,7 @@ export async function startChallenge(code) {
 
     const playable = groupPlayable(room.library || [], players);
     // Jedes Spiel erst wieder, wenn alle einmal dran waren (auch partyübergreifend), Kategorien gemischt
-    const pick = chooseNextGame({ playable, played: room.playedGames || [], cycle: cycleIds('board'), lastGameId: room.lastGameId, seed, counts });
+    const pick = chooseNextGame({ playable, played: room.playedGames || [], cycle: cycleIds('board'), lastGameId: room.lastGameId, seed, counts, featured: room.week?.game });
     const { game } = pick;
     if (!game) throw new Error('Keine Gruppen-Spiele für diese Runde verfügbar.');
     chosen = pick;
@@ -65,7 +66,8 @@ export async function startChallenge(code) {
       playerB: null,
       sabotage: null,
       stage: 'intro',
-      introEndsAt: Date.now() + BOARD_INTRO_MS, // Regeln lesen, dann startet die Challenge von selbst
+      introEndsAt: Date.now() + introMs(room.week, BOARD_INTRO_MS), // Regeln lesen, dann startet die Challenge von selbst
+      mods: roundMods(room.week, round, game.id), // Spiel der Woche / Wochen-Regel
       results: {},
       ranks: null,
       rolls: {}, // Spieler tippen zum Würfeln (der Reihe nach): rolls[uid] = true (Wert: diceFor)
@@ -132,7 +134,7 @@ export async function movePlayer(code, id, uid) {
     const challenges = { [uid]: (r && typeof r === 'object' && r.ch) || {} };
     const result = applyRound({
       players, ranks: round.ranks, fields: room.board.fields, seed: `${code}:${id}`, challenges,
-      cleared: room.board.cleared || [], n: round.participants.length, only: uid,
+      cleared: room.board.cleared || [], n: round.participants.length, only: uid, mods: round.mods || {},
     });
     const move = result.moves[uid];
     if (!move) return;

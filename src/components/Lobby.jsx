@@ -1,5 +1,6 @@
 import { EQUIPMENT } from '../game/constants.js';
 import { AdSlot } from './AdSlot.jsx';
+import { WeekCard } from './CrewPanel.jsx';
 import { GameArt } from './GameArt.jsx';
 import { GAMES } from '../game/gameLibrary.js';
 import { startGame, updateLobby, kickPlayer } from '../game/engine.js';
@@ -85,11 +86,14 @@ export function Lobby({ code, room, players, meId, isHost, run, busy, big }) {
     </div>
   );
 
+  // Spiel der Woche & Wochen-Regel (nicht im Party-Modus mit Schlücken)
+  const weekCard = room.gameMode !== 'party' && <WeekCard week={room.week} compact={!big} />;
+
   if (big) {
     return (
       <div className="host-grid">
         <div className="stack">{codeCard}{settings}</div>
-        <div className="stack">{boardCard}{playerList}{actions}</div>
+        <div className="stack">{weekCard}{boardCard}{playerList}{actions}</div>
       </div>
     );
   }
@@ -99,6 +103,7 @@ export function Lobby({ code, room, players, meId, isHost, run, busy, big }) {
       {codeCard}
       {playerList}
       {actions}
+      {weekCard}
       {settings}
       {boardCard}
       {!isHost && <AdSlot />}

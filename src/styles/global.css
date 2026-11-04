@@ -558,3 +558,25 @@ html.no-page-scroll, html.no-page-scroll body { overflow: hidden; height: 100%; 
   .board-stage { grid-template-columns: 1fr; grid-template-rows: 55vh auto; height: auto; }
   html.no-page-scroll, html.no-page-scroll body { overflow: auto; height: auto; }
 }
+
+/* ---------- Crew, Rekorde, Spiel der Woche ---------- */
+.wrapped .body { overflow-y: auto; justify-content: safe center; padding-bottom: 8px; }
+.crew-panel { gap: 8px; padding: 14px; border-radius: 20px; background: rgba(255, 255, 255, 0.94); color: #141e30; text-align: left; }
+.crew-row { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 12px; background: #f4f1ea; }
+.crew-row.me { outline: 2px solid #6366f1; }
+.crew-pos { width: 28px; text-align: center; font-weight: 900; }
+.crew-wins { font-weight: 900; min-width: 64px; text-align: right; }
+.crew-hook { font-weight: 800; font-size: 15px; padding: 8px 10px; border-radius: 12px; background: linear-gradient(90deg, #fef3c7, #fde68a); }
+.crew-new { text-align: center; padding: 10px; border-radius: 14px; background: linear-gradient(135deg, #ede9fe, #fbcfe8); display: grid; gap: 6px; }
+.badge-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; background: #eef2ff; font-size: 13px; font-weight: 800; }
+.badge-chip.big { font-size: 17px; padding: 6px 12px; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); }
+.rematch-btn { background: linear-gradient(90deg, #f59e0b, #ef4444); color: #fff; font-size: 20px; font-weight: 900; padding: 16px; border: none; box-shadow: 0 8px 24px rgba(239, 68, 68, 0.45); animation: buzz-pulse 1.6s ease-in-out infinite; }
+.record-flash { text-align: center; font-size: 26px; font-weight: 900; padding: 14px; border-radius: 18px; color: #fff; background: linear-gradient(90deg, #f97316, #ef4444); box-shadow: 0 10px 30px rgba(239, 68, 68, 0.35); }
+.record-flash.gold { background: linear-gradient(90deg, #f59e0b, #eab308); }
+.record-line { font-weight: 800; padding: 8px 12px; border-radius: 12px; background: #fff7ed; }
+.week-board { gap: 6px; display: grid; }
+.week-row { padding: 4px 0; border-bottom: 1px solid var(--line); }
+.week-row.fresh { color: #c2410c; }
+.week-card { gap: 4px; display: grid; border: 2px solid #fbbf24; background: linear-gradient(135deg, #fffbeb, var(--card)); }
+.week-card.compact { padding: 12px 14px; }
+.mod-banner { display: grid; gap: 4px; text-align: center; border: 2px solid #f59e0b; background: #fffbeb; }
